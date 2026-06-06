@@ -637,8 +637,8 @@ function OnboardingWizard({ go }) {
 
       {/* Right form area */}
       <div className="grow col" style={{ background: '#fff', minWidth: 0 }}>
-        <div className="scroll grow" style={{ padding: '44px 56px 24px' }}>
-          <div style={{ maxWidth: 560, animation: 'rise .35s both' }} key={step}>
+        <div className="scroll grow" style={{ padding: '44px 56px 24px', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: '100%', maxWidth: 560, animation: 'rise .35s both' }} key={step}>
             {/* Step header */}
             <div className="row" style={{ gap: 14, marginBottom: 28 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--g-50)', border: '1px solid var(--g-100)', display: 'grid', placeItems: 'center', flex: 'none' }}>
