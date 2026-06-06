@@ -465,6 +465,9 @@ function Signup({ go }) {
       />
       <div className="grow scroll" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
         <div style={{ width: 400, maxWidth: '100%' }}>
+          <button className="row" onClick={() => go('splash')} style={{ gap: 8, color: 'var(--muted)', fontWeight: 700, fontSize: 14, marginBottom: 22 }}>
+            <Icon name="arrowLeft" size={17} /> Back to landing
+          </button>
           <h2 className="display" style={{ fontSize: 30 }}>Create your account</h2>
           <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Let's build your autonomous pipeline.</p>
           <button className="btn btn-ghost btn-block" style={{ marginTop: 24 }}>
