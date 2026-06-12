@@ -1219,7 +1219,7 @@ function AgentWorkspace() {
   };
 
   return (
-    <div className="row" style={{ height: '100%', minHeight: 0 }}>
+    <div className="row" style={{ flex: 1, minHeight: 0, alignItems: 'stretch', overflow: 'hidden' }}>
       <div className="grow col" style={{ minWidth: 0 }}>
         <div className="row spread" style={{ padding: '16px 24px 12px', flex: 'none', borderBottom: '1px solid var(--line)' }}>
           <div className="row" style={{ gap: 12 }}>
@@ -1391,7 +1391,7 @@ function Prospects() {
     (p.n.toLowerCase().includes(search.toLowerCase()) || p.c.toLowerCase().includes(search.toLowerCase()))
   );
   return (
-    <div className="col" style={{ height: '100%', minHeight: 0 }}>
+    <div className="col" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
       {/* Toolbar */}
       <div className="row spread" style={{ padding: '16px 24px', borderBottom: '1px solid var(--line)', flex: 'none', background: '#fff', gap: 12 }}>
         <div>
@@ -1570,7 +1570,7 @@ const STATUS_STYLES = {
 
 function Campaigns() {
   return (
-    <div className="col" style={{ height: '100%', minHeight: 0 }}>
+    <div className="col" style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <div className="row spread" style={{ padding: '16px 24px', borderBottom: '1px solid var(--line)', flex: 'none', background: '#fff' }}>
         <div>
           <h1 className="display" style={{ fontSize: 22 }}>Campaigns</h1>
@@ -1639,19 +1639,23 @@ const THREADS = [
 
 function Inbox() {
   const [sel, setSel] = useStateSA(0);
-  const th = THREADS[sel];
+  const [filter, setFilter] = useStateSA('a');
+  const visible = filter === 'h' ? THREADS.filter(t => t.hot) : THREADS;
+  const th = THREADS[sel] || THREADS[0];
   return (
-    <div className="row" style={{ height: '100%', minHeight: 0 }}>
+    <div className="row" style={{ flex: 1, minHeight: 0, alignItems: 'stretch', overflow: 'hidden' }}>
       <div className="scroll" style={{ width: 340, flex: 'none', borderRight: '1px solid var(--line)', background: '#fff' }}>
         <div className="row spread" style={{ padding: '16px 18px 12px' }}>
           <h1 className="display" style={{ fontSize: 20 }}>Inbox</h1>
-          <Segmented options={[{ label: 'All', value: 'a' }, { label: 'Hot', value: 'h' }]} value="a" onChange={() => {}} />
+          <Segmented options={[{ label: 'All', value: 'a' }, { label: 'Hot', value: 'h' }]} value={filter} onChange={v => { setFilter(v); setSel(0); }} />
         </div>
-        {THREADS.map((t, i) => (
-          <button key={i} onClick={() => setSel(i)} style={{
+        {visible.map((t, i) => {
+          const globalIdx = THREADS.indexOf(t);
+          return (
+          <button key={globalIdx} onClick={() => setSel(globalIdx)} style={{
             display: 'block', width: '100%', textAlign: 'left', padding: '13px 18px',
-            borderBottom: '1px solid var(--line-2)', borderLeft: '3px solid ' + (sel === i ? 'var(--g-500)' : 'transparent'),
-            background: sel === i ? 'var(--g-50)' : '#fff', transition: 'all .12s',
+            borderBottom: '1px solid var(--line-2)', borderLeft: '3px solid ' + (sel === globalIdx ? 'var(--g-500)' : 'transparent'),
+            background: sel === globalIdx ? 'var(--g-50)' : '#fff', transition: 'all .12s',
           }}>
             <div className="row spread">
               <div className="row" style={{ gap: 9 }}>
@@ -1669,7 +1673,8 @@ function Inbox() {
             <div className="muted" style={{ fontSize: 12.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.prev}</div>
             <span className="badge" style={{ marginTop: 7, background: 'var(--bg-2)', color: 'var(--ink-2)' }}>{t.tag}</span>
           </button>
-        ))}
+          );
+        })}
       </div>
       <div className="grow col" style={{ minWidth: 0, background: 'var(--bg)' }}>
         <div className="row spread" style={{ padding: '16px 24px', borderBottom: '1px solid var(--line)', background: '#fff', flex: 'none' }}>
@@ -1917,12 +1922,11 @@ function Billing() {
     { name: 'Scale', price: annual ? 399 : 479, desc: 'For high-velocity teams', feats: ['20 seats', 'Unlimited emails', 'Priority intent data', 'All channels incl. SMS', 'Custom AI training', 'Dedicated CSM'] },
   ];
   return (
-    <div className="scroll grow" style={{ padding: '18px 24px', minHeight: 0 }}>
-      <div style={{ maxWidth: 860, margin: '0 auto' }}>
-        <div className="row spread" style={{ marginBottom: 24 }}>
+    <div className="scroll grow" style={{ padding: '24px 32px', minHeight: 0 }}>
+        <div className="row spread" style={{ marginBottom: 28 }}>
           <div>
-            <h1 className="display" style={{ fontSize: 22 }}>Billing & plan</h1>
-            <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>You're on the <b style={{ color: 'var(--g-700)' }}>Growth plan</b> · renews Jul 5, 2026</p>
+            <h1 className="display" style={{ fontSize: 24 }}>Billing & plan</h1>
+            <p className="muted" style={{ fontSize: 13.5, marginTop: 3 }}>You're on the <b style={{ color: 'var(--g-700)' }}>Growth plan</b> · renews Jul 5, 2026</p>
           </div>
           <div className="row" style={{ gap: 10, alignItems: 'center' }}>
             <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>Monthly</span>
@@ -1933,16 +1937,16 @@ function Billing() {
           </div>
         </div>
         {/* Usage */}
-        <div className="card" style={{ padding: 18, marginBottom: 22 }}>
-          <div style={{ fontWeight: 800, fontSize: 14.5, marginBottom: 14 }}>Current usage</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 18 }}>
+        <div className="card" style={{ padding: 24, marginBottom: 28 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Current usage</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
             {[{ k: 'Emails sent this month', v: 584, max: 6000, unit: '' }, { k: 'Seats used', v: 3, max: 5, unit: '' }, { k: 'Active campaigns', v: 2, max: 'Unlimited', unit: '' }].map(u => (
               <div key={u.k}>
-                <div className="row spread" style={{ marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-2)' }}>{u.k}</span>
-                  <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--g-700)' }}>{u.v}{u.max !== 'Unlimited' ? ` / ${u.max}` : ' / ∞'}</span>
+                <div className="row spread" style={{ marginBottom: 10 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)' }}>{u.k}</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{u.v}{u.max !== 'Unlimited' ? ` / ${u.max}` : ' / ∞'}</span>
                 </div>
-                <div style={{ height: 8, background: 'var(--bg-2)', borderRadius: 99 }}>
+                <div style={{ height: 9, background: 'var(--bg-2)', borderRadius: 99 }}>
                   <div style={{ height: '100%', width: (u.max !== 'Unlimited' ? (u.v / u.max) * 100 : 10) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
                 </div>
               </div>
@@ -1950,31 +1954,30 @@ function Billing() {
           </div>
         </div>
         {/* Plans */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
           {plans.map(p => (
-            <div key={p.name} className="card" style={{ padding: 22, border: p.current ? '2px solid var(--g-400)' : '1px solid var(--line)', position: 'relative', overflow: 'hidden' }}>
-              {p.current && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--g-500)', color: '#06231a', fontSize: 11, fontWeight: 800, padding: '4px 12px', borderBottomLeftRadius: 10 }}>Current plan</div>}
-              <div className="display" style={{ fontSize: 22 }}>{p.name}</div>
-              <div style={{ marginTop: 8 }}>
-                <span className="display" style={{ fontSize: 36 }}>${p.price}</span>
-                <span className="muted" style={{ fontSize: 13, marginLeft: 4 }}>/mo</span>
+            <div key={p.name} className="card" style={{ padding: 32, border: p.current ? '2px solid var(--g-400)' : '1px solid var(--line)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              {p.current && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--g-500)', color: '#06231a', fontSize: 11.5, fontWeight: 800, padding: '5px 14px', borderBottomLeftRadius: 10 }}>Current plan</div>}
+              <div className="display" style={{ fontSize: 26 }}>{p.name}</div>
+              <div style={{ marginTop: 10 }}>
+                <span className="display" style={{ fontSize: 48 }}>${p.price}</span>
+                <span className="muted" style={{ fontSize: 14, marginLeft: 5 }}>/mo</span>
               </div>
-              <p className="muted" style={{ fontSize: 13, marginTop: 6, marginBottom: 16 }}>{p.desc}</p>
-              <div className="col" style={{ gap: 8, marginBottom: 18 }}>
+              <p className="muted" style={{ fontSize: 14, marginTop: 8, marginBottom: 22 }}>{p.desc}</p>
+              <div className="col" style={{ gap: 11, marginBottom: 24, flex: 1 }}>
                 {p.feats.map(f => (
-                  <div key={f} className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                    <Icon name="check" size={14} color="var(--g-500)" stroke={2.5} style={{ marginTop: 2, flex: 'none' }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>{f}</span>
+                  <div key={f} className="row" style={{ gap: 9, alignItems: 'flex-start' }}>
+                    <Icon name="check" size={15} color="var(--g-500)" stroke={2.5} style={{ marginTop: 2, flex: 'none' }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>{f}</span>
                   </div>
                 ))}
               </div>
-              <button className={'btn btn-block ' + (p.current ? 'btn-ghost' : 'btn-primary')} style={{ fontSize: 14 }}>
+              <button className={'btn btn-block ' + (p.current ? 'btn-ghost' : 'btn-primary')} style={{ fontSize: 15, height: 48 }}>
                 {p.current ? 'Current plan' : 'Upgrade'}
               </button>
             </div>
           ))}
         </div>
-      </div>
     </div>
   );
 }
