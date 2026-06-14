@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 const useStateS = useState;
 const useRefS = useRef;
@@ -2727,20 +2728,31 @@ function ScreenJumper({ current, go }) {
   );
 }
 
+const PATH_TO_SCREEN = {
+  "/": "splash",
+  "/login": "login",
+  "/signup": "signup",
+  "/forgot": "forgot",
+  "/onboarding": "onboarding",
+  "/celebrate": "celebrate",
+  "/dashboard": "dashboard",
+  "/agent": "agent",
+  "/prospects": "prospects",
+  "/pipeline": "pipeline",
+  "/campaigns": "campaigns",
+  "/inbox": "inbox",
+  "/meetings": "meetings",
+  "/analytics": "analytics",
+  "/billing": "billing",
+  "/settings": "settings",
+};
+
 export default function GlobonexoPrototype() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-  const [screen, setScreen] = useState("splash");
 
-  useEffect(() => {
-    const stored = window.localStorage.getItem("gx_screen") || "splash";
-    const normalized = stored === "app" ? "dashboard" : stored;
-    const all = [...AUTH_SCREENS, ...ONB_SCREENS, ...APP_TABS];
-    setScreen(all.includes(normalized) ? normalized : "splash");
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem("gx_screen", screen);
-  }, [screen]);
+  const screen = PATH_TO_SCREEN[pathname] || "splash";
 
   useEffect(() => {
     window.__agentName = t.agentName || "Nexo";
@@ -2764,7 +2776,7 @@ export default function GlobonexoPrototype() {
     });
   }, [t.accent, t.auroraIntensity, t.radius]);
 
-  const go = (value) => setScreen(value);
+  const go = (value) => router.push(`/${value}`);
   const isApp = APP_TABS.includes(screen);
 
   let view = null;
