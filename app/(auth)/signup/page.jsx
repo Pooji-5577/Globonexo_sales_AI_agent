@@ -1,12 +1,22 @@
+import { AuthAside } from "../../../components/layout/AuthAside";
+import { SignupForm } from "../../../components/auth/SignupForm";
+
 export const metadata = {
   title: "Create account — Globonexo Sales AI",
 };
 
 export default function SignupPage() {
   return (
-    <div>
-      <h1>Create account</h1>
-      <p>TODO: migrate SignupForm from GlobonexoPrototype.jsx</p>
+    <div className="screen" style={{ flexDirection: 'row' }}>
+      <AuthAside
+        kicker="Start free"
+        headline="Hire your AI sales rep in 5 minutes."
+        sub="No credit card. Connect your inbox and the agent starts prospecting the same day."
+        bullets={['14-day free trial, full access', '2-minute inbox & CRM connect', 'Cancel anytime']}
+      />
+      <div className="grow scroll" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
+        <SignupForm />
+      </div>
     </div>
   );
 }
