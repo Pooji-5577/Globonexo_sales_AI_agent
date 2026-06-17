@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Logo from "../components/ui/Logo";
 import Aurora from "../components/ui/Aurora";
 import Avatar from "../components/ui/Avatar";
@@ -42,7 +43,7 @@ export default function LandingPage() {
               <button onClick={() => scrollTo('product')}>Product</button>
               <button onClick={() => scrollTo('how-it-works')}>How it works</button>
               <button onClick={() => scrollTo('results')}>Results</button>
-              <button onClick={() => scrollTo('pricing')}>Pricing</button>
+              <Link href="/pricing">Pricing</Link>
             </div>
             <div className="landing-nav-actions">
               <button className="landing-signin" onClick={() => router.push('/login')}>Sign in</button>
@@ -155,14 +156,17 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="pricing" className="landing-cta landing-section">
+        <section className="landing-cta landing-section">
           <div>
             <h2 className="display">Start your free trial</h2>
             <p>Hire your AI sales rep in five minutes. No credit card required.</p>
           </div>
-          <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
-            Start free trial <Icon name="arrow" size={18} color="#06231a" />
-          </button>
+          <div className="landing-cta-actions">
+            <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
+              Start free trial <Icon name="arrow" size={18} color="#06231a" />
+            </button>
+            <Link className="landing-outline-btn" href="/pricing">View pricing</Link>
+          </div>
         </section>
 
         <footer className="landing-footer landing-section">
@@ -171,7 +175,9 @@ export default function LandingPage() {
             <button onClick={() => scrollTo('product')}>Product</button>
             <button onClick={() => scrollTo('how-it-works')}>How it works</button>
             <button onClick={() => scrollTo('results')}>Results</button>
-            <button onClick={() => scrollTo('pricing')}>Pricing</button>
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/privacy">Privacy</Link>
           </div>
           <span>© 2026 Globonexo, Inc.</span>
         </footer>
