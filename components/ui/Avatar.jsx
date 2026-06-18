@@ -1,8 +1,5 @@
-"use client";
-import React from "react";
-
-export default function Avatar({ name = '', size = 38, src, ring }) {
-  const initials = name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+export function Avatar({ name = '', size = 38, src, ring }) {
+  const initials = name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const hues = ['#00c27a', '#15c4c0', '#7c8bf0', '#f0a93c', '#ef6f8e'];
   const hue = hues[(name.charCodeAt(0) || 0) % hues.length];
   return (
@@ -18,3 +15,5 @@ export default function Avatar({ name = '', size = 38, src, ring }) {
     </div>
   );
 }
+
+export default Avatar;

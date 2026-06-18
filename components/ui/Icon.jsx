@@ -1,7 +1,4 @@
-"use client";
-import React from "react";
-
-export default function Icon({ name, size = 22, stroke = 1.8, color = 'currentColor', fill = 'none', style }) {
+export function Icon({ name, size = 22, stroke = 1.8, color = 'currentColor', fill = 'none', style }) {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill, stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round', style };
   const paths = {
     spark: <><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="M12 8a4 4 0 0 0 4 4 4 4 0 0 0-4 4 4 4 0 0 0-4-4 4 4 0 0 0 4-4Z"/></>,
@@ -44,3 +41,5 @@ export default function Icon({ name, size = 22, stroke = 1.8, color = 'currentCo
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
+
+export default Icon;

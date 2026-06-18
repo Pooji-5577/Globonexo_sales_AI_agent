@@ -1,11 +1,9 @@
-"use client";
-import React from "react";
-import Logo from "../ui/Logo";
-import Aurora from "../ui/Aurora";
-import Avatar from "../ui/Avatar";
-import Icon from "../ui/Icon";
+import { Aurora } from '../ui/Aurora';
+import { Logo } from '../ui/Logo';
+import { Icon } from '../ui/Icon';
+import { Avatar } from '../ui/Avatar';
 
-export default function AuthAside({ kicker, headline, sub, bullets }) {
+export function AuthAside({ kicker, headline, sub, bullets }) {
   return (
     <div style={{
       position: 'relative', width: 420, flex: 'none', overflow: 'hidden',

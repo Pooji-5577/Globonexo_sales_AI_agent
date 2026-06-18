@@ -1,7 +1,4 @@
-"use client";
-import React from "react";
-
-export default function Logo({ size = 34, showWord = true, light = false }) {
+export function Logo({ size = 34, showWord = true, light = false }) {
   return (
     <div className="row" style={{ gap: 11, alignItems: 'center' }}>
       <div style={{ width: size, height: size, position: 'relative', flex: 'none' }}>
@@ -26,3 +23,5 @@ export default function Logo({ size = 34, showWord = true, light = false }) {
     </div>
   );
 }
+
+export default Logo;
