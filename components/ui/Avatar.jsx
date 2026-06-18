@@ -15,3 +15,5 @@ export function Avatar({ name = '', size = 38, src, ring }) {
     </div>
   );
 }
+
+export default Avatar;
