@@ -1,9 +1,8 @@
-'use client';
+"use client";
+import React, { useState } from "react";
+import Icon from "./Icon";
 
-import { useState } from 'react';
-import { Icon } from './Icon';
-
-export function Field({ label, icon, type = 'text', placeholder, value, onChange, toggle, hint, name, required, autoComplete }) {
+export default function Field({ label, icon, type = 'text', placeholder, value, onChange, toggle, hint }) {
   const [show, setShow] = useState(false);
   const realType = toggle ? (show ? 'text' : 'password') : type;
   return (
@@ -14,15 +13,12 @@ export function Field({ label, icon, type = 'text', placeholder, value, onChange
         <input
           className={'input' + (icon ? ' has-ico' : '')}
           type={realType}
-          name={name}
           placeholder={placeholder}
           value={value}
           onChange={onChange}
-          required={required}
-          autoComplete={autoComplete}
         />
         {toggle && (
-          <button className="trail" type="button" onClick={() => setShow((s) => !s)} aria-label="toggle password">
+          <button className="trail" type="button" onClick={() => setShow(s => !s)} aria-label="toggle password">
             <Icon name={show ? 'eyeoff' : 'eye'} size={19} />
           </button>
         )}
@@ -31,5 +27,3 @@ export function Field({ label, icon, type = 'text', placeholder, value, onChange
     </div>
   );
 }
-
-export default Field;

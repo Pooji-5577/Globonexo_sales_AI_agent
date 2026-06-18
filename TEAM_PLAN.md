@@ -204,9 +204,9 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Build Settings frontend page (tone, send cap, auto-approve toggle).
 
 **Poojitha — Landing + Marketing**
-- [ ] Extract pricing section into `/pricing` page.
-- [ ] Create `/terms` and `/privacy` pages.
-- [ ] Polish landing page CTA links.
+- [x] Extract pricing section into `/pricing` page.
+- [x] Create `/terms` and `/privacy` pages.
+- [x] Polish landing page CTA links.
 
 **Simha Teja**
 - [ ] Review settings + landing PRs.
