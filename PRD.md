@@ -142,10 +142,10 @@ Ship a **publicly launchable v0.1** on **July 20, 2026** that supports:
 
 ### 6.1 Marketing Site
 
-- [ ] Landing page with hero, how it works, results, pricing, CTA.
-- [ ] Pricing page with 3 plans.
-- [ ] Sign up / log in links.
-- [ ] Terms of Service and Privacy Policy pages.
+- [x] Landing page with hero, how it works, results, pricing, CTA.
+- [x] Pricing page with 3 plans.
+- [x] Sign up / log in links.
+- [x] Terms of Service and Privacy Policy pages.
 
 ### 6.2 Authentication
 

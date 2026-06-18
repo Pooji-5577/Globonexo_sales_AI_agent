@@ -41,3 +41,5 @@ export function Icon({ name, size = 22, stroke = 1.8, color = 'currentColor', fi
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }
+
+export default Icon;

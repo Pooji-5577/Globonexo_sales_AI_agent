@@ -23,3 +23,5 @@ export function Logo({ size = 34, showWord = true, light = false }) {
     </div>
   );
 }
+
+export default Logo;

@@ -5,3 +5,5 @@ export function Aurora() {
     </div>
   );
 }
+
+export default Aurora;
