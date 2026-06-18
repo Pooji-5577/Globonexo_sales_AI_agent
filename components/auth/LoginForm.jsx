@@ -32,7 +32,12 @@ export function LoginForm() {
     <div style={{ width: 380, maxWidth: '100%' }}>
       <h2 className="display" style={{ fontSize: 30 }}>Sign in</h2>
       <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Welcome back. Let&apos;s get to work.</p>
-      <button type="button" className="btn btn-ghost btn-block" style={{ marginTop: 26 }} disabled title="Coming soon">
+      <button
+        type="button"
+        className="btn btn-ghost btn-block"
+        style={{ marginTop: 26 }}
+        onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`; }}
+      >
         <Icon name="google" size={19} /> Continue with Google
       </button>
       <div className="row center" style={{ gap: 14, margin: '20px 0' }}>
