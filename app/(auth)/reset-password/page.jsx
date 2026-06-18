@@ -1,21 +1,21 @@
 import { AuthAside } from "../../../components/layout/AuthAside";
-import { ForgotPasswordForm } from "../../../components/auth/ForgotPasswordForm";
+import { ResetPasswordForm } from "../../../components/auth/ResetPasswordForm";
 
 export const metadata = {
-  title: "Reset password — Globonexo Sales AI",
+  title: "Set a new password — Globonexo Sales AI",
 };
 
-export default function ForgotPasswordPage() {
+export default function ResetPasswordPage() {
   return (
     <div className="screen" style={{ flexDirection: 'row' }}>
       <AuthAside
         kicker="Account recovery"
-        headline="Let's get you back in."
-        sub="We'll email a secure link to reset your password. Expires in 15 minutes."
+        headline="Almost there."
+        sub="Choose a new password to get back into your account."
         bullets={['Encrypted reset link', 'No password shown to support', 'Back in under a minute']}
       />
       <div className="grow" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
-        <ForgotPasswordForm />
+        <ResetPasswordForm />
       </div>
     </div>
   );

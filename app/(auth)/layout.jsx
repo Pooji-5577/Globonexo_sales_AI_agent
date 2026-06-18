@@ -4,7 +4,7 @@ export const metadata = {
 
 export default function AuthLayout({ children }) {
   return (
-    <div className="auth-layout">
+    <div className="frame">
       {children}
     </div>
   );
