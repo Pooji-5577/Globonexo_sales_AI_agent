@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   '/pricing',
   '/terms',
   '/privacy',
+  '/callback',
 ];
 
 const AUTH_ONLY_PATHS = ['/login', '/signup'];
