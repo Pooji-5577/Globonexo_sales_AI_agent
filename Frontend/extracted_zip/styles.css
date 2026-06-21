@@ -1,0 +1,273 @@
+/* ============================================================
+   Globonexo Sales AI — Design Tokens & Base
+   Theme: White + Aurora Green
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---- Aurora green scale ---- */
+  --g-50:  #ecfdf3;
+  --g-100: #d3f8e0;
+  --g-200: #a8f0c6;
+  --g-300: #6fe7b0;
+  --g-400: #29d68f;
+  --g-500: #00c27a;   /* primary */
+  --g-600: #00a86a;
+  --g-700: #088256;
+  --g-800: #0a5d3f;
+  --g-900: #0a3d2b;
+
+  --teal:  #15c4c0;
+  --lime:  #8df27a;
+  --violet:#7c8bf0;   /* faint aurora cool tint, used sparingly */
+
+  /* ---- Neutrals (green-tinted) ---- */
+  --ink:    #0a1712;
+  --ink-2:  #2c3b33;
+  --muted:  #69786f;
+  --faint:  #9aa8a0;
+  --line:   #e7ede9;
+  --line-2: #f0f4f1;
+  --surface:#ffffff;
+  --bg:     #f6faf8;
+  --bg-2:   #eef5f1;
+
+  /* ---- Semantic ---- */
+  --primary: var(--g-500);
+  --ring: rgba(0, 194, 122, 0.28);
+
+  /* ---- Aurora intensity (driven by Tweaks) ---- */
+  --aurora-opacity: 1;
+
+  /* ---- Type ---- */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+
+  /* ---- Radius ---- */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* ---- Shadow ---- */
+  --sh-xs: 0 1px 2px rgba(10,23,18,.05);
+  --sh-sm: 0 2px 8px rgba(10,23,18,.06), 0 1px 2px rgba(10,23,18,.04);
+  --sh-md: 0 10px 30px rgba(10,23,18,.08), 0 2px 8px rgba(10,23,18,.05);
+  --sh-lg: 0 24px 60px rgba(10,23,18,.12), 0 8px 24px rgba(10,23,18,.06);
+  --sh-green: 0 12px 32px rgba(0,168,106,.28);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+#root { height: 100%; }
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+::selection { background: var(--g-200); color: var(--ink); }
+
+/* ============================================================
+   App stage — centers the device/desktop frame
+   ============================================================ */
+.stage {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.frame {
+  width: 100%;
+  height: 100%;
+  background: var(--surface);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* screen mount fills the frame */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  animation: screen-in .42s cubic-bezier(.2,.7,.2,1) both;
+}
+@keyframes screen-in {
+  from { transform: translateY(8px) scale(.994); }
+  to   { transform: none; }
+}
+
+/* ============================================================
+   Aurora backdrop
+   ============================================================ */
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--aurora-opacity);
+}
+.aurora span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: .9;
+  will-change: transform;
+}
+.aurora .a1 {
+  width: 540px; height: 540px;
+  background: radial-gradient(circle at 30% 30%, var(--g-300), transparent 70%);
+  top: -180px; left: -120px;
+  animation: drift1 16s ease-in-out infinite alternate;
+}
+.aurora .a2 {
+  width: 460px; height: 460px;
+  background: radial-gradient(circle at 50% 50%, var(--teal), transparent 70%);
+  bottom: -160px; right: -80px;
+  animation: drift2 19s ease-in-out infinite alternate;
+}
+.aurora .a3 {
+  width: 380px; height: 380px;
+  background: radial-gradient(circle at 50% 50%, var(--lime), transparent 70%);
+  top: 40%; left: 50%;
+  opacity: .5;
+  animation: drift3 22s ease-in-out infinite alternate;
+}
+@keyframes drift1 { to { transform: translate(80px, 60px) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(-70px, -50px) scale(1.1); } }
+@keyframes drift3 { to { transform: translate(-120px, 40px) scale(1.2); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora span { animation: none !important; }
+  .screen { animation: none !important; }
+}
+
+/* ============================================================
+   Typography helpers
+   ============================================================ */
+.display { font-family: var(--font-display); font-weight: 600; letter-spacing: -.02em; line-height: 1.04; }
+.eyebrow {
+  font-family: var(--font-body);
+  font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--g-700); white-space: nowrap;
+}
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+.nw { white-space: nowrap; }
+.ellip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+  height: 48px; padding: 0 22px;
+  border-radius: var(--r-pill);
+  font-weight: 700; font-size: 15px;
+  transition: transform .12s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .15s ease;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  background: linear-gradient(180deg, var(--g-400), var(--g-500));
+  color: #06231a;
+  box-shadow: var(--sh-green);
+}
+.btn-primary:hover { box-shadow: 0 16px 40px rgba(0,168,106,.36); filter: brightness(1.03); }
+.btn-ghost {
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: var(--sh-xs);
+}
+.btn-ghost:hover { border-color: var(--g-300); background: var(--g-50); }
+.btn-dark {
+  background: var(--ink); color: #fff;
+}
+.btn-dark:hover { background: #14271e; }
+.btn-block { width: 100%; }
+.btn-sm { height: 40px; padding: 0 16px; font-size: 14px; }
+.btn-lg { height: 54px; padding: 0 28px; font-size: 16px; }
+
+/* ============================================================
+   Inputs
+   ============================================================ */
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field label { font-size: 13px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-wrap .lead-ico { position: absolute; left: 15px; color: var(--faint); display: flex; }
+.input-wrap .trail { position: absolute; right: 12px; color: var(--faint); display:flex; }
+.input {
+  width: 100%;
+  height: 50px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  background: #fff;
+  padding: 0 16px;
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s;
+}
+.input.has-ico { padding-left: 44px; }
+.input::placeholder { color: var(--faint); font-weight: 500; }
+.input:focus { outline: none; border-color: var(--g-400); box-shadow: 0 0 0 4px var(--ring); background: #fff; }
+
+/* ============================================================
+   Cards / surfaces
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--sh-sm);
+}
+.divider { height: 1px; background: var(--line); border: 0; }
+
+/* chips & badges */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 30px; padding: 0 12px; border-radius: var(--r-pill);
+  font-size: 12.5px; font-weight: 700; white-space: nowrap;
+  background: var(--g-50); color: var(--g-700);
+  border: 1px solid var(--g-100);
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: var(--r-pill);
+  font-size: 11.5px; font-weight: 700; white-space: nowrap;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--g-500); }
+
+/* scrollbars */
+.scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cfdcd4 transparent; }
+.scroll::-webkit-scrollbar { width: 9px; }
+.scroll::-webkit-scrollbar-thumb { background: #d6e1db; border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+.scroll::-webkit-scrollbar-thumb:hover { background: #c0cfc7; background-clip: padding-box; }
+
+/* utility */
+.row { display: flex; align-items: center; }
+.col { display: flex; flex-direction: column; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+.spread { justify-content: space-between; }
+.center { align-items: center; justify-content: center; }
+.grow { flex: 1; }
+.wrap { flex-wrap: wrap; }
+.text-c { text-align: center; }
+
+@keyframes pop { from { transform: scale(.94); } to { transform: none; } }
+@keyframes rise { from { transform: translateY(10px); } to { transform: none; } }
+@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
