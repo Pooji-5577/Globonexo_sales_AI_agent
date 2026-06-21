@@ -1,9 +1,10 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
 import Avatar from "../ui/Avatar";
+import api from "../../lib/api";
 
 const NAV_GROUPS = [
   {
@@ -16,7 +17,7 @@ const NAV_GROUPS = [
   {
     label: 'Sales',
     items: [
-      { id: 'leads', label: 'Leads', ico: 'users' },
+      { id: 'prospects', label: 'Prospects', ico: 'users' },
       { id: 'pipeline', label: 'Pipeline', ico: 'funnel' },
       { id: 'campaigns', label: 'Campaigns', ico: 'send' },
     ]
@@ -24,8 +25,8 @@ const NAV_GROUPS = [
   {
     label: 'Communication',
     items: [
-      { id: 'inbox', label: 'Inbox', ico: 'inbox', badge: 9 },
-      { id: 'meetings', label: 'Meetings', ico: 'calendar', badge: 3 },
+      { id: 'inbox', label: 'Inbox', ico: 'inbox' },
+      { id: 'meetings', label: 'Meetings', ico: 'calendar' },
     ]
   },
   {
@@ -47,6 +48,29 @@ export default function AppShell({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const activeTab = pathname.split('/')[1] || 'dashboard';
+  const [user, setUser] = useState(null);
+  const [org, setOrg] = useState(null);
+
+  useEffect(() => {
+    api.get('/auth/me')
+      .then(res => {
+        setUser(res.data.user);
+        setOrg(res.data.organization);
+      })
+      .catch(() => {});
+  }, []);
+
+  const userName = user
+    ? [user.first_name, user.last_name].filter(Boolean).join(' ') || 'User'
+    : '';
+  const orgName = org?.name || '';
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {}
+    window.location.href = '/login';
+  };
 
   return (
     <div className="screen" style={{ flexDirection: 'row', background: 'var(--bg)' }}>
@@ -72,7 +96,6 @@ export default function AppShell({ children }) {
                   }}>
                     <Icon name={n.ico} size={18} color={active ? 'var(--g-600)' : 'var(--muted)'} />
                     <span className="nw">{n.label}</span>
-                    {n.badge && <span style={{ marginLeft: 'auto', background: 'var(--g-500)', color: '#06231a', fontSize: 11, fontWeight: 800, borderRadius: 99, padding: '1px 7px', lineHeight: '18px' }}>{n.badge}</span>}
                   </button>
                 );
               })}
@@ -80,14 +103,7 @@ export default function AppShell({ children }) {
           ))}
         </nav>
 
-        <div className="card" style={{ marginTop: 8, padding: 12, background: 'linear-gradient(160deg,#06311f,#075a3e)', border: 'none', color: '#fff', flex: 'none' }}>
-          <div className="row" style={{ gap: 8 }}>
-            <span style={{ width: 8, height: 8, borderRadius: 99, background: '#6fe7b0', animation: 'pulse-dot 1.4s infinite', boxShadow: '0 0 7px #6fe7b0', flex: 'none' }} />
-            <span style={{ fontWeight: 800, fontSize: 13 }} className="nw">Agent is working</span>
-          </div>
-          <p style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', marginTop: 5, lineHeight: 1.4 }}>Prospecting Tier-1 · next action 2m</p>
-        </div>
-        <button className="row nw" onClick={() => router.push('/')} style={{ gap: 9, marginTop: 10, padding: '0 6px', height: 36, color: 'var(--muted)', fontWeight: 700, fontSize: 13.5, flex: 'none' }}>
+        <button className="row nw" onClick={handleLogout} style={{ gap: 9, marginTop: 10, padding: '0 6px', height: 36, color: 'var(--muted)', fontWeight: 700, fontSize: 13.5, flex: 'none' }}>
           <Icon name="logout" size={17} /> Log out
         </button>
       </aside>
@@ -101,18 +117,19 @@ export default function AppShell({ children }) {
           <div className="row" style={{ gap: 14 }}>
             <button style={{ position: 'relative', color: 'var(--muted)' }}>
               <Icon name="bell" size={20} />
-              <span style={{ position: 'absolute', top: -2, right: -2, width: 7, height: 7, borderRadius: 99, background: 'var(--g-500)', boxShadow: '0 0 0 2px #fff' }} />
             </button>
-            <div className="row" style={{ gap: 9 }}>
-              <Avatar name="Mara Ito" size={34} />
-              <div className="col" style={{ lineHeight: 1.2 }}>
-                <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">Mara Ito</span>
-                <span className="faint nw" style={{ fontSize: 11.5 }}>Northwind Inc.</span>
+            {userName && (
+              <div className="row" style={{ gap: 9 }}>
+                <Avatar name={userName} size={34} />
+                <div className="col" style={{ lineHeight: 1.2 }}>
+                  <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{userName}</span>
+                  <span className="faint nw" style={{ fontSize: 11.5 }}>{orgName}</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </header>
-        <div className="grow" style={{ minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>{children}</div>
+        <div className="grow" style={{ minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>{children}</div>
       </div>
     </div>
   );

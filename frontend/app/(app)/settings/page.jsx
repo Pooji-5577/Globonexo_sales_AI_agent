@@ -21,6 +21,7 @@ export default function SettingsPage() {
     tone: 'consultative',
     autoApproveReplies: false,
     dailyEmailSendCap: 100,
+    bookingLink: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
@@ -38,6 +39,7 @@ export default function SettingsPage() {
           tone:               data.agentConfig.tone,
           autoApproveReplies: data.agentConfig.autoApproveReplies,
           dailyEmailSendCap:  data.agentConfig.dailyEmailSendCap,
+          bookingLink:        data.agentConfig.bookingLink,
         });
       })
       .catch(() => setError('Failed to load settings. Please refresh.'))
@@ -109,6 +111,15 @@ export default function SettingsPage() {
         <section className="card" style={{ padding: 28 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20 }}>Agent Configuration</h2>
           <div className="col" style={{ gap: 24 }}>
+
+            {/* Booking link */}
+            <Field
+              label="Booking link"
+              type="url"
+              value={form.bookingLink}
+              onChange={set('bookingLink')}
+              hint="e.g. https://calendly.com/yourname/15min"
+            />
 
             {/* Tone */}
             <div className="field">

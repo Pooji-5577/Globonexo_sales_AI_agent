@@ -1,3 +1,12 @@
+# Frontend
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Backend (separate repo)
+backend/
+
+# General
 node_modules
 .next
 out

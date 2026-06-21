@@ -21,7 +21,7 @@ export default function AuthCallbackPage() {
 
     api
       .post('/auth/google/callback', { accessToken, refreshToken, expiresIn })
-      .then(() => router.replace('/dashboard'))
+      .then(() => { localStorage.setItem('returning_user', '1'); router.replace('/dashboard'); })
       .catch(() => router.replace('/login?error=oauth_failed'));
   }, [router]);
 

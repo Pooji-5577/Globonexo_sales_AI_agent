@@ -1,7 +1,6 @@
 import { Aurora } from '../ui/Aurora';
 import { Logo } from '../ui/Logo';
 import { Icon } from '../ui/Icon';
-import { Avatar } from '../ui/Avatar';
 
 export function AuthAside({ kicker, headline, sub, bullets }) {
   return (
@@ -30,13 +29,13 @@ export function AuthAside({ kicker, headline, sub, bullets }) {
         </div>
         <div className="row" style={{ gap: 10, marginTop: 36, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.14)' }}>
           <div className="row">
-            {['Mara Ito', 'Devon Cole', 'Priya Raman'].map((n, i) => (
-              <div key={n} style={{ marginLeft: i ? -9 : 0, borderRadius: '50%', boxShadow: '0 0 0 2px #064d33' }}>
-                <Avatar name={n} size={28} />
+            {['A', 'B', 'C'].map((letter, i) => (
+              <div key={letter} style={{ marginLeft: i ? -9 : 0, borderRadius: '50%', boxShadow: '0 0 0 2px #064d33' }}>
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>{letter}</span>
               </div>
             ))}
           </div>
-          <span className="nw" style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', fontWeight: 600 }}>4,200+ revenue teams</span>
+          <span className="nw" style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', fontWeight: 600 }}>Trusted by revenue teams</span>
         </div>
       </div>
     </div>

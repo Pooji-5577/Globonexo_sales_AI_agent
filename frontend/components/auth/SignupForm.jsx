@@ -26,6 +26,7 @@ export function SignupForm() {
     setSubmitting(true);
     try {
       await signup(form);
+      localStorage.setItem('returning_user', '1');
       router.push('/onboarding');
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong. Please try again.');
@@ -38,7 +39,12 @@ export function SignupForm() {
     <div style={{ width: 400, maxWidth: '100%' }}>
       <h2 className="display" style={{ fontSize: 30 }}>Create your account</h2>
       <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Let&apos;s build your autonomous pipeline.</p>
-      <button type="button" className="btn btn-ghost btn-block" style={{ marginTop: 24 }} disabled title="Coming soon">
+      <button
+        type="button"
+        className="btn btn-ghost btn-block"
+        style={{ marginTop: 24 }}
+        onClick={() => { window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`; }}
+      >
         <Icon name="google" size={19} /> Sign up with Google
       </button>
       <div className="row center" style={{ gap: 14, margin: '18px 0' }}>
@@ -47,11 +53,11 @@ export function SignupForm() {
       <form onSubmit={handleSubmit}>
         <div className="col" style={{ gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="First name" icon="user" placeholder="Mara" value={form.firstName} onChange={update('firstName')} required autoComplete="given-name" />
-            <Field label="Last name" placeholder="Ito" value={form.lastName} onChange={update('lastName')} required autoComplete="family-name" />
+            <Field label="First name" icon="user" placeholder="Jane" value={form.firstName} onChange={update('firstName')} required autoComplete="given-name" />
+            <Field label="Last name" placeholder="Smith" value={form.lastName} onChange={update('lastName')} required autoComplete="family-name" />
           </div>
           <Field label="Work email" icon="mail" type="email" placeholder="you@company.com" value={form.email} onChange={update('email')} required autoComplete="email" />
-          <Field label="Company" icon="building" placeholder="Northwind Inc." value={form.company} onChange={update('company')} required autoComplete="organization" />
+          <Field label="Company" icon="building" placeholder="Your company" value={form.company} onChange={update('company')} required autoComplete="organization" />
           <Field label="Password" icon="lock" toggle placeholder="8+ characters" hint="Use 8+ characters with a number and a symbol." value={form.password} onChange={update('password')} required autoComplete="new-password" />
         </div>
         <label className="row" style={{ gap: 9, fontSize: 13, color: 'var(--muted)', marginTop: 16, cursor: 'pointer', lineHeight: 1.4 }}>
