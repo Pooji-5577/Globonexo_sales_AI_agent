@@ -16,7 +16,7 @@ const NAV_GROUPS = [
   {
     label: 'Sales',
     items: [
-      { id: 'prospects', label: 'Prospects', ico: 'users' },
+      { id: 'leads', label: 'Leads', ico: 'users' },
       { id: 'pipeline', label: 'Pipeline', ico: 'funnel' },
       { id: 'campaigns', label: 'Campaigns', ico: 'send' },
     ]
@@ -52,7 +52,7 @@ export default function AppShell({ children }) {
     <div className="screen" style={{ flexDirection: 'row', background: 'var(--bg)' }}>
       <aside style={{ width: 248, flex: 'none', background: '#fff', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: '18px 14px' }}>
         <div style={{ padding: '4px 6px 16px' }}><Logo size={28} /></div>
-        <button className="btn btn-primary btn-sm" style={{ marginBottom: 14, fontSize: 13.5 }} onClick={() => router.push('/campaigns')}>
+        <button className="btn btn-primary btn-sm" style={{ marginBottom: 14, fontSize: 13.5 }} onClick={() => router.push('/campaigns/new')}>
           <Icon name="plus" size={15} color="#06231a" /> New campaign
         </button>
 
