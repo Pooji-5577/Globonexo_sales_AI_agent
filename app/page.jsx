@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Logo from "../components/ui/Logo";
 import Aurora from "../components/ui/Aurora";
-import Avatar from "../components/ui/Avatar";
 import Icon from "../components/ui/Icon";
 
 export default function LandingPage() {
@@ -25,12 +24,16 @@ export default function LandingPage() {
   ];
 
   const upcoming = [
-    { day: 'Tomorrow', date: '10', name: 'Devon Cole', company: 'Brightloop', type: 'Product demo', color: '#e5aa43' },
-    { day: 'Wed', date: '11', name: 'Amir Haddad', company: 'Acme', type: 'Follow-up call', color: '#70c98c' },
-    { day: 'Thu', date: '12', name: 'Lena Park', company: 'Cobalt', type: 'Technical review', color: '#69c2c0' },
+    { day: 'Tomorrow', date: '10', initials: 'DC', type: 'Product demo', color: '#e5aa43' },
+    { day: 'Wed', date: '11', initials: 'AH', type: 'Follow-up call', color: '#70c98c' },
+    { day: 'Thu', date: '12', initials: 'LP', type: 'Technical review', color: '#69c2c0' },
   ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  const handleSignIn = () => {
+    const dest = localStorage.getItem('returning_user') ? '/login' : '/signup';
+    router.push(dest);
+  };
 
   return (
     <div className="screen landing-screen">
@@ -46,7 +49,7 @@ export default function LandingPage() {
               <Link href="/pricing">Pricing</Link>
             </div>
             <div className="landing-nav-actions">
-              <button className="landing-signin" onClick={() => router.push('/login')}>Sign in</button>
+              <button className="landing-signin" onClick={handleSignIn}>Sign in</button>
               <button className="btn btn-primary btn-sm" onClick={() => router.push('/signup')}>
                 Start free trial <Icon name="arrow" size={16} color="#06231a" />
               </button>
@@ -65,7 +68,7 @@ export default function LandingPage() {
                 <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
                   Start free trial <Icon name="arrow" size={18} color="#06231a" />
                 </button>
-                <button className="landing-outline-btn" onClick={() => router.push('/login')}>Sign in</button>
+                <button className="landing-outline-btn" onClick={handleSignIn}>Sign in</button>
               </div>
               <div className="landing-assurances">
                 <span><Icon name="check" size={15} color="var(--g-300)" /> No credit card required</span>
@@ -95,28 +98,28 @@ export default function LandingPage() {
               <div className="landing-product-main">
                 <div className="landing-product-topbar">
                   <div><Icon name="search" size={13} /> Search leads, accounts, replies...</div>
-                  <Avatar name="Mara Ito" size={24} />
+                  <span style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--g-200)' }} />
                 </div>
                 <div className="landing-product-body">
                   <div className="landing-product-title">
-                    <div><strong>Meetings</strong><span>18 booked this week · 3 today</span></div>
+                    <div><strong>Meetings</strong><span>Booked this week</span></div>
                     <button><Icon name="plus" size={12} /> Schedule meeting</button>
                   </div>
                   <div className="landing-today">
-                    <span>Today · 1 meeting</span>
+                    <span>Today</span>
                     <div>
-                      <Avatar name="Mara Ito" size={28} />
-                      <p><strong>Discovery call</strong><small>Mara Ito · Northwind · 2:30 PM</small></p>
+                      <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--g-200)', flex: 'none' }} />
+                      <p><strong>Discovery call</strong><small>Prospect · Company · 2:30 PM</small></p>
                       <button>Join call</button>
                     </div>
                   </div>
                   <span className="landing-list-label">Upcoming</span>
                   <div className="landing-upcoming">
                     {upcoming.map((meeting) => (
-                      <div key={meeting.name}>
+                      <div key={meeting.type}>
                         <time><b>{meeting.day}</b><strong>{meeting.date}</strong></time>
-                        <span className="landing-preview-avatar" style={{ background: meeting.color }}>{meeting.name.split(' ').map(n => n[0]).join('')}</span>
-                        <p><strong>{meeting.type}</strong><small>{meeting.name} · {meeting.company} · 30 min</small></p>
+                        <span className="landing-preview-avatar" style={{ background: meeting.color }}>{meeting.initials}</span>
+                        <p><strong>{meeting.type}</strong><small>30 min</small></p>
                         <em>Upcoming</em>
                       </div>
                     ))}

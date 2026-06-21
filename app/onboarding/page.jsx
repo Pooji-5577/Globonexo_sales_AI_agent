@@ -196,7 +196,7 @@ export default function OnboardingPage() {
                   <textarea
                     className="input"
                     rows={3}
-                    placeholder="e.g. Northwind is a sales engagement platform that helps B2B teams automate outbound prospecting using AI."
+                    placeholder="e.g. We build a sales engagement platform that helps B2B teams automate outbound prospecting using AI."
                     value={d.productDescription}
                     onChange={e => set('productDescription', e.target.value)}
                     style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55 }}

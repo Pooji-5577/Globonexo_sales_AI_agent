@@ -20,6 +20,7 @@ export function LoginForm() {
     setSubmitting(true);
     try {
       await login(email, password);
+      localStorage.setItem('returning_user', '1');
       router.push('/dashboard');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password.');
