@@ -17,7 +17,7 @@ const NAV_GROUPS = [
   {
     label: 'Sales',
     items: [
-      { id: 'leads', label: 'Leads', ico: 'users' },
+      { id: 'prospects', label: 'Prospects', ico: 'users' },
       { id: 'pipeline', label: 'Pipeline', ico: 'funnel' },
       { id: 'campaigns', label: 'Campaigns', ico: 'send' },
     ]

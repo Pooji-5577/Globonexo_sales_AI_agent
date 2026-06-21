@@ -95,18 +95,8 @@ export default function AnalyticsPage() {
         ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-        <BarChart
-          title="Emails sent (last 7 days)"
-          data={data.dailyEmails ?? []}
-          labels={data.dayLabels ?? []}
-          color="var(--teal)"
-        />
-        <BarChart
-          title="Meetings booked (last 7 days)"
-          data={data.dailyMeetings ?? []}
-          labels={data.dayLabels ?? []}
-          color="var(--g-500)"
-        />
+        <BarChart title="Emails sent (last 7 days)" data={data.dailyEmails ?? []} labels={data.dayLabels ?? []} color="var(--teal)" />
+        <BarChart title="Meetings booked (last 7 days)" data={data.dailyMeetings ?? []} labels={data.dayLabels ?? []} color="var(--g-500)" />
       </div>
       <FunnelChart funnel={funnel} />
     </div>
