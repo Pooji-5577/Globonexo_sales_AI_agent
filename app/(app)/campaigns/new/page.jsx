@@ -67,7 +67,7 @@ export default function NewCampaignPage() {
     setError("");
 
     try {
-      await api.post("/api/campaigns", {
+      await api.post("/campaigns", {
         ...form,
         maxLeads: Number(form.maxLeads),
         dailySendCap: Number(form.dailySendCap),
