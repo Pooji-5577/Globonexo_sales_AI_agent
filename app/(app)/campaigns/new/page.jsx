@@ -323,7 +323,6 @@ export default function NewCampaignPage() {
                 </Field>
               </div>
             </section>
-          </div>
 
             {form.channel === "email" && (
               <section className="card" style={{ padding: 18, borderRadius: 8 }}>
