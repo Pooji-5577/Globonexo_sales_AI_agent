@@ -29,7 +29,17 @@ export function SignupForm() {
       localStorage.setItem('returning_user', '1');
       router.push('/onboarding');
     } catch (err) {
-      setError(err.response?.data?.error || 'Something went wrong. Please try again.');
+      const data = err.response?.data;
+      if (data?.details) {
+        const messages = [];
+        for (const [key, val] of Object.entries(data.details)) {
+          if (key === '_errors') continue;
+          if (val?._errors?.length) messages.push(val._errors[0]);
+        }
+        setError(messages.join('. ') || data.error || 'Something went wrong. Please try again.');
+      } else {
+        setError(data?.error || 'Something went wrong. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
