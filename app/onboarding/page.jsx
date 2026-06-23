@@ -89,7 +89,7 @@ export default function OnboardingPage() {
     setError('');
     setLoading(true);
     try {
-      await api.post('/api/onboarding', {
+      await api.post('/onboarding', {
         productDescription: d.productDescription,
         valueProp: d.valueProp,
         tone: d.tone,
