@@ -131,7 +131,7 @@ export default function ProspectsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get("/api/campaigns")
+    api.get("/campaigns")
       .then(({ data }) => setCampaigns(Array.isArray(data?.items) ? data.items : []))
       .catch(() => setCampaigns([]));
   }, []);
@@ -153,7 +153,7 @@ export default function ProspectsPage() {
     setNotice("");
 
     try {
-      const { data } = await api.post("/api/leads/apollo-search", {
+      const { data } = await api.post("/leads/apollo-search", {
         titles: splitList(titles),
         locations: splitList(locations),
         companySizes,
@@ -178,7 +178,7 @@ export default function ProspectsPage() {
     setNotice("");
 
     try {
-      await Promise.all(apolloResults.map(lead => api.post("/api/leads", {
+      await Promise.all(apolloResults.map(lead => api.post("/leads", {
         campaignId: campaignId || undefined,
         apolloId: lead.apolloId || undefined,
         firstName: lead.firstName || undefined,
@@ -220,7 +220,7 @@ export default function ProspectsPage() {
     setNotice("");
 
     try {
-      const { data } = await api.post("/api/leads/csv-upload", {
+      const { data } = await api.post("/leads/csv-upload", {
         campaignId: campaignId || undefined,
         rows: csvLeads,
       });

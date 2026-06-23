@@ -8,14 +8,23 @@ export default function AITestPage() {
   const [error, setError] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [leads, setLeads] = useState([]);
+  const [replies, setReplies] = useState([]);
   const [selectedCampaign, setSelectedCampaign] = useState('');
   const [selectedLead, setSelectedLead] = useState('');
+  const [selectedReply, setSelectedReply] = useState('');
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       api.get('/campaigns').then(res => setCampaigns(res.data.items || [])).catch(() => {}),
       api.get('/leads').then(res => setLeads(res.data.items || [])).catch(() => {}),
+      api.get('/inbox').then(res => {
+        const items = res.data.items || res.data || [];
+        const allReplies = items.flatMap(thread =>
+          (thread.replies || [thread]).map(r => ({ id: r.id, label: `${r.lead_name || r.lead_id || 'Unknown'}: ${(r.body || '').slice(0, 50)}...` }))
+        );
+        setReplies(allReplies);
+      }).catch(() => {}),
     ]).finally(() => setDataLoading(false));
   }, []);
 
@@ -69,6 +78,12 @@ export default function AITestPage() {
       body: { campaignId: selectedCampaign },
       disabled: !hasCampaign,
     },
+    {
+      label: "Generate Reply",
+      url: "/ai/generate-reply",
+      body: { emailReplyId: selectedReply },
+      disabled: !selectedReply,
+    },
   ];
 
   return (
@@ -93,6 +108,20 @@ export default function AITestPage() {
             style={{ width: "100%", padding: "10px 12px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14 }}>
             <option value="">Select a lead…</option>
             {leads.map(l => <option key={l.id} value={l.id}>{l.name || l.email || l.id}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>REPLY (for Generate Reply)</label>
+          <select value={selectedReply} onChange={e => setSelectedReply(e.target.value)}
+            style={{ width: "100%", padding: "10px 12px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14 }}>
+            <option value="">Select a reply…</option>
+            {replies.length > 0
+              ? replies.map(r => <option key={r.id} value={r.id}>{r.label}</option>)
+              : <option value="88888888-8888-8888-8888-888888888888">Seed reply: Sarah Chen (pricing question)</option>
+            }
           </select>
         </div>
       </div>

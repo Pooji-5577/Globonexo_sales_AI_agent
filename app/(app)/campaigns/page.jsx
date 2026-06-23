@@ -61,7 +61,7 @@ export default function CampaignsPage() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await api.get("/api/campaigns");
+      const { data } = await api.get("/campaigns");
       setCampaigns(Array.isArray(data?.items) ? data.items : []);
       setSummary(data?.summary ?? { total: 0, active: 0, enrolled: 0, sent: 0, meetings: 0 });
     } catch (err) {
@@ -96,7 +96,7 @@ export default function CampaignsPage() {
     setBusyId(campaign.id + action);
     setError("");
     try {
-      const { data } = await api.post(`/api/campaigns/${campaign.id}/${action}`);
+      const { data } = await api.post(`/campaigns/${campaign.id}/${action}`);
       setCampaignInList(data);
       await loadCampaigns();
     } catch (err) {
@@ -113,7 +113,7 @@ export default function CampaignsPage() {
     setBusyId(campaign.id + "delete");
     setError("");
     try {
-      await api.delete(`/api/campaigns/${campaign.id}`);
+      await api.delete(`/campaigns/${campaign.id}`);
       await loadCampaigns();
     } catch (err) {
       setError(err?.response?.data?.error || "Campaign could not be deleted.");
