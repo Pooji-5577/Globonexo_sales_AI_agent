@@ -2,8 +2,8 @@
 const { useState: useStateO } = React;
 
 const STEPS = [
-  { title: 'About you', sub: 'Personalize your agent from the start.', ico: 'user' },
-  { title: 'Your team', sub: 'Context that shapes how Nexo targets.', ico: 'users' },
+  { title: 'About you', sub: 'Tell us who you are so Nexo can personalize outreach.', ico: 'user' },
+  { title: 'What you sell', sub: 'Nexo needs to understand your product to sell it.', ico: 'bolt' },
   { title: 'Who you sell to', sub: 'Define your ideal customer profile.', ico: 'target' },
   { title: 'Your goals', sub: 'Set the targets Nexo optimizes for.', ico: 'trend' },
   { title: 'Your tone', sub: 'Make the agent sound like you.', ico: 'spark' },
@@ -12,12 +12,12 @@ const STEPS = [
 ];
 
 const DEFAULTS = {
-  firstName: 'Mara', lastName: 'Ito', role: 'Account Executive', company: 'Northwind',
-  industry: 'SaaS / Software', companySize: '51–200', teamSize: '6–15',
-  titles: ['VP Sales', 'Head of Sales'], companySizes: ['SMB', 'Mid-Market'], geos: ['North America'],
+  firstName: '', lastName: '', role: 'Account Executive', company: '', industry: 'SaaS / Software',
+  productDescription: '', valueProp: '', painPoints: '', bookingLink: '',
+  titles: [], companySizes: [], targetIndustries: [], geos: [],
   meetingTarget: 15, dealSize: '$25k–$100k', salesCycle: '1–3 months',
   tone: 'Consultative', hook: 'Pain-based', followup: 'Standard 5-day',
-  tools: ['Gmail', 'HubSpot', 'Google Calendar'],
+  tools: [],
   agentName: 'Nexo',
 };
 
@@ -132,26 +132,43 @@ function Step0({ d, set }) {
   return (
     <div className="col" style={{ gap: 20 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <Field label="First name" icon="user" placeholder="Mara" value={d.firstName} onChange={e => set('firstName', e.target.value)} />
-        <Field label="Last name" placeholder="Ito" value={d.lastName} onChange={e => set('lastName', e.target.value)} />
+        <Field label="First name" icon="user" placeholder="e.g. Sarah" value={d.firstName} onChange={e => set('firstName', e.target.value)} />
+        <Field label="Last name" placeholder="e.g. Chen" value={d.lastName} onChange={e => set('lastName', e.target.value)} />
       </div>
-      <Field label="Company name" icon="building" placeholder="Northwind Inc." value={d.company} onChange={e => set('company', e.target.value)} />
+      <Field label="Company name" icon="building" placeholder="e.g. Acme Corp" value={d.company} onChange={e => set('company', e.target.value)} />
       <OSelect label="Your role" value={d.role} onChange={v => set('role', v)}
-        options={['Account Executive', 'SDR / BDR', 'Sales Manager', 'VP of Sales', 'Founder / CEO', 'RevOps']} />
+        options={['Account Executive', 'SDR / BDR', 'Sales Manager', 'VP of Sales', 'Founder / CEO', 'RevOps', 'Customer Success']} />
+      <OSelect label="Your industry" value={d.industry} onChange={v => set('industry', v)}
+        options={['SaaS / Software', 'Financial Services', 'Healthcare', 'Agency / Services', 'E-commerce / Retail', 'Manufacturing', 'Real Estate', 'Education', 'Other']} />
     </div>
   );
 }
 
-/* ----- Step 1: Team context ----- */
+/* ----- Step 1: What you sell ----- */
 function Step1({ d, set }) {
   return (
     <div className="col" style={{ gap: 22 }}>
-      <OSelect label="Your industry" value={d.industry} onChange={v => set('industry', v)}
-        options={['SaaS / Software', 'Financial services', 'Healthcare', 'Agency / Services', 'E-commerce', 'Manufacturing', 'Other']} />
-      <OSelect label="Your company size" value={d.companySize} onChange={v => set('companySize', v)}
-        options={['1–10', '11–50', '51–200', '201–500', '501–1000', '1000+']} />
-      <OSelect label="Sales team size" value={d.teamSize} onChange={v => set('teamSize', v)}
-        options={['Solo', '2–5', '6–15', '16–50', '50+']} />
+      <div className="field">
+        <label>What does your company sell?</label>
+        <span className="faint" style={{ fontSize: 12.5, marginTop: -4 }}>Describe your product or service in 1–2 sentences. Nexo uses this in every email it writes.</span>
+        <textarea className="input" style={{ minHeight: 80, resize: 'vertical', padding: '12px 14px', fontFamily: 'inherit' }}
+          placeholder="e.g. We sell an AI-powered CRM that automates data entry and surfaces deal insights for B2B sales teams."
+          value={d.productDescription} onChange={e => set('productDescription', e.target.value)} />
+      </div>
+      <div className="field">
+        <label>What makes you different?</label>
+        <span className="faint" style={{ fontSize: 12.5, marginTop: -4 }}>Your unique value proposition — why should prospects pick you over alternatives?</span>
+        <textarea className="input" style={{ minHeight: 80, resize: 'vertical', padding: '12px 14px', fontFamily: 'inherit' }}
+          placeholder="e.g. Unlike traditional CRMs, we cut admin time by 60% and increase pipeline visibility with zero manual logging."
+          value={d.valueProp} onChange={e => set('valueProp', e.target.value)} />
+      </div>
+      <div className="field">
+        <label>Key pain points you solve</label>
+        <span className="faint" style={{ fontSize: 12.5, marginTop: -4 }}>What problems do your best customers face before they buy? Nexo uses these to craft compelling hooks.</span>
+        <textarea className="input" style={{ minHeight: 80, resize: 'vertical', padding: '12px 14px', fontFamily: 'inherit' }}
+          placeholder="e.g. Reps waste 5+ hours/week on manual data entry. Managers lack real-time pipeline visibility. Forecasts are unreliable."
+          value={d.painPoints} onChange={e => set('painPoints', e.target.value)} />
+      </div>
     </div>
   );
 }
@@ -160,14 +177,17 @@ function Step1({ d, set }) {
 function Step2({ d, toggle }) {
   return (
     <div className="col" style={{ gap: 24 }}>
-      <OMulti label="Job titles you target" hint="Nexo will prioritize these roles in outreach."
-        options={['CEO / Founder', 'VP Sales', 'Head of Sales', 'Sales Manager', 'CTO', 'VP Marketing', 'RevOps / SalesOps', 'Director of Ops']}
+      <OMulti label="Decision-maker titles you target" hint="Nexo will prioritize these roles when finding prospects."
+        options={['CEO / Founder', 'CTO / CIO', 'CFO / VP Finance', 'COO', 'VP Sales', 'VP Marketing / CMO', 'VP Engineering / Product', 'Head of Sales', 'Head of Growth', 'Sales Manager', 'RevOps / SalesOps', 'Director of IT', 'Procurement / Purchasing']}
         value={d.titles} onChange={v => toggle('titles', v)} />
       <OMulti label="Target company sizes"
-        options={['Startup (1–20)', 'SMB (21–200)', 'Mid-Market (201–1k)', 'Enterprise (1k+)']}
+        options={['Startup (1–20)', 'SMB (21–200)', 'Mid-Market (201–1k)', 'Enterprise (1k–10k)', 'Large Enterprise (10k+)']}
         value={d.companySizes} onChange={v => toggle('companySizes', v)} />
+      <OMulti label="Target industries" hint="Which industries are your best-fit customers in?"
+        options={['Technology / SaaS', 'Financial Services', 'Healthcare & Life Sciences', 'E-commerce / Retail', 'Manufacturing', 'Professional Services', 'Education', 'Media & Entertainment', 'Real Estate', 'Logistics & Supply Chain']}
+        value={d.targetIndustries} onChange={v => toggle('targetIndustries', v)} />
       <OMulti label="Geographies"
-        options={['North America', 'Europe', 'APAC', 'LATAM', 'Middle East', 'Global']}
+        options={['North America', 'Europe', 'APAC', 'LATAM', 'Middle East & Africa', 'Global']}
         value={d.geos} onChange={v => toggle('geos', v)} />
     </div>
   );
@@ -186,12 +206,24 @@ function Step3({ d, set }) {
         options={['Under $5k', '$5k–$25k', '$25k–$100k', '$100k–$500k', '$500k+']} />
       <OSelect label="Typical sales cycle" value={d.salesCycle} onChange={v => set('salesCycle', v)}
         options={['Under 1 week', '1–4 weeks', '1–3 months', '3–6 months', '6+ months']} />
+      <Field label="Booking / scheduling link" icon="calendar" placeholder="e.g. https://calendly.com/your-name"
+        value={d.bookingLink} onChange={e => set('bookingLink', e.target.value)} />
+      <span className="faint" style={{ fontSize: 12.5, marginTop: -16 }}>Nexo will include this link when proposing meetings to prospects.</span>
     </div>
   );
 }
 
 /* ----- Step 4: Tone ----- */
 function Step4({ d, set }) {
+  const sampleLines = {
+    'Pain-based (problem-first)': d.painPoints
+      ? `"Hi [First Name] — ${d.painPoints.split('.')[0].trim().toLowerCase()}. ${d.company || 'We'} help teams like yours fix that. Open to a quick chat?"`
+      : `"Hi [First Name] — most ${d.titles[0] || 'sales leaders'} tell us their team wastes hours on low-value tasks. ${d.company || 'We'} built a better way. Worth 15 minutes?"`,
+    'Insight-based (data/trend)': `"Hi [First Name] — we've seen teams like yours cut sales cycle time by 30%+ after switching their approach. Happy to share how ${d.company || 'we'} can help. Quick call this week?"`,
+    'Social proof (customer story)': `"Hi [First Name] — one of our customers in ${d.targetIndustries[0] || 'your space'} booked 3× more qualified meetings in their first month. Want to see how?"`,
+    'Personalized signal (news/hire)': `"Hi [First Name] — saw [Company] just [recent trigger]. When that happens, teams usually need ${d.productDescription ? d.productDescription.split(' ').slice(0,6).join(' ').toLowerCase() + '…' : 'help scaling fast'}. Worth exploring?"`,
+    'Question-led': `"Hi [First Name] — quick question: how is your team currently handling ${d.painPoints ? d.painPoints.split('.')[0].trim().toLowerCase() : 'outbound prospecting'}? We might be able to help."`,
+  };
   return (
     <div className="col" style={{ gap: 24 }}>
       <OSelect label="Writing tone" value={d.tone} onChange={v => set('tone', v)}
@@ -203,8 +235,9 @@ function Step4({ d, set }) {
       <div className="card" style={{ padding: 16, background: 'var(--g-50)', border: '1px solid var(--g-100)' }}>
         <div className="eyebrow" style={{ marginBottom: 10 }}>Sample opening line</div>
         <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--ink-2)', fontStyle: 'italic' }}>
-          "Hi [First Name] — noticed {d.company} is expanding into new markets. Most {d.role}s we talk to say their biggest challenge right now is booking enough qualified meetings. Worth a 20-min chat?"
+          {sampleLines[d.hook] || sampleLines['Pain-based (problem-first)']}
         </p>
+        <span className="faint" style={{ fontSize: 11.5, marginTop: 8, display: 'block' }}>This preview adapts to your product info and hook style. Nexo will personalize each email per prospect.</span>
       </div>
     </div>
   );
@@ -259,16 +292,21 @@ function Step5({ d, toggle }) {
 
 /* ----- Step 6: Review ----- */
 function Step6({ d, set }) {
+  const truncate = (s, len) => s && s.length > len ? s.slice(0, len) + '…' : (s || '—');
   const rows = [
-    { l: 'Name', v: `${d.firstName} ${d.lastName}` },
+    { l: 'Name', v: `${d.firstName} ${d.lastName}`.trim() || '—' },
+    { l: 'Company', v: d.company || '—' },
     { l: 'Role', v: d.role },
-    { l: 'Company', v: d.company },
-    { l: 'Industry', v: d.industry },
+    { l: 'Product', v: truncate(d.productDescription, 60) },
+    { l: 'Value prop', v: truncate(d.valueProp, 60) },
     { l: 'Target titles', v: d.titles.join(', ') || '—' },
+    { l: 'Target industries', v: d.targetIndustries.join(', ') || '—' },
     { l: 'Target market', v: d.companySizes.join(', ') || '—' },
+    { l: 'Geographies', v: d.geos.join(', ') || '—' },
     { l: 'Meeting goal', v: `${d.meetingTarget} / week` },
     { l: 'Deal size', v: d.dealSize },
-    { l: 'Tone', v: d.tone },
+    { l: 'Tone', v: `${d.tone} · ${d.hook}` },
+    { l: 'Booking link', v: d.bookingLink || 'Not set' },
     { l: 'Connected tools', v: d.tools.join(', ') || 'None' },
   ];
   return (
