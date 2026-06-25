@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
@@ -54,6 +54,10 @@ function Field({ label, children, hint }) {
 
 export default function NewCampaignPage() {
   const router = useRouter();
+  const setupRef = useRef(null);
+  const controlsRef = useRef(null);
+  const emailSequenceRef = useRef(null);
+  const assignLeadsRef = useRef(null);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [steps, setSteps] = useState(DEFAULT_STEPS);
   const [saving, setSaving] = useState(false);
@@ -117,6 +121,16 @@ export default function NewCampaignPage() {
     setSteps(current => current.map((s, i) => i === index ? { ...s, [key]: value } : s));
   };
 
+  const scrollToSection = useCallback((ref, { forceEmail = false } = {}) => {
+    if (forceEmail && form.channel !== "email") {
+      setForm(current => ({ ...current, channel: "email" }));
+      setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+      return;
+    }
+
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [form.channel]);
+
   const submit = async event => {
     event.preventDefault();
     if (!canSubmit) return;
@@ -178,10 +192,43 @@ export default function NewCampaignPage() {
         </div>
       )}
 
-      <div className="scroll grow" style={{ minHeight: 0, padding: 24 }}>
+      <div className="scroll grow" style={{ minHeight: 0, padding: 24, scrollBehavior: "smooth" }}>
+        <div
+          className="row spread"
+          style={{
+            gap: 12,
+            marginBottom: 14,
+            padding: "10px 12px",
+            border: "1px solid var(--line)",
+            borderRadius: 8,
+            background: "#fff",
+            boxShadow: "var(--sh-xs)",
+            flexWrap: "wrap",
+          }}
+        >
+          <span className="faint" style={{ fontSize: 12.5, fontWeight: 800 }}>Jump to section</span>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            {[
+              ["Setup", setupRef],
+              ["Controls", controlsRef],
+              ["Email sequence", emailSequenceRef, true],
+              ["Assign leads", assignLeadsRef],
+            ].map(([label, ref, forceEmail]) => (
+              <button
+                key={label}
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => scrollToSection(ref, { forceEmail })}
+                style={{ height: 32, padding: "0 12px", fontSize: 12.5, background: label === "Email sequence" ? "var(--g-50)" : "#fff" }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) 340px", gap: 18, alignItems: "start" }}>
           <div className="col" style={{ gap: 14 }}>
-            <section className="card" style={{ padding: 18, borderRadius: 8 }}>
+            <section ref={setupRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
               <div className="row" style={{ gap: 10, marginBottom: 18 }}>
                 <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
                   <Icon name="send" size={18} />
@@ -273,7 +320,7 @@ export default function NewCampaignPage() {
               </div>
             </section>
 
-            <section className="card" style={{ padding: 18, borderRadius: 8 }}>
+            <section ref={controlsRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
               <div className="row" style={{ gap: 10, marginBottom: 18 }}>
                 <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)" }}>
                   <Icon name="sliders" size={18} />
@@ -325,7 +372,7 @@ export default function NewCampaignPage() {
             </section>
 
             {form.channel === "email" && (
-              <section className="card" style={{ padding: 18, borderRadius: 8 }}>
+              <section ref={emailSequenceRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
                 <div className="row" style={{ gap: 10, marginBottom: 18 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
                     <Icon name="mail" size={18} />
@@ -391,7 +438,7 @@ export default function NewCampaignPage() {
               </section>
             )}
 
-            <section className="card" style={{ padding: 18, borderRadius: 8 }}>
+            <section ref={assignLeadsRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
               <div className="row spread" style={{ marginBottom: 14 }}>
                 <div className="row" style={{ gap: 10 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)" }}>
