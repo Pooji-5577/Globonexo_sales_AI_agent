@@ -205,9 +205,11 @@ function AuthAside({ kicker, headline, sub, bullets }) {
       color: '#fff', padding: '42px 40px', display: 'flex', flexDirection: 'column',
     }}>
       <Aurora />
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Logo size={32} light />
-        <div style={{ marginTop: 'auto' }}>
+      <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%', minHeight: 0 }}>
+        <div>
+          <Logo size={32} light />
+        </div>
+        <div style={{ alignSelf: 'center', padding: '32px 0' }}>
           <div className="eyebrow" style={{ color: 'var(--g-300)' }}>{kicker}</div>
           <h1 className="display" style={{ fontSize: 38, marginTop: 14, color: '#fff', maxWidth: 320, lineHeight: 1.08 }}>{headline}</h1>
           <p style={{ marginTop: 16, fontSize: 15.5, lineHeight: 1.5, color: 'rgba(255,255,255,.78)', maxWidth: 310 }}>{sub}</p>
@@ -222,7 +224,7 @@ function AuthAside({ kicker, headline, sub, bullets }) {
             ))}
           </div>
         </div>
-        <div className="row" style={{ gap: 10, marginTop: 36, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.14)' }}>
+        <div className="row" style={{ gap: 10, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.14)' }}>
           <div className="row">
             {['Mara Ito', 'Devon Cole', 'Priya Raman'].map((n, i) => (
               <div key={n} style={{ marginLeft: i ? -9 : 0, borderRadius: '50%', boxShadow: '0 0 0 2px #064d33' }}>
@@ -909,37 +911,60 @@ function CelebrationScreen({ go }) {
     'ICP profile saved', 'Outreach templates generated', 'Cadence configured',
     'Tools connected', 'First 50 prospects queued', 'Agent ready',
   ];
+  const completeCount = items.filter((_, i) => tick > i * 4).length;
+  const progress = Math.round((completeCount / items.length) * 100);
 
   return (
-    <div className="screen" style={{ alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(160deg,#f4fdf8,#e8f8f0 55%,#dff4ea)' }}>
+    <div className="screen celebrate-screen">
       <Aurora />
-      <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '48px 40px', maxWidth: 580, animation: 'rise .5s both' }}>
-        <div style={{ width: 90, height: 90, borderRadius: 28, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', margin: '0 auto', boxShadow: '0 16px 40px rgba(0,194,122,.3)', animation: 'pop .6s both' }}>
-          <Icon name="bolt" size={46} color="#06231a" />
-        </div>
-        <h1 className="display" style={{ fontSize: 46, marginTop: 24 }}>Your agent is ready.</h1>
-        <p className="muted" style={{ fontSize: 17, lineHeight: 1.55, marginTop: 14, maxWidth: 440, marginInline: 'auto' }}>
-          Nexo is fully configured and queuing your first outreach. Let's get those meetings in the calendar.
-        </p>
+      <div className="celebrate-shell">
+        <section className="celebrate-copy" aria-labelledby="prototype-celebrate-title">
+          <div className="celebrate-mark" aria-hidden="true">
+            <Icon name="bolt" size={42} color="#06231a" stroke={2.25} />
+          </div>
+          <h1 id="prototype-celebrate-title" className="display">Your agent is ready.</h1>
+          <p>
+            Nexo is fully configured and queueing your first outreach. Your prospect list,
+            templates, cadence, and connected tools are ready to start booking meetings.
+          </p>
+          <div className="celebrate-actions">
+            <button className="btn btn-primary btn-lg" onClick={() => go('dashboard')}>
+              Open dashboard <Icon name="arrow" size={18} color="#06231a" />
+            </button>
+            <span className="celebrate-auto">Auto-opening dashboard in a few seconds</span>
+          </div>
+        </section>
 
-        {/* Boot checklist */}
-        <div className="card" style={{ padding: '14px 20px', marginTop: 28, textAlign: 'left' }}>
-          {items.map((item, i) => {
-            const done = tick > i * 4;
-            return (
-              <div key={item} className="row" style={{ gap: 12, padding: '8px 0', borderBottom: i < items.length - 1 ? '1px solid var(--line-2)' : 'none' }}>
-                <span style={{ width: 24, height: 24, borderRadius: '50%', flex: 'none', display: 'grid', placeItems: 'center', background: done ? 'var(--g-500)' : 'var(--bg-2)', transition: 'background .3s' }}>
-                  {done ? <Icon name="check" size={13} color="#06231a" stroke={3} /> : <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--line)' }} />}
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: done ? 'var(--ink)' : 'var(--faint)', transition: 'color .3s' }}>{item}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <button className="btn btn-primary btn-lg" style={{ marginTop: 28 }} onClick={() => go('dashboard')}>
-          Open dashboard <Icon name="arrow" size={18} color="#06231a" />
-        </button>
+        <aside className="celebrate-card" aria-label="Agent launch checklist">
+          <div className="celebrate-card-top">
+            <div>
+              <span>Launch sequence</span>
+              <strong>{completeCount}/{items.length} complete</strong>
+            </div>
+            <span className="celebrate-status"><span /> Ready</span>
+          </div>
+          <div className="celebrate-progress" aria-label={`${progress}% complete`}>
+            <span style={{ width: `${progress}%` }} />
+          </div>
+          <div className="celebrate-list">
+            {items.map((item, i) => {
+              const done = tick > i * 4;
+              return (
+                <div key={item} className={'celebrate-item ' + (done ? 'is-done' : '')}>
+                  <span className="celebrate-check">
+                    {done ? <Icon name="check" size={14} color="#06231a" stroke={3} /> : <span />}
+                  </span>
+                  <span>{item}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="celebrate-metrics">
+            <div><strong>50</strong><span>Prospects queued</span></div>
+            <div><strong>6</strong><span>Steps verified</span></div>
+            <div><strong>Now</strong><span>First wave ready</span></div>
+          </div>
+        </aside>
       </div>
     </div>
   );
@@ -2061,4 +2086,3 @@ function SToggle({ label, sub, ico, on, onChange }) {
     </div>
   );
 }
-
