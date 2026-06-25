@@ -14,9 +14,14 @@ const STEPS = [
 ];
 
 const DEFAULTS = {
+  firstName: '',
+  lastName: '',
+  company: '',
   role: 'Account Executive',
+  industry: '',
   productDescription: '',
   valueProp: '',
+  painPoints: '',
   titles: [],
   companySizes: [],
   geos: [],
@@ -92,6 +97,12 @@ export default function OnboardingPage() {
       await api.post('/onboarding', {
         productDescription: d.productDescription,
         valueProp: d.valueProp,
+        firstName: d.firstName,
+        lastName: d.lastName,
+        company: d.company,
+        role: d.role,
+        industry: d.industry,
+        painPoints: d.painPoints,
         tone: d.tone,
         hookStyle: d.hookStyle,
         icpTitles: d.titles,
@@ -117,7 +128,10 @@ export default function OnboardingPage() {
   const s = STEPS[step];
 
   const reviewRows = [
+    { l: 'Name', v: [d.firstName, d.lastName].filter(Boolean).join(' ') || '—' },
+    { l: 'Company', v: d.company || '—' },
     { l: 'Role', v: d.role },
+    { l: 'Industry', v: d.industry || '—' },
     { l: 'Product', v: d.productDescription || '—' },
     { l: 'Value prop', v: d.valueProp || '—' },
     { l: 'Target titles', v: d.titles.join(', ') || '—' },
@@ -189,8 +203,16 @@ export default function OnboardingPage() {
             {/* Step 0: Your product */}
             {step === 0 && (
               <div className="col" style={{ gap: 22 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 14 }}>
+                  <Field label="First name" icon="user" placeholder="Poojitha" value={d.firstName} onChange={e => set('firstName', e.target.value)} />
+                  <Field label="Last name" icon="user" placeholder="Gobburu" value={d.lastName} onChange={e => set('lastName', e.target.value)} />
+                </div>
+                <Field label="Company" icon="building" placeholder="Globonexo" value={d.company} onChange={e => set('company', e.target.value)}
+                  hint="Used to create your organization profile." />
                 <OSelect label="Your role" value={d.role} onChange={v => set('role', v)}
                   options={['Account Executive', 'SDR / BDR', 'Sales Manager', 'VP of Sales', 'Founder / CEO', 'RevOps']} />
+                <Field label="Industry" icon="target" placeholder="B2B SaaS" value={d.industry} onChange={e => set('industry', e.target.value)}
+                  hint="Helps Nexo frame outreach around your market." />
                 <div className="field">
                   <label>What does your product do?</label>
                   <textarea
@@ -214,6 +236,17 @@ export default function OnboardingPage() {
                     style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55 }}
                   />
                   <span className="faint" style={{ fontSize: 12.5 }}>Your core value proposition — what makes you different.</span>
+                </div>
+                <div className="field">
+                  <label>Common customer pain points</label>
+                  <textarea
+                    className="input"
+                    rows={2}
+                    placeholder="e.g. Low reply rates, manual prospecting, inconsistent follow-up."
+                    value={d.painPoints}
+                    onChange={e => set('painPoints', e.target.value)}
+                    style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55 }}
+                  />
                 </div>
               </div>
             )}
