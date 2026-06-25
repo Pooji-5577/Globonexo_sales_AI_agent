@@ -8,8 +8,10 @@ import Field from "../../components/ui/Field";
 import api from "../../lib/api";
 
 const STEPS = [
-  { title: 'Your product', sub: 'Help Nexo understand what you sell.', ico: 'doc' },
-  { title: 'Who you target', sub: 'Define your ideal customer profile.', ico: 'target' },
+  { title: 'Profile', sub: 'Tell Nexo who is setting up the workspace.', ico: 'user' },
+  { title: 'Product', sub: 'Explain what you sell and why buyers care.', ico: 'doc' },
+  { title: 'Ideal customer', sub: 'Define the accounts and people to target.', ico: 'target' },
+  { title: 'Outreach strategy', sub: 'Set the messaging style and campaign goals.', ico: 'send' },
   { title: 'Review & launch', sub: "Everything looks right? Let's go.", ico: 'checkCircle' },
 ];
 
@@ -24,9 +26,15 @@ const DEFAULTS = {
   painPoints: '',
   titles: [],
   companySizes: [],
+  targetIndustries: [],
   geos: [],
+  meetingTarget: 15,
+  dealSize: '',
+  salesCycle: '',
   tone: 'Consultative',
   hookStyle: 'Pain-based (problem-first)',
+  followUpCadence: 'Day 0, Day 3, Day 7',
+  tools: [],
   agentName: 'Nexo',
   bookingLink: '',
 };
@@ -74,6 +82,29 @@ function OMulti({ label, hint, options, value, onChange }) {
   );
 }
 
+function OTextarea({ label, hint, rows = 5, placeholder, value, onChange }) {
+  return (
+    <div className="field">
+      <label>{label}</label>
+      <textarea
+        className="input"
+        rows={rows}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        style={{
+          minHeight: rows >= 5 ? 148 : 118,
+          resize: 'vertical',
+          fontFamily: 'inherit',
+          lineHeight: 1.55,
+          padding: '14px 16px',
+        }}
+      />
+      {hint && <span className="faint" style={{ fontSize: 12.5 }}>{hint}</span>}
+    </div>
+  );
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -105,11 +136,17 @@ export default function OnboardingPage() {
         painPoints: d.painPoints,
         tone: d.tone,
         hookStyle: d.hookStyle,
+        followUpCadence: d.followUpCadence,
         icpTitles: d.titles,
         icpCompanySizes: d.companySizes,
+        icpTargetIndustries: d.targetIndustries,
         icpGeos: d.geos,
+        meetingTarget: Number(d.meetingTarget) || 15,
+        dealSize: d.dealSize,
+        salesCycle: d.salesCycle,
         agentName: d.agentName,
         bookingLink: d.bookingLink || undefined,
+        tools: d.tools,
       });
     } catch (err) {
       // If the API returns a validation error, surface it. Otherwise proceed
@@ -134,10 +171,18 @@ export default function OnboardingPage() {
     { l: 'Industry', v: d.industry || '—' },
     { l: 'Product', v: d.productDescription || '—' },
     { l: 'Value prop', v: d.valueProp || '—' },
+    { l: 'Pain points', v: d.painPoints || '—' },
     { l: 'Target titles', v: d.titles.join(', ') || '—' },
+    { l: 'Target industries', v: d.targetIndustries.join(', ') || '—' },
     { l: 'Target market', v: d.companySizes.join(', ') || '—' },
     { l: 'Geographies', v: d.geos.join(', ') || '—' },
+    { l: 'Meeting target', v: `${d.meetingTarget || 15} meetings / month` },
+    { l: 'Deal size', v: d.dealSize || '—' },
+    { l: 'Sales cycle', v: d.salesCycle || '—' },
     { l: 'Tone', v: d.tone },
+    { l: 'Hook style', v: d.hookStyle },
+    { l: 'Follow-up cadence', v: d.followUpCadence },
+    { l: 'Tools', v: d.tools.join(', ') || '—' },
     { l: 'Agent name', v: d.agentName },
   ];
 
@@ -188,8 +233,8 @@ export default function OnboardingPage() {
 
       {/* Main content */}
       <div className="grow col" style={{ background: '#fff', minWidth: 0 }}>
-        <div className="scroll grow" style={{ padding: '44px 56px 24px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: 0 }}>
-          <div style={{ width: '100%', maxWidth: 560, animation: 'rise .35s both' }} key={step}>
+        <div className="scroll grow" style={{ padding: '44px 88px 24px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: 0 }}>
+          <div style={{ width: '100%', maxWidth: 860, animation: 'rise .35s both' }} key={step}>
             <div className="row" style={{ gap: 14, marginBottom: 28 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--g-50)', border: '1px solid var(--g-100)', display: 'grid', placeItems: 'center', flex: 'none' }}>
                 <Icon name={s.ico} size={26} color="var(--g-600)" />
@@ -200,10 +245,10 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Step 0: Your product */}
+            {/* Step 0: Profile */}
             {step === 0 && (
               <div className="col" style={{ gap: 22 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 14 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(300px,1fr))', gap: 24 }}>
                   <Field label="First name" icon="user" placeholder="Poojitha" value={d.firstName} onChange={e => set('firstName', e.target.value)} />
                   <Field label="Last name" icon="user" placeholder="Gobburu" value={d.lastName} onChange={e => set('lastName', e.target.value)} />
                 </div>
@@ -213,65 +258,90 @@ export default function OnboardingPage() {
                   options={['Account Executive', 'SDR / BDR', 'Sales Manager', 'VP of Sales', 'Founder / CEO', 'RevOps']} />
                 <Field label="Industry" icon="target" placeholder="B2B SaaS" value={d.industry} onChange={e => set('industry', e.target.value)}
                   hint="Helps Nexo frame outreach around your market." />
-                <div className="field">
-                  <label>What does your product do?</label>
-                  <textarea
-                    className="input"
-                    rows={3}
-                    placeholder="e.g. We build a sales engagement platform that helps B2B teams automate outbound prospecting using AI."
-                    value={d.productDescription}
-                    onChange={e => set('productDescription', e.target.value)}
-                    style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55 }}
-                  />
-                  <span className="faint" style={{ fontSize: 12.5 }}>Used by Nexo to personalize every email it sends.</span>
-                </div>
-                <div className="field">
-                  <label>Why do customers choose you?</label>
-                  <textarea
-                    className="input"
-                    rows={3}
-                    placeholder="e.g. 3x more meetings than traditional outreach tools, with zero manual effort from your team."
-                    value={d.valueProp}
-                    onChange={e => set('valueProp', e.target.value)}
-                    style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55 }}
-                  />
-                  <span className="faint" style={{ fontSize: 12.5 }}>Your core value proposition — what makes you different.</span>
-                </div>
-                <div className="field">
-                  <label>Common customer pain points</label>
-                  <textarea
-                    className="input"
-                    rows={2}
-                    placeholder="e.g. Low reply rates, manual prospecting, inconsistent follow-up."
-                    value={d.painPoints}
-                    onChange={e => set('painPoints', e.target.value)}
-                    style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.55 }}
-                  />
-                </div>
               </div>
             )}
 
-            {/* Step 1: Who you target */}
+            {/* Step 1: Product */}
             {step === 1 && (
+              <div className="col" style={{ gap: 22 }}>
+                <OTextarea
+                  label="What does your product do?"
+                  rows={5}
+                  placeholder="e.g. We build a sales engagement platform that helps B2B teams automate outbound prospecting, follow-up, and reply handling using AI."
+                  value={d.productDescription}
+                  onChange={e => set('productDescription', e.target.value)}
+                  hint="This becomes the core context for email generation, replies, and campaign prompts."
+                />
+                <OTextarea
+                  label="What measurable outcome do customers get?"
+                  rows={5}
+                  placeholder="e.g. Sales teams book more qualified meetings, reduce manual prospecting time, and keep follow-ups consistent without hiring extra SDRs."
+                  value={d.valueProp}
+                  onChange={e => set('valueProp', e.target.value)}
+                  hint="Focus on business outcomes, not only features."
+                />
+                <OTextarea
+                  label="Which buyer pains should outreach mention?"
+                  rows={4}
+                  placeholder="e.g. Low reply rates, stale lead lists, manual research, missed follow-ups, and SDR teams spending too much time writing first drafts."
+                  value={d.painPoints}
+                  onChange={e => set('painPoints', e.target.value)}
+                  hint="These pains help Nexo write stronger first lines and follow-ups."
+                />
+              </div>
+            )}
+
+            {/* Step 2: Ideal customer */}
+            {step === 2 && (
               <div className="col" style={{ gap: 24 }}>
                 <OMulti label="Job titles you target" hint="Nexo will prioritize these roles in outreach."
                   options={['CEO / Founder', 'VP Sales', 'Head of Sales', 'Sales Manager', 'CTO', 'VP Marketing', 'RevOps / SalesOps', 'Director of Ops']}
                   value={d.titles} onChange={v => toggle('titles', v)} />
+                <OMulti label="Target industries" hint="Use this to keep prospecting focused."
+                  options={['B2B SaaS', 'IT Services', 'Marketing Agencies', 'Recruiting', 'Fintech', 'Healthcare', 'Manufacturing', 'Real Estate', 'E-commerce', 'Education']}
+                  value={d.targetIndustries} onChange={v => toggle('targetIndustries', v)} />
                 <OMulti label="Target company sizes"
-                  options={['Startup (1–20)', 'SMB (21–200)', 'Mid-Market (201–1k)', 'Enterprise (1k+)']}
+                  options={['Startup (1-20)', 'SMB (21-200)', 'Mid-Market (201-1k)', 'Enterprise (1k+)']}
                   value={d.companySizes} onChange={v => toggle('companySizes', v)} />
                 <OMulti label="Geographies"
-                  options={['North America', 'Europe', 'APAC', 'LATAM', 'Middle East', 'Global']}
+                  options={['United States', 'North America', 'Europe', 'APAC', 'LATAM', 'Middle East', 'Global']}
                   value={d.geos} onChange={v => toggle('geos', v)} />
+                <OSelect label="Typical deal size" value={d.dealSize} onChange={v => set('dealSize', v)}
+                  options={['Under $5k', '$5k-$20k', '$20k-$50k', '$50k-$100k', '$100k+']} />
+                <OSelect label="Typical sales cycle" value={d.salesCycle} onChange={v => set('salesCycle', v)}
+                  options={['Less than 2 weeks', '2-4 weeks', '1-3 months', '3-6 months', '6+ months']} />
+              </div>
+            )}
+
+            {/* Step 3: Outreach strategy */}
+            {step === 3 && (
+              <div className="col" style={{ gap: 24 }}>
+                <div className="field">
+                  <label>Monthly meeting target</label>
+                  <input
+                    className="input"
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={d.meetingTarget}
+                    onChange={e => set('meetingTarget', e.target.value)}
+                  />
+                  <span className="faint" style={{ fontSize: 12.5 }}>Used as a realistic success target for campaigns and dashboard goals.</span>
+                </div>
                 <OSelect label="Writing tone" value={d.tone} onChange={v => set('tone', v)}
                   options={['Consultative', 'Direct & concise', 'Friendly & warm', 'Challenger', 'Formal']} />
                 <OSelect label="Opening hook style" value={d.hookStyle} onChange={v => set('hookStyle', v)}
                   options={['Pain-based (problem-first)', 'Insight-based (data/trend)', 'Social proof (customer story)', 'Personalized signal (news/hire)', 'Question-led']} />
+                <OSelect label="Follow-up cadence" value={d.followUpCadence} onChange={v => set('followUpCadence', v)}
+                  options={['Day 0, Day 3, Day 7', 'Day 0, Day 2, Day 5', 'Day 0, Day 4, Day 10', 'Custom later']} />
+                <OMulti label="Tools you already use" hint="Helps Nexo understand the sales workflow it should fit into."
+                  options={['Gmail', 'Apollo', 'HubSpot', 'Salesforce', 'Pipedrive', 'Slack', 'Google Calendar', 'Calendly / Cal.com']}
+                  value={d.tools} onChange={v => toggle('tools', v)} />
               </div>
             )}
 
-            {/* Step 2: Review & launch */}
-            {step === 2 && (
+            {/* Step 4: Review & launch */}
+            {step === 4 && (
               <div className="col" style={{ gap: 20 }}>
                 <Field label="Agent name" icon="spark" placeholder="Nexo" value={d.agentName} onChange={e => set('agentName', e.target.value)}
                   hint="What your AI agent is called inside the app." />
@@ -300,7 +370,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Footer nav */}
-        <div className="row spread" style={{ padding: '16px 56px 28px', borderTop: '1px solid var(--line)', flex: 'none' }}>
+        <div className="row spread" style={{ padding: '16px 88px 28px', borderTop: '1px solid var(--line)', flex: 'none' }}>
           <button className="btn btn-ghost" onClick={back} disabled={loading}>
             <Icon name="arrowLeft" size={17} /> Back
           </button>

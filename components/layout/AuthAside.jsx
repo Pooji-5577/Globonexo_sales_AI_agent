@@ -10,9 +10,11 @@ export function AuthAside({ kicker, headline, sub, bullets }) {
       color: '#fff', padding: '42px 40px', display: 'flex', flexDirection: 'column',
     }}>
       <Aurora />
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Logo size={32} light />
-        <div style={{ marginTop: 'auto' }}>
+      <div style={{ position: 'relative', zIndex: 1, display: 'grid', gridTemplateRows: 'auto 1fr auto', height: '100%', minHeight: 0 }}>
+        <div>
+          <Logo size={32} light />
+        </div>
+        <div style={{ alignSelf: 'center', padding: '32px 0' }}>
           <div className="eyebrow" style={{ color: 'var(--g-300)' }}>{kicker}</div>
           <h1 className="display" style={{ fontSize: 38, marginTop: 14, color: '#fff', maxWidth: 320, lineHeight: 1.08 }}>{headline}</h1>
           <p style={{ marginTop: 16, fontSize: 15.5, lineHeight: 1.5, color: 'rgba(255,255,255,.78)', maxWidth: 310 }}>{sub}</p>
@@ -27,7 +29,7 @@ export function AuthAside({ kicker, headline, sub, bullets }) {
             ))}
           </div>
         </div>
-        <div className="row" style={{ gap: 10, marginTop: 36, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.14)' }}>
+        <div className="row" style={{ gap: 10, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.14)' }}>
           <div className="row">
             {['A', 'B', 'C'].map((letter, i) => (
               <div key={letter} style={{ marginLeft: i ? -9 : 0, borderRadius: '50%', boxShadow: '0 0 0 2px #064d33' }}>

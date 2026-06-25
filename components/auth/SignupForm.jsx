@@ -46,7 +46,7 @@ export function SignupForm() {
   };
 
   return (
-    <div style={{ width: 400, maxWidth: '100%' }}>
+    <div style={{ width: 560, maxWidth: '100%' }}>
       <h2 className="display" style={{ fontSize: 30 }}>Create your account</h2>
       <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Let&apos;s build your autonomous pipeline.</p>
       <button
@@ -62,7 +62,7 @@ export function SignupForm() {
       </div>
       <form onSubmit={handleSubmit}>
         <div className="col" style={{ gap: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(240px,1fr))', gap: 20 }}>
             <Field label="First name" icon="user" placeholder="Jane" value={form.firstName} onChange={update('firstName')} required autoComplete="given-name" />
             <Field label="Last name" placeholder="Smith" value={form.lastName} onChange={update('lastName')} required autoComplete="family-name" />
           </div>
