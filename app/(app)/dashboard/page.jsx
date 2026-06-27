@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../../../components/ui/Icon";
+import Avatar from "../../../components/ui/Avatar";
 import api from "../../../lib/api";
 
 const ICON_MAP = {
@@ -34,6 +35,81 @@ function KpiCard({ item }) {
   );
 }
 
+function formatMeetingTime(value) {
+  const meetingDate = new Date(value);
+  if (Number.isNaN(meetingDate.getTime())) return "Time to be confirmed";
+
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const dateKey = date => `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+  const meetingKey = dateKey(meetingDate);
+  const day = meetingKey === dateKey(today)
+    ? "Today"
+    : meetingKey === dateKey(tomorrow)
+      ? "Tomorrow"
+      : meetingDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  const time = meetingDate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+
+  return `${day} at ${time}`;
+}
+
+function NextMeetingCard({ meeting, onViewMeetings }) {
+  if (!meeting) {
+    return (
+      <div className="card" style={{ padding: 18, borderRadius: 8 }}>
+        <div className="row spread">
+          <div>
+            <span style={{ fontWeight: 800, fontSize: 15 }}>Next meeting</span>
+            <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Your nearest scheduled call.</p>
+          </div>
+          <Icon name="calendar" size={20} color="var(--g-700)" />
+        </div>
+        <div style={{ padding: "22px 0 10px", textAlign: "center" }}>
+          <p className="muted" style={{ fontSize: 13, fontWeight: 800 }}>No upcoming meetings.</p>
+          <button className="btn btn-ghost btn-sm" type="button" style={{ marginTop: 10 }} onClick={onViewMeetings}>
+            View meetings
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const attendee = meeting.attendee ?? {};
+  const attendeeDetail = [attendee.title, attendee.company].filter(Boolean).join(" · ");
+
+  return (
+    <div className="card" style={{ padding: 18, borderRadius: 8, background: "linear-gradient(160deg,#fff,#f4fdf8)" }}>
+      <div className="row spread">
+        <span className="eyebrow">Next meeting</span>
+        <Icon name="calendar" size={20} color="var(--g-700)" />
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>{meeting.title}</div>
+        <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+          {formatMeetingTime(meeting.scheduledAt)} · {meeting.durationMinutes ?? 30} min
+        </div>
+      </div>
+      <div className="row" style={{ gap: 9, marginTop: 14 }}>
+        <Avatar name={attendee.name || "Guest"} size={30} />
+        <div className="col" style={{ minWidth: 0 }}>
+          <span style={{ fontSize: 13, fontWeight: 800 }}>{attendee.name || "Guest"}</span>
+          {attendeeDetail ? <span className="faint" style={{ fontSize: 12 }}>{attendeeDetail}</span> : null}
+        </div>
+      </div>
+      {meeting.joinUrl ? (
+        <a className="btn btn-primary btn-sm btn-block" style={{ marginTop: 14 }} href={meeting.joinUrl} target="_blank" rel="noreferrer">
+          <Icon name="play" size={14} color="#06231a" /> Join call
+        </a>
+      ) : (
+        <button className="btn btn-ghost btn-sm btn-block" type="button" style={{ marginTop: 14 }} onClick={onViewMeetings}>
+          View meeting
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState(null);
@@ -51,6 +127,7 @@ export default function DashboardPage() {
   const activity = data?.activity ?? [];
   const tasks = data?.tasks ?? [];
   const weeklyGoal = data?.weeklyGoal ?? { current: 0, target: 1, progress: 0, monthlyTarget: 0 };
+  const nextMeeting = data?.nextMeeting ?? null;
   const firstName = data?.user?.firstName || "there";
 
   const kpiItems = useMemo(() => ([
@@ -92,11 +169,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,minmax(0,1fr))", gap: 12, marginBottom: 16 }}>
+      <div className="dashboard-kpi-grid">
         {kpiItems.map(item => <KpiCard key={item.label} item={item} />)}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.35fr) minmax(320px,.65fr)", gap: 16, alignItems: "start" }}>
+      <div className="dashboard-main-grid">
         <div className="card" style={{ padding: 0, overflow: "hidden", borderRadius: 8 }}>
           <div className="row spread" style={{ padding: "14px 18px", borderBottom: "1px solid var(--line)" }}>
             <div>
@@ -176,6 +253,8 @@ export default function DashboardPage() {
               <button type="button" style={{ color: "var(--g-700)", fontSize: 12.5, fontWeight: 800 }} onClick={() => router.push("/analytics")}>View analytics</button>
             </div>
           </div>
+
+          <NextMeetingCard meeting={nextMeeting} onViewMeetings={() => router.push("/meetings")} />
         </div>
       </div>
     </div>

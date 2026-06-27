@@ -908,7 +908,26 @@ a { color: inherit; text-decoration: none; }
 .legal-page h2 { font-size: 22px; letter-spacing: -.015em; }
 .legal-page p { max-width: 640px; margin-top: 14px; color: var(--ink-2); font-size: 16px; line-height: 1.82; }
 
+.dashboard-kpi-grid {
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-main-grid { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 900px) {
+  .dashboard-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .landing-nav { grid-template-columns: 1fr auto; }
   .landing-nav-links { display: none; }
   .landing-hero { min-height: 850px; }
