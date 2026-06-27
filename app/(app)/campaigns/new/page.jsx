@@ -69,7 +69,7 @@ export default function NewCampaignPage() {
   const [leadSearch, setLeadSearch] = useState("");
 
   useEffect(() => {
-    api.get("/api/leads")
+    api.get("/leads")
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
       .catch(() => setAllLeads([]))
       .finally(() => setLeadsLoading(false));
@@ -139,7 +139,7 @@ export default function NewCampaignPage() {
     setError("");
 
     try {
-      const { data: campaign } = await api.post("/api/campaigns", {
+      const { data: campaign } = await api.post("/campaigns", {
         ...form,
         maxLeads: Number(form.maxLeads),
         dailySendCap: Number(form.dailySendCap),
@@ -149,11 +149,11 @@ export default function NewCampaignPage() {
       const campaignId = campaign.id;
 
       if (form.channel === "email" && steps.some(s => s.subjectTemplate || s.bodyPromptContext)) {
-        await api.put(`/api/campaigns/${campaignId}/steps`, { steps });
+        await api.put(`/campaigns/${campaignId}/steps`, { steps });
       }
 
       if (selectedLeadIds.size > 0) {
-        await api.post(`/api/campaigns/${campaignId}/assign-leads`, {
+        await api.post(`/campaigns/${campaignId}/assign-leads`, {
           leadIds: Array.from(selectedLeadIds),
         });
       }

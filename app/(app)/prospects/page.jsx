@@ -125,7 +125,6 @@ export default function ProspectsPage() {
   const [apolloResults, setApolloResults] = useState([]);
   const [csvLeads, setCsvLeads] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [importingApollo, setImportingApollo] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -134,6 +133,10 @@ export default function ProspectsPage() {
     api.get("/campaigns")
       .then(({ data }) => setCampaigns(Array.isArray(data?.items) ? data.items : []))
       .catch(() => setCampaigns([]));
+
+    api.get("/leads", { params: { source: "apollo", perPage: 25 } })
+      .then(({ data }) => setApolloResults(Array.isArray(data?.items) ? data.items : []))
+      .catch(() => setApolloResults([]));
   }, []);
 
   const canSearch = useMemo(() => {
@@ -154,6 +157,7 @@ export default function ProspectsPage() {
 
     try {
       const { data } = await api.post("/leads/apollo-search", {
+        campaignId: campaignId || undefined,
         titles: splitList(titles),
         locations: splitList(locations),
         companySizes,
@@ -162,41 +166,12 @@ export default function ProspectsPage() {
         perPage: 25,
       });
       setApolloResults(Array.isArray(data?.items) ? data.items : []);
-      setNotice(`${data?.items?.length ?? 0} Apollo people returned.`);
+      setNotice(`${data?.inserted ?? 0} Apollo leads saved${data?.skipped ? `, ${data.skipped} already existed` : ""}.`);
     } catch (err) {
       setApolloResults([]);
       setError(err?.response?.data?.error || "Apollo search failed. Check APOLLO_API_KEY on the backend.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const importApolloResults = async () => {
-    if (apolloResults.length === 0) return;
-    setImportingApollo(true);
-    setError("");
-    setNotice("");
-
-    try {
-      await Promise.all(apolloResults.map(lead => api.post("/leads", {
-        campaignId: campaignId || undefined,
-        apolloId: lead.apolloId || undefined,
-        firstName: lead.firstName || undefined,
-        lastName: lead.lastName || undefined,
-        name: lead.name || undefined,
-        title: lead.title || undefined,
-        company: lead.company || undefined,
-        email: lead.email || undefined,
-        phone: lead.phone || undefined,
-        location: lead.location || undefined,
-        linkedinUrl: lead.linkedinUrl || undefined,
-        source: "apollo",
-      })));
-      setNotice(`${apolloResults.length} Apollo leads imported${campaignId ? " to the selected campaign" : ""}.`);
-    } catch (err) {
-      setError(err?.response?.data?.error || "Apollo leads could not be imported. Check the selected campaign and lead fields.");
-    } finally {
-      setImportingApollo(false);
     }
   };
 
@@ -328,11 +303,8 @@ export default function ProspectsPage() {
               </div>
 
               <div className="row spread" style={{ marginTop: 18, gap: 12, flexWrap: "wrap" }}>
-                <span className="faint" style={{ fontSize: 12.5 }}>Search returns preview data from Apollo. Email visibility depends on your Apollo plan.</span>
+                <span className="faint" style={{ fontSize: 12.5 }}>Search saves Apollo leads to your database. Email visibility depends on your Apollo plan.</span>
                 <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  <button className="btn btn-ghost btn-sm" type="button" disabled={apolloResults.length === 0 || importingApollo} onClick={importApolloResults}>
-                    <Icon name="plus" size={15} /> {importingApollo ? "Importing..." : "Import results"}
-                  </button>
                   <button className="btn btn-primary btn-sm" type="submit" disabled={!canSearch || loading}>
                     <Icon name="search" size={15} color="#06231a" /> {loading ? "Searching..." : "Search Apollo"}
                   </button>
