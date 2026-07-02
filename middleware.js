@@ -13,8 +13,8 @@ const PUBLIC_PATHS = [
   '/callback',
 ];
 
-const BASIC_AUTH_USER = process.env.BASIC_AUTH_USER;
-const BASIC_AUTH_PASSWORD = process.env.BASIC_AUTH_PASSWORD;
+const SITE_USERNAME = process.env.SITE_AUTH_USER;
+const SITE_PASSWORD = process.env.SITE_AUTH_PASSWORD;
 
 function unauthorizedResponse() {
   return new Response('Authentication required.', {
@@ -27,11 +27,6 @@ function unauthorizedResponse() {
 }
 
 function isAuthorized(request) {
-  // If credentials are not configured, allow access rather than breaking the site.
-  if (!BASIC_AUTH_USER || !BASIC_AUTH_PASSWORD) {
-    return true;
-  }
-
   const authHeader = request.headers.get('authorization');
   if (!authHeader || !authHeader.startsWith('Basic ')) {
     return false;
@@ -49,7 +44,7 @@ function isAuthorized(request) {
     const username = decoded.slice(0, separatorIndex);
     const password = decoded.slice(separatorIndex + 1);
 
-    return username === BASIC_AUTH_USER && password === BASIC_AUTH_PASSWORD;
+    return username === SITE_USERNAME && password === SITE_PASSWORD;
   } catch {
     return false;
   }
