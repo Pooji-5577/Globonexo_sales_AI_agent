@@ -158,7 +158,7 @@ export default function NewCampaignPage() {
         });
       }
 
-      router.push("/campaigns");
+      router.push(`/campaigns/${campaignId}`);
     } catch (err) {
       setError(err?.response?.data?.error || "Campaign could not be created. Please check the fields and try again.");
     } finally {
