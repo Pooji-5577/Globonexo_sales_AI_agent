@@ -29,12 +29,15 @@ export default function SettingsPage() {
     autoApproveReplies: false,
     dailyEmailSendCap: 100,
     bookingLink: '',
+    retellPhoneNumber: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [gmailLoading, setGmailLoading] = useState(true);
   const [gmailBusy, setGmailBusy] = useState(false);
   const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null, expiresAt: null });
+  const [voiceAgentId, setVoiceAgentId] = useState(null);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const [systemStatus, setSystemStatus] = useState({
     backend: { running: false },
     redis: { connected: false },
@@ -56,7 +59,9 @@ export default function SettingsPage() {
           autoApproveReplies: Boolean(data.agentConfig?.autoApproveReplies),
           dailyEmailSendCap:  data.agentConfig?.dailyEmailSendCap || 100,
           bookingLink:        data.agentConfig?.bookingLink || '',
+          retellPhoneNumber:  data.agentConfig?.retellPhoneNumber || '',
         });
+        setVoiceAgentId(data.agentConfig?.retellAgentId || null);
       })
       .catch(() => setError('Failed to load settings. Check the API server and refresh.'))
       .finally(() => setLoading(false));
@@ -105,6 +110,19 @@ export default function SettingsPage() {
       setError(err.response?.data?.error || 'Failed to disconnect Gmail.');
     } finally {
       setGmailBusy(false);
+    }
+  };
+
+  const setupVoiceAgent = async () => {
+    setError('');
+    setVoiceBusy(true);
+    try {
+      const { data } = await api.post('/voice/agents');
+      setVoiceAgentId(data?.agentId || null);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to set up voice agent.');
+    } finally {
+      setVoiceBusy(false);
     }
   };
 
@@ -336,6 +354,65 @@ export default function SettingsPage() {
                   </button>
                 )}
               </div>
+            </section>
+
+            <section className="card" style={{ padding: 24, borderRadius: 8 }}>
+              <div className="row spread" style={{ gap: 16, marginBottom: 20, alignItems: 'flex-start' }}>
+                <div className="row" style={{ gap: 10, minWidth: 0 }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, background: voiceAgentId ? 'var(--g-50)' : 'var(--bg-2)', display: 'grid', placeItems: 'center', color: voiceAgentId ? 'var(--g-700)' : 'var(--ink-2)', flex: 'none' }}>
+                    <Icon name="phone" size={18} />
+                  </span>
+                  <div>
+                    <h2 style={{ fontSize: 16, fontWeight: 800 }}>Voice Agent (Retell)</h2>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Required for launching and running voice campaigns.</p>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: '7px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${voiceAgentId ? 'var(--g-100)' : 'var(--line)'}`,
+                    background: voiceAgentId ? 'var(--g-50)' : 'var(--bg-2)',
+                    color: voiceAgentId ? 'var(--g-700)' : 'var(--muted)',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    flex: 'none',
+                  }}
+                >
+                  {voiceAgentId ? 'Connected' : 'Not connected'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 16, alignItems: 'center', marginBottom: 18 }}>
+                <div className="col" style={{ gap: 6, minWidth: 0 }}>
+                  <span className="ellip" style={{ fontSize: 14, fontWeight: 800 }}>
+                    {voiceAgentId ? 'Voice agent is set up' : 'No voice agent set up yet'}
+                  </span>
+                  <span style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.45 }}>
+                    {voiceAgentId
+                      ? 'Re-run this after changing your tone, product description, or objections to refresh the call script.'
+                      : 'Creates a Retell agent for your organisation using your onboarding details.'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={'btn btn-sm ' + (voiceAgentId ? 'btn-ghost' : 'btn-primary')}
+                  onClick={setupVoiceAgent}
+                  disabled={voiceBusy}
+                  style={{ flex: 'none' }}
+                >
+                  <Icon name="spark" size={15} />
+                  {voiceBusy ? 'Working...' : voiceAgentId ? 'Update voice agent' : 'Set up voice agent'}
+                </button>
+              </div>
+
+              <Field
+                label="Retell phone number"
+                type="tel"
+                value={form.retellPhoneNumber || ''}
+                onChange={set('retellPhoneNumber')}
+                hint="Buy a number inside your Retell dashboard, then paste it here in E.164 format, e.g. +14155551234"
+              />
             </section>
 
             {error && <p style={{ fontSize: 13.5, color: '#c0392b', fontWeight: 700 }}>{error}</p>}
