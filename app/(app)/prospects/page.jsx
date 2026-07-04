@@ -88,10 +88,18 @@ function csvToLeads(text) {
   })).filter(lead => lead.name || lead.firstName || lead.lastName || lead.email || lead.company);
 }
 
-function LeadRow({ lead, source }) {
+function LeadRow({ lead, source, selectable, checked, onToggle }) {
   const displayName = lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unnamed lead";
   return (
-    <tr style={{ borderBottom: "1px solid var(--line-2)" }}>
+    <tr
+      style={{ borderBottom: "1px solid var(--line-2)", cursor: selectable ? "pointer" : "default", background: selectable && checked ? "var(--g-50)" : "transparent" }}
+      onClick={selectable ? onToggle : undefined}
+    >
+      {selectable && (
+        <td style={{ padding: "12px 18px", width: 36 }} onClick={event => event.stopPropagation()}>
+          <input type="checkbox" checked={checked} onChange={onToggle} />
+        </td>
+      )}
       <td style={{ padding: "12px 18px" }}>
         <div className="row" style={{ gap: 11 }}>
           <Avatar name={displayName} size={34} />
@@ -114,6 +122,10 @@ function LeadRow({ lead, source }) {
   );
 }
 
+function leadKey(lead, index) {
+  return lead.apolloId || `idx-${index}`;
+}
+
 export default function ProspectsPage() {
   const [tab, setTab] = useState("apollo");
   const [campaigns, setCampaigns] = useState([]);
@@ -123,6 +135,7 @@ export default function ProspectsPage() {
   const [companySizes, setCompanySizes] = useState(["51,200", "201,500"]);
   const [keywords, setKeywords] = useState("B2B SaaS");
   const [apolloResults, setApolloResults] = useState([]);
+  const [selectedApolloIds, setSelectedApolloIds] = useState(new Set());
   const [csvLeads, setCsvLeads] = useState([]);
   const [loading, setLoading] = useState(false);
   const [importingApollo, setImportingApollo] = useState(false);
@@ -144,6 +157,23 @@ export default function ProspectsPage() {
     setCompanySizes(current => current.includes(size) ? current.filter(item => item !== size) : [...current, size]);
   };
 
+  const toggleApolloLead = key => {
+    setSelectedApolloIds(current => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const toggleAllApolloLeads = () => {
+    setSelectedApolloIds(current => {
+      const allKeys = apolloResults.map((lead, index) => leadKey(lead, index));
+      const allSelected = allKeys.every(key => current.has(key));
+      return allSelected ? new Set() : new Set(allKeys);
+    });
+  };
+
   const runApolloSearch = async event => {
     event.preventDefault();
     if (!canSearch) return;
@@ -161,10 +191,13 @@ export default function ProspectsPage() {
         page: 1,
         perPage: 25,
       });
-      setApolloResults(Array.isArray(data?.items) ? data.items : []);
-      setNotice(`${data?.items?.length ?? 0} Apollo people returned.`);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setApolloResults(items);
+      setSelectedApolloIds(new Set(items.map((lead, index) => leadKey(lead, index))));
+      setNotice(`${items.length} Apollo people returned.`);
     } catch (err) {
       setApolloResults([]);
+      setSelectedApolloIds(new Set());
       setError(err?.response?.data?.error || "Apollo search failed. Check APOLLO_API_KEY on the backend.");
     } finally {
       setLoading(false);
@@ -172,13 +205,14 @@ export default function ProspectsPage() {
   };
 
   const importApolloResults = async () => {
-    if (apolloResults.length === 0) return;
+    const leadsToImport = apolloResults.filter((lead, index) => selectedApolloIds.has(leadKey(lead, index)));
+    if (leadsToImport.length === 0) return;
     setImportingApollo(true);
     setError("");
     setNotice("");
 
     try {
-      await Promise.all(apolloResults.map(lead => api.post("/leads", {
+      await Promise.all(leadsToImport.map(lead => api.post("/leads", {
         campaignId: campaignId || undefined,
         apolloId: lead.apolloId || undefined,
         firstName: lead.firstName || undefined,
@@ -192,7 +226,7 @@ export default function ProspectsPage() {
         linkedinUrl: lead.linkedinUrl || undefined,
         source: "apollo",
       })));
-      setNotice(`${apolloResults.length} Apollo leads imported${campaignId ? " to the selected campaign" : ""}.`);
+      setNotice(`${leadsToImport.length} Apollo leads imported${campaignId ? " to the selected campaign" : ""}.`);
     } catch (err) {
       setError(err?.response?.data?.error || "Apollo leads could not be imported. Check the selected campaign and lead fields.");
     } finally {
@@ -330,8 +364,8 @@ export default function ProspectsPage() {
               <div className="row spread" style={{ marginTop: 18, gap: 12, flexWrap: "wrap" }}>
                 <span className="faint" style={{ fontSize: 12.5 }}>Search returns preview data from Apollo. Email visibility depends on your Apollo plan.</span>
                 <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  <button className="btn btn-ghost btn-sm" type="button" disabled={apolloResults.length === 0 || importingApollo} onClick={importApolloResults}>
-                    <Icon name="plus" size={15} /> {importingApollo ? "Importing..." : "Import results"}
+                  <button className="btn btn-ghost btn-sm" type="button" disabled={selectedApolloIds.size === 0 || importingApollo} onClick={importApolloResults}>
+                    <Icon name="plus" size={15} /> {importingApollo ? "Importing..." : `Import selected (${selectedApolloIds.size})`}
                   </button>
                   <button className="btn btn-primary btn-sm" type="submit" disabled={!canSearch || loading}>
                     <Icon name="search" size={15} color="#06231a" /> {loading ? "Searching..." : "Search Apollo"}
@@ -344,6 +378,15 @@ export default function ProspectsPage() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--bg)" }}>
+                    {apolloResults.length > 0 && (
+                      <th style={{ padding: "10px 18px", width: 36 }}>
+                        <input
+                          type="checkbox"
+                          checked={apolloResults.length > 0 && apolloResults.every((lead, index) => selectedApolloIds.has(leadKey(lead, index)))}
+                          onChange={toggleAllApolloLeads}
+                        />
+                      </th>
+                    )}
                     {["Lead", "Email", "Location", "Source"].map(header => (
                       <th key={header} style={{ padding: "10px 18px", textAlign: "left", fontSize: 11.5, fontWeight: 800, color: "var(--faint)", letterSpacing: ".06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{header}</th>
                     ))}
@@ -352,10 +395,22 @@ export default function ProspectsPage() {
                 <tbody>
                   {apolloResults.length === 0 ? (
                     <tr>
-                      <td colSpan={4} style={{ padding: 28, textAlign: "center", color: "var(--muted)", fontWeight: 700 }}>No Apollo results yet.</td>
+                      <td colSpan={5} style={{ padding: 28, textAlign: "center", color: "var(--muted)", fontWeight: 700 }}>No Apollo results yet.</td>
                     </tr>
                   ) : (
-                    apolloResults.map((lead, index) => <LeadRow key={lead.apolloId || index} lead={lead} source="apollo" />)
+                    apolloResults.map((lead, index) => {
+                      const key = leadKey(lead, index);
+                      return (
+                        <LeadRow
+                          key={key}
+                          lead={lead}
+                          source="apollo"
+                          selectable
+                          checked={selectedApolloIds.has(key)}
+                          onToggle={() => toggleApolloLead(key)}
+                        />
+                      );
+                    })
                   )}
                 </tbody>
               </table>
