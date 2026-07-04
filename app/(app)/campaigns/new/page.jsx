@@ -42,6 +42,12 @@ const TIMEZONES = [
   "Asia/Kolkata",
 ];
 
+function parseCadenceDelays(cadence) {
+  if (!cadence) return null;
+  const days = (cadence.match(/\d+/g) || []).map(Number);
+  return days.length === 3 ? days : null;
+}
+
 function Field({ label, children, hint }) {
   return (
     <label className="field">
@@ -73,6 +79,17 @@ export default function NewCampaignPage() {
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
       .catch(() => setAllLeads([]))
       .finally(() => setLeadsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.get("/api/onboarding")
+      .then(({ data }) => {
+        const delays = parseCadenceDelays(data?.follow_up_cadence);
+        if (delays) {
+          setSteps(current => current.map((s, i) => ({ ...s, delayDays: delays[i] })));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const filteredLeads = useMemo(() => {
@@ -110,8 +127,8 @@ export default function NewCampaignPage() {
   }, [filteredLeads]);
 
   const canSubmit = useMemo(() => {
-    return form.name.trim().length >= 3 && form.icpSource.trim().length >= 2 && !saving;
-  }, [form.name, form.icpSource, saving]);
+    return form.name.trim().length >= 3 && !saving;
+  }, [form.name, saving]);
 
   const set = (key, value) => {
     setForm(current => ({ ...current, [key]: value }));
@@ -289,9 +306,9 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="ICP source" hint="Where the initial target audience comes from. This is saved with the campaign for routing and later lead import work.">
+                <Field label="ICP source" hint="Where the initial target audience comes from. Optional at draft stage — you can add this before launch.">
                   <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 10 }}>
-                    <select className="input" value={ICP_OPTIONS.includes(form.icpSource) ? form.icpSource : "custom"} onChange={event => set("icpSource", event.target.value === "custom" ? "" : event.target.value)} required>
+                    <select className="input" value={ICP_OPTIONS.includes(form.icpSource) ? form.icpSource : "custom"} onChange={event => set("icpSource", event.target.value === "custom" ? "" : event.target.value)}>
                       <option value="">Select source</option>
                       {ICP_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
                       <option value="custom">Custom</option>
@@ -302,7 +319,6 @@ export default function NewCampaignPage() {
                       value={form.icpSource}
                       onChange={event => set("icpSource", event.target.value)}
                       maxLength={240}
-                      required
                     />
                   </div>
                 </Field>
