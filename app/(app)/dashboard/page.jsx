@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const kpis = data?.kpis ?? {};
   const activity = data?.activity ?? [];
   const firstName = data?.user?.firstName || 'there';
+  const agentName = data?.agentName || 'Nexo';
 
   return (
     <div className="scroll grow" style={{ padding: '22px 24px', minHeight: 0 }}>
@@ -42,7 +43,7 @@ export default function DashboardPage() {
           <p className="muted" style={{ fontSize: 14, marginTop: 3 }}>Here's where things stand.</p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => router.push('/agent')}>
-          <Icon name="spark" size={16} color="#06231a" /> Talk to Nexo
+          <Icon name="spark" size={16} color="#06231a" /> Talk to {agentName}
         </button>
       </div>
 

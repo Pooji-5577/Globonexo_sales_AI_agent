@@ -4,11 +4,6 @@ import Icon from "../../../components/ui/Icon";
 import Typing from "../../../components/ui/Typing";
 import api from "../../../lib/api";
 
-function getAgentName() {
-  if (typeof window === "undefined") return "Nexo";
-  return window.__agentName || "Nexo";
-}
-
 const QUICK = ['Draft follow-ups for no-replies', 'Find 50 new ICP accounts', 'Summarize hottest leads', 'Pause weekend sending'];
 
 const MOCK_RESPONSES = {
@@ -99,14 +94,15 @@ export default function AgentPage() {
   const [typing, setTyping] = useState(false);
   const [sidebarData, setSidebarData] = useState(null);
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [name, setName] = useState('Nexo');
   const scrollRef = useRef(null);
-  const name = getAgentName();
 
   useEffect(() => {
     api.get('/dashboard')
       .then(res => {
         const d = res.data;
         setSidebarData(d);
+        if (d.agentName) setName(d.agentName);
         const kpis = d.kpis || {};
         const firstName = d.user?.firstName || 'there';
         setMsgs([
