@@ -13,6 +13,7 @@ export function Icon({ name, size = 22, stroke = 1.8, color = 'currentColor', fi
     arrowLeft: <path d="M19 12H5M11 6l-6 6 6 6"/>,
     check: <path d="m4 12 5 5L20 6"/>,
     checkCircle: <><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></>,
+    alertCircle: <><circle cx="12" cy="12" r="9"/><path d="M12 7v6"/><path d="M12 17h.01"/></>,
     grid: <><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></>,
     chat: <path d="M21 11.5a8 8 0 0 1-11.6 7.1L3 20l1.4-6.4A8 8 0 1 1 21 11.5Z"/>,
     users: <><circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16 5.2A3.2 3.2 0 0 1 16 11M21 20a6 6 0 0 0-4-5.6"/></>,

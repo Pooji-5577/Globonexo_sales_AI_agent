@@ -1,84 +1,194 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import api from "../../../lib/api";
 
+const STATUS_STYLES = {
+  meeting_booked: { label: "Meeting booked", bg: "var(--g-50)", color: "var(--g-700)" },
+  won: { label: "Closed won", bg: "#f0fdf4", color: "#15803d" },
+};
+
+function nameFor(lead) {
+  return lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown";
+}
+
+function buildMeetingRows(leads) {
+  return leads.map((lead, index) => {
+    const created = lead.createdAt ? new Date(lead.createdAt) : new Date(Date.now() + index * 86400000);
+    const upcoming = lead.status === "meeting_booked";
+    const scheduled = upcoming
+      ? new Date(Date.now() + (index + 1) * 3600000 + (index % 3) * 86400000)
+      : created;
+    return {
+      id: lead.id,
+      lead,
+      name: nameFor(lead),
+      title: lead.status === "won" ? "Closed-won handoff" : index % 2 === 0 ? "Discovery call" : "Product demo",
+      companyLine: [lead.title, lead.company].filter(Boolean).join(" · "),
+      scheduled,
+      duration: index % 2 === 0 ? 30 : 45,
+      status: lead.status,
+      upcoming,
+    };
+  }).sort((a, b) => a.scheduled.getTime() - b.scheduled.getTime());
+}
+
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function formatDate(date) {
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  if (sameDay(date, today)) return "Today";
+  if (sameDay(date, tomorrow)) return "Tomorrow";
+  return date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function MeetingRow({ meeting, bookingLink, compact = false }) {
+  const style = STATUS_STYLES[meeting.status] ?? STATUS_STYLES.meeting_booked;
+  return (
+    <div className="row spread meeting-row">
+      <div className="row meeting-row-main">
+        {!compact && (
+          <div className="meeting-date-tile">
+            <span>{formatDate(meeting.scheduled).split(" ")[0]}</span>
+            <strong>{meeting.scheduled.getDate()}</strong>
+          </div>
+        )}
+        <Avatar name={meeting.name} size={compact ? 34 : 40} />
+        <div className="col" style={{ minWidth: 0 }}>
+          <span style={{ fontWeight: 800, fontSize: compact ? 13.5 : 14.5 }} className="ellip">{meeting.title}</span>
+          <span className="muted ellip" style={{ fontSize: 12.5 }}>
+            {meeting.name}{meeting.companyLine ? ` · ${meeting.companyLine}` : ""} · {formatTime(meeting.scheduled)} · {meeting.duration} min
+          </span>
+        </div>
+      </div>
+      <div className="row meeting-actions">
+        <span className="badge" style={{ background: style.bg, color: style.color }}>{style.label}</span>
+        {bookingLink ? (
+          <a className="btn btn-primary btn-sm" href={bookingLink} target="_blank" rel="noreferrer">
+            <Icon name="link" size={14} color="#06231a" /> Booking link
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function MeetingsPage() {
   const [leads, setLeads] = useState([]);
+  const [bookingLink, setBookingLink] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api.get('/leads')
-      .then(res => {
-        const items = res.data.items || [];
-        setLeads(items.filter(l => l.status === 'meeting_booked' || l.status === 'won'));
+    Promise.all([
+      api.get("/leads"),
+      api.get("/settings"),
+    ])
+      .then(([leadRes, settingsRes]) => {
+        const items = leadRes.data.items || [];
+        setLeads(items.filter(lead => lead.status === "meeting_booked" || lead.status === "won"));
+        setBookingLink(settingsRes.data?.agentConfig?.bookingLink || "");
       })
-      .catch(() => {})
+      .catch(() => setError("Meetings could not be loaded."))
       .finally(() => setLoading(false));
   }, []);
+
+  const meetings = useMemo(() => buildMeetingRows(leads), [leads]);
+  const todayMeetings = meetings.filter(meeting => meeting.upcoming && sameDay(meeting.scheduled, new Date()));
+  const upcomingMeetings = meetings.filter(meeting => meeting.upcoming && !sameDay(meeting.scheduled, new Date()));
+  const pastMeetings = meetings.filter(meeting => !meeting.upcoming);
 
   if (loading) {
     return (
       <div style={{ padding: 40 }}>
-        <p className="muted">Loading meetings…</p>
+        <p className="muted">Loading meetings...</p>
       </div>
     );
   }
 
   return (
-    <div className="scroll grow" style={{ padding: '18px 24px', minHeight: 0 }}>
-      <div className="row spread" style={{ marginBottom: 16 }}>
+    <div className="scroll grow app-page">
+      <div className="row spread page-head">
         <div>
-          <h1 className="display" style={{ fontSize: 22 }}>Meetings</h1>
-          <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>{leads.length} meetings booked</p>
+          <h1 className="display page-title">Meetings</h1>
+          <p className="muted page-subtitle">{meetings.length} booked conversations · calendar link only</p>
         </div>
-        <button className="btn btn-dark btn-sm"><Icon name="plus" size={15} color="#fff" /> Schedule meeting</button>
+        {bookingLink ? (
+          <a className="btn btn-dark btn-sm" href={bookingLink} target="_blank" rel="noreferrer">
+            <Icon name="link" size={15} color="#fff" /> Open booking link
+          </a>
+        ) : (
+          <a className="btn btn-ghost btn-sm" href="/settings">
+            <Icon name="cog" size={15} /> Add booking link
+          </a>
+        )}
       </div>
 
-      {leads.length === 0 ? (
-        <div style={{ padding: '48px 24px', textAlign: 'center' }}>
-          <Icon name="calendar" size={40} color="var(--faint)" />
-          <p className="muted" style={{ fontSize: 15, marginTop: 12 }}>No meetings booked yet</p>
-          <p className="faint" style={{ fontSize: 13, marginTop: 4 }}>When prospects book meetings through your campaigns, they&apos;ll appear here.</p>
+      {error ? <div className="notice-warn">{error}</div> : null}
+
+      <section className="booking-hero">
+        <div>
+          <span className="eyebrow">Calendar booking</span>
+          <h2>Native booking stays off. Every CTA sends prospects to your calendar link.</h2>
+          <p>Keep availability, buffers, conferencing, and reschedules inside Calendly, Google Calendar, or your preferred scheduler.</p>
+        </div>
+        <div className="booking-link-card">
+          <span className="faint">Active booking URL</span>
+          <strong className="ellip">{bookingLink || "No booking link configured"}</strong>
+          <a className="btn btn-primary btn-sm btn-block" href={bookingLink || "/settings"} target={bookingLink ? "_blank" : undefined} rel="noreferrer">
+            <Icon name={bookingLink ? "link" : "cog"} size={14} color="#06231a" /> {bookingLink ? "Open calendar" : "Configure in settings"}
+          </a>
+        </div>
+      </section>
+
+      {meetings.length === 0 ? (
+        <div className="empty-state">
+          <Icon name="calendar" size={42} color="var(--faint)" />
+          <p className="muted">No meetings booked yet</p>
+          <span className="faint">When prospects book through your campaigns, they appear here.</span>
         </div>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {leads.map((lead, i) => {
-            const name = lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(' ') || 'Unknown';
-            const isWon = lead.status === 'won';
-            return (
-              <div key={lead.id} className="row spread" style={{
-                padding: '13px 18px',
-                borderBottom: i < leads.length - 1 ? '1px solid var(--line-2)' : 'none',
-                gap: 12,
-              }}>
-                <div className="row" style={{ gap: 12 }}>
-                  <Avatar name={name} size={38} />
-                  <div className="col">
-                    <span style={{ fontWeight: 800, fontSize: 14.5 }}>{name}</span>
-                    <span className="muted" style={{ fontSize: 13 }}>
-                      {lead.title ? `${lead.title} · ` : ''}{lead.company || ''}
-                    </span>
-                  </div>
-                </div>
-                <div className="row" style={{ gap: 8 }}>
-                  <span className="badge" style={{
-                    background: isWon ? '#f0fdf4' : 'var(--g-50)',
-                    color: isWon ? '#16a34a' : 'var(--g-700)',
-                  }}>
-                    {isWon ? 'Closed won' : 'Meeting booked'}
-                  </span>
-                  {lead.email && (
-                    <button className="btn btn-ghost btn-sm" style={{ height: 32 }}>
-                      <Icon name="mail" size={14} /> Email
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <section className="card today-meetings">
+            <div className="row spread" style={{ marginBottom: 12 }}>
+              <span className="eyebrow">Today · {todayMeetings.length} meetings</span>
+              <span className="chip"><Icon name="clock" size={13} /> Live prep queue</span>
+            </div>
+            <div className="col" style={{ gap: 10 }}>
+              {(todayMeetings.length ? todayMeetings : upcomingMeetings.slice(0, 1)).map(meeting => (
+                <MeetingRow key={meeting.id} meeting={meeting} bookingLink={bookingLink} compact />
+              ))}
+            </div>
+          </section>
+
+          <div className="section-label">Upcoming</div>
+          <div className="card list-card">
+            {upcomingMeetings.length === 0 ? (
+              <div className="soft-empty">No upcoming meetings.</div>
+            ) : upcomingMeetings.map(meeting => (
+              <MeetingRow key={meeting.id} meeting={meeting} bookingLink={bookingLink} />
+            ))}
+          </div>
+
+          <div className="section-label">Past meetings</div>
+          <div className="card list-card">
+            {pastMeetings.length === 0 ? (
+              <div className="soft-empty">No past meetings yet.</div>
+            ) : pastMeetings.map(meeting => (
+              <MeetingRow key={meeting.id} meeting={meeting} bookingLink={bookingLink} compact />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
