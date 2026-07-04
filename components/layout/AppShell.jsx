@@ -73,8 +73,8 @@ export default function AppShell({ children }) {
   };
 
   return (
-    <div className="screen" style={{ flexDirection: 'row', background: 'var(--bg)' }}>
-      <aside style={{ width: 248, flex: 'none', background: '#fff', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: '18px 14px' }}>
+    <div className="screen app-shell-screen" style={{ flexDirection: 'row', background: 'var(--bg)' }}>
+      <aside className="app-shell-sidebar" style={{ width: 248, flex: 'none', background: '#fff', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: '18px 14px' }}>
         <div style={{ padding: '4px 6px 16px' }}><Logo size={28} /></div>
         <button className="btn btn-primary btn-sm" style={{ marginBottom: 14, fontSize: 13.5 }} onClick={() => router.push('/campaigns/new')}>
           <Icon name="plus" size={15} color="#06231a" /> New campaign
@@ -109,7 +109,7 @@ export default function AppShell({ children }) {
       </aside>
 
       <div className="grow col" style={{ minWidth: 0 }}>
-        <header className="row spread" style={{ height: 62, flex: 'none', padding: '0 24px', borderBottom: '1px solid var(--line)', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(8px)' }}>
+        <header className="row spread app-shell-header" style={{ height: 62, flex: 'none', padding: '0 24px', borderBottom: '1px solid var(--line)', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(8px)' }}>
           <div className="input-wrap" style={{ width: 320 }}>
             <span className="lead-ico"><Icon name="search" size={17} /></span>
             <input className="input has-ico" style={{ height: 40, background: 'var(--bg)', fontSize: 14 }} placeholder="Search leads, accounts, replies…" />
