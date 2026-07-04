@@ -13,6 +13,8 @@ export default function BillingPage() {
   const [annual, setAnnual] = useState(true);
   const [usage, setUsage] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState("");
+  const [upgrading, setUpgrading] = useState("");
 
   useEffect(() => {
     api.get('/billing/usage')
@@ -20,6 +22,20 @@ export default function BillingPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
+
+  const handleUpgrade = async (planId) => {
+    setUpgrading(planId);
+    try {
+      const { data } = await api.post('/billing/checkout', { planId });
+      showToast(data?.message ?? 'Billing is launching soon.');
+    } catch (err) {
+      showToast(err?.response?.data?.error ?? 'Something went wrong. Please try again.');
+    } finally {
+      setUpgrading("");
+    }
+  };
 
   const currentPlanId = usage?.plan ?? 'starter';
   const currentPlanConfig = PLAN_CONFIG.find(p => p.id === currentPlanId) || PLAN_CONFIG[0];
@@ -34,6 +50,11 @@ export default function BillingPage() {
 
   return (
     <div className="scroll grow" style={{ padding: '24px 32px', minHeight: 0 }}>
+      {toast && (
+        <div style={{ position: "fixed", bottom: 24, right: 24, background: "var(--fg)", color: "var(--bg)", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 9999, maxWidth: 360, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+          {toast}
+        </div>
+      )}
       <div className="row spread" style={{ marginBottom: 28 }}>
         <div>
           <h1 className="display" style={{ fontSize: 24 }}>Billing & plan</h1>
@@ -90,8 +111,13 @@ export default function BillingPage() {
                   </div>
                 ))}
               </div>
-              <button className={'btn btn-block ' + (isCurrent ? 'btn-ghost' : 'btn-primary')} style={{ fontSize: 15, height: 48 }}>
-                {isCurrent ? 'Current plan' : 'Upgrade'}
+              <button
+                className={'btn btn-block ' + (isCurrent ? 'btn-ghost' : 'btn-primary')}
+                style={{ fontSize: 15, height: 48 }}
+                disabled={isCurrent || upgrading === p.id}
+                onClick={() => handleUpgrade(p.id)}
+              >
+                {isCurrent ? 'Current plan' : upgrading === p.id ? 'Please wait…' : 'Upgrade'}
               </button>
             </div>
           );
