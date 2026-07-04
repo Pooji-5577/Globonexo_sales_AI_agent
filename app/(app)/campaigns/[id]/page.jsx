@@ -77,8 +77,8 @@ export default function CampaignDetailPage() {
     setError("");
     try {
       const [campaignRes, leadsRes] = await Promise.all([
-        api.get(`/api/campaigns/${id}`),
-        api.get(`/api/leads?campaignId=${id}`),
+        api.get(`/campaigns/${id}`),
+        api.get(`/leads?campaignId=${id}`),
       ]);
       setCampaign(campaignRes.data);
       setLeads(leadsRes.data?.items ?? leadsRes.data ?? []);
@@ -94,7 +94,7 @@ export default function CampaignDetailPage() {
   const handleLaunch = async () => {
     setLaunching(true);
     try {
-      const { data } = await api.post(`/api/campaigns/${id}/launch`);
+      const { data } = await api.post(`/campaigns/${id}/launch`);
       setCampaign(prev => ({ ...prev, status: "active" }));
       if (data.queued !== undefined) {
         showToast(`Campaign launched! ${data.queued} calls queued${data.skipped ? `, ${data.skipped} skipped (no phone)` : ""}.`);
@@ -111,7 +111,7 @@ export default function CampaignDetailPage() {
   const handlePause = async () => {
     setPausing(true);
     try {
-      await api.post(`/api/campaigns/${id}/pause`);
+      await api.post(`/campaigns/${id}/pause`);
       setCampaign(prev => ({ ...prev, status: "paused" }));
       showToast("Campaign paused.");
     } catch (err) {

@@ -42,6 +42,8 @@ const TIMEZONES = [
   "Asia/Kolkata",
 ];
 
+const DRAFT_STORAGE_KEY = "globonexo:new-campaign-draft";
+
 function parseCadenceDelays(cadence) {
   if (!cadence) return null;
   const days = (cadence.match(/\d+/g) || []).map(Number);
@@ -68,6 +70,7 @@ export default function NewCampaignPage() {
   const [steps, setSteps] = useState(DEFAULT_STEPS);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const [allLeads, setAllLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
@@ -75,14 +78,14 @@ export default function NewCampaignPage() {
   const [leadSearch, setLeadSearch] = useState("");
 
   useEffect(() => {
-    api.get("/api/leads")
+    api.get("/leads")
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
       .catch(() => setAllLeads([]))
       .finally(() => setLeadsLoading(false));
   }, []);
 
   useEffect(() => {
-    api.get("/api/onboarding")
+    api.get("/onboarding")
       .then(({ data }) => {
         const delays = parseCadenceDelays(data?.follow_up_cadence);
         if (delays) {
@@ -91,6 +94,38 @@ export default function NewCampaignPage() {
       })
       .catch(() => {});
   }, []);
+
+  // Restore any in-progress draft before the autosave effect below starts writing.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.form) setForm(current => ({ ...current, ...saved.form }));
+        if (saved.steps) setSteps(saved.steps);
+      }
+    } catch {
+      // ignore malformed/unavailable storage
+    }
+    setDraftRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+    try {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ form, steps }));
+    } catch {
+      // ignore storage write failures (e.g. private browsing quota)
+    }
+  }, [form, steps, draftRestored]);
+
+  const clearDraftStorage = () => {
+    try {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
 
   const filteredLeads = useMemo(() => {
     if (!leadSearch.trim()) return allLeads;
@@ -156,7 +191,7 @@ export default function NewCampaignPage() {
     setError("");
 
     try {
-      const { data: campaign } = await api.post("/api/campaigns", {
+      const { data: campaign } = await api.post("/campaigns", {
         ...form,
         maxLeads: Number(form.maxLeads),
         dailySendCap: Number(form.dailySendCap),
@@ -166,18 +201,27 @@ export default function NewCampaignPage() {
       const campaignId = campaign.id;
 
       if (form.channel === "email" && steps.some(s => s.subjectTemplate || s.bodyPromptContext)) {
-        await api.put(`/api/campaigns/${campaignId}/steps`, { steps });
+        await api.put(`/campaigns/${campaignId}/steps`, { steps });
       }
 
       if (selectedLeadIds.size > 0) {
-        await api.post(`/api/campaigns/${campaignId}/assign-leads`, {
+        await api.post(`/campaigns/${campaignId}/assign-leads`, {
           leadIds: Array.from(selectedLeadIds),
         });
       }
 
+      clearDraftStorage();
       router.push(`/campaigns/${campaignId}`);
     } catch (err) {
-      setError(err?.response?.data?.error || "Campaign could not be created. Please check the fields and try again.");
+      console.error("Campaign creation failed:", err?.response?.status, err?.response?.data, err);
+      const backendError = err?.response?.data?.error;
+      const backendDetails = err?.response?.data?.details;
+      const detailText = backendDetails ? ` (${JSON.stringify(backendDetails)})` : "";
+      setError(
+        backendError
+          ? `${backendError}${detailText}`
+          : err?.message || "Campaign could not be created. Please check the fields and try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -196,7 +240,7 @@ export default function NewCampaignPage() {
           </div>
         </div>
         <div className="row" style={{ gap: 10 }}>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => router.push("/campaigns")}>Cancel</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { clearDraftStorage(); router.push("/campaigns"); }}>Cancel</button>
           <button type="submit" className="btn btn-primary btn-sm" disabled={!canSubmit}>
             <Icon name="check" size={15} color="#06231a" /> {saving ? "Creating..." : "Create draft"}
           </button>

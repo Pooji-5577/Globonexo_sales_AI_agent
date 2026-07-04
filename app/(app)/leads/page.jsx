@@ -231,7 +231,7 @@ function CsvUploadModal({ onClose, onImportComplete }) {
       formData.append("file", file);
       formData.append("columnMapping", JSON.stringify(columnMapping));
 
-      const { data } = await api.post("/api/leads/csv-import", formData, {
+      const { data } = await api.post("/leads/csv-import", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -240,7 +240,7 @@ function CsvUploadModal({ onClose, onImportComplete }) {
 
       pollRef.current = setInterval(async () => {
         try {
-          const { data: prog } = await api.get(`/api/leads/csv-import/${data.jobId}`);
+          const { data: prog } = await api.get(`/leads/csv-import/${data.jobId}`);
           setProgress(prog);
           if (prog.status === "completed" || prog.status === "failed") {
             clearInterval(pollRef.current);
@@ -557,7 +557,7 @@ export default function LeadsPage() {
       params.set("page", String(page));
       params.set("perPage", String(perPage));
 
-      const { data } = await api.get(`/api/leads?${params.toString()}`);
+      const { data } = await api.get(`/leads?${params.toString()}`);
       setLeads(Array.isArray(data?.items) ? data.items : []);
       setTotal(data?.pagination?.total ?? data?.items?.length ?? 0);
     } catch (err) {
@@ -583,7 +583,7 @@ export default function LeadsPage() {
     setError("");
     setNotice("");
     try {
-      const { data } = await api.post("/api/leads/apollo-enrich", { leadId });
+      const { data } = await api.post("/leads/apollo-enrich", { leadId });
       setLeads(current => current.map(l => l.id === leadId ? data : l));
       const name = data.name || data.firstName || "Lead";
       setNotice(`${name} enriched and saved.`);
