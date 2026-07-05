@@ -9,6 +9,14 @@ import Segmented from "../../../components/ui/Segmented";
 const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
 const STAGE_OPTIONS = ["all", "new", "queued", "contacted", "engaged", "meeting_booked", "not_interested", "unsubscribed"];
 const SOURCE_OPTIONS = ["all", "apollo", "csv", "manual"];
+const SORT_OPTIONS = [
+  { value: "created_desc", label: "Newest" },
+  { value: "created_asc", label: "Oldest" },
+  { value: "score_desc", label: "Score high-low" },
+  { value: "score_asc", label: "Score low-high" },
+  { value: "name_asc", label: "Name A-Z" },
+  { value: "company_asc", label: "Company A-Z" },
+];
 const STAGE_LABELS = {
   all: "All",
   new: "New",
@@ -191,6 +199,7 @@ export default function ProspectsPage() {
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("created_desc");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
@@ -214,13 +223,22 @@ export default function ProspectsPage() {
 
   const filteredLeads = useMemo(() => {
     const needle = search.trim().toLowerCase();
-    return leads.filter(lead => {
+    const filtered = leads.filter(lead => {
       const haystack = [leadName(lead), lead.company, lead.title, lead.email, lead.location].filter(Boolean).join(" ").toLowerCase();
       return (!needle || haystack.includes(needle))
         && (stageFilter === "all" || lead.status === stageFilter)
         && (sourceFilter === "all" || lead.source === sourceFilter);
     });
-  }, [leads, search, stageFilter, sourceFilter]);
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "score_desc") return (b.score ?? 0) - (a.score ?? 0);
+      if (sortBy === "score_asc") return (a.score ?? 0) - (b.score ?? 0);
+      if (sortBy === "name_asc") return leadName(a).localeCompare(leadName(b));
+      if (sortBy === "company_asc") return (a.company || "").localeCompare(b.company || "");
+      const aTime = new Date(a.createdAt || 0).getTime();
+      const bTime = new Date(b.createdAt || 0).getTime();
+      return sortBy === "created_asc" ? aTime - bTime : bTime - aTime;
+    });
+  }, [leads, search, stageFilter, sourceFilter, sortBy]);
 
   const metrics = useMemo(() => ({
     total: leads.length,
@@ -385,6 +403,9 @@ export default function ProspectsPage() {
                 </select>
                 <select className="input compact-select" value={sourceFilter} onChange={event => setSourceFilter(event.target.value)}>
                   {SOURCE_OPTIONS.map(source => <option key={source} value={source}>{source === "all" ? "All sources" : source}</option>)}
+                </select>
+                <select className="input compact-select" value={sortBy} onChange={event => setSortBy(event.target.value)}>
+                  {SORT_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
                 <button className="btn btn-ghost btn-sm" type="button" disabled={revealableLeads.length === 0 || bulkEnriching} onClick={enrichVisibleLeads}>
                   <Icon name="mail" size={15} /> {bulkEnriching ? "Revealing..." : `Reveal emails (${revealableLeads.length})`}
