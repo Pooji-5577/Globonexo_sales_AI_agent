@@ -84,29 +84,37 @@ export default function NewCampaignPage() {
       .finally(() => setLeadsLoading(false));
   }, []);
 
+  // Restore any in-progress draft first. Only fall back to the onboarding
+  // cadence defaults when there's no draft to restore - otherwise the async
+  // onboarding fetch resolves after the restore and silently overwrites
+  // whatever delay values the user had already customized.
   useEffect(() => {
-    api.get("/onboarding")
-      .then(({ data }) => {
-        const delays = parseCadenceDelays(data?.follow_up_cadence);
-        if (delays) {
-          setSteps(current => current.map((s, i) => ({ ...s, delayDays: delays[i] })));
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // Restore any in-progress draft before the autosave effect below starts writing.
-  useEffect(() => {
+    let restoredFromDraft = false;
     try {
       const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved.form) setForm(current => ({ ...current, ...saved.form }));
-        if (saved.steps) setSteps(saved.steps);
+        if (saved.steps) {
+          setSteps(saved.steps);
+          restoredFromDraft = true;
+        }
       }
     } catch {
       // ignore malformed/unavailable storage
     }
+
+    if (!restoredFromDraft) {
+      api.get("/onboarding")
+        .then(({ data }) => {
+          const delays = parseCadenceDelays(data?.follow_up_cadence);
+          if (delays) {
+            setSteps(current => current.map((s, i) => ({ ...s, delayDays: delays[i] })));
+          }
+        })
+        .catch(() => {});
+    }
+
     setDraftRestored(true);
   }, []);
 
