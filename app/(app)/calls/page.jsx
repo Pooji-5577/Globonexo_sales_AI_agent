@@ -210,19 +210,17 @@ export default function CallsPage() {
           <button
             key={f}
             type="button"
+            className="btn btn-ghost btn-sm"
             onClick={() => setFilter(f)}
             style={{
-              padding: "5px 14px",
-              borderRadius: 99,
-              border: "1px solid",
-              borderColor: filter === f ? "var(--fg)" : "var(--line-2)",
-              background: filter === f ? "var(--fg)" : "transparent",
-              color: filter === f ? "var(--bg)" : "var(--muted)",
+              height: 30,
+              padding: "0 14px",
               fontSize: 12,
               fontWeight: 600,
-              cursor: "pointer",
               whiteSpace: "nowrap",
               flex: "none",
+              background: filter === f ? "var(--g-50)" : "#fff",
+              borderColor: filter === f ? "var(--g-300)" : "var(--line)",
             }}
           >
             {FILTER_LABELS[f]}
