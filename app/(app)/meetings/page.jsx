@@ -6,34 +6,10 @@ import Avatar from "../../../components/ui/Avatar";
 import api from "../../../lib/api";
 
 const STATUS_STYLES = {
-  meeting_booked: { label: "Meeting booked", bg: "var(--g-50)", color: "var(--g-700)" },
-  won: { label: "Closed won", bg: "#f0fdf4", color: "#15803d" },
+  scheduled: { label: "Scheduled", bg: "var(--g-50)", color: "var(--g-700)" },
+  completed: { label: "Completed", bg: "#f0fdf4", color: "#15803d" },
+  cancelled: { label: "Cancelled", bg: "#fef2f2", color: "#b91c1c" },
 };
-
-function nameFor(lead) {
-  return lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown";
-}
-
-function buildMeetingRows(leads) {
-  return leads.map((lead, index) => {
-    const created = lead.createdAt ? new Date(lead.createdAt) : new Date(Date.now() + index * 86400000);
-    const upcoming = lead.status === "meeting_booked";
-    const scheduled = upcoming
-      ? new Date(Date.now() + (index + 1) * 3600000 + (index % 3) * 86400000)
-      : created;
-    return {
-      id: lead.id,
-      lead,
-      name: nameFor(lead),
-      title: lead.status === "won" ? "Closed-won handoff" : index % 2 === 0 ? "Discovery call" : "Product demo",
-      companyLine: [lead.title, lead.company].filter(Boolean).join(" · "),
-      scheduled,
-      duration: index % 2 === 0 ? 30 : 45,
-      status: lead.status,
-      upcoming,
-    };
-  }).sort((a, b) => a.scheduled.getTime() - b.scheduled.getTime());
-}
 
 function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -52,8 +28,19 @@ function formatTime(date) {
   return date.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }
 
+function normalizeMeeting(meeting) {
+  const lead = meeting.lead || {};
+  return {
+    ...meeting,
+    scheduled: new Date(meeting.scheduledAt),
+    name: lead.name || "Guest",
+    companyLine: [lead.title, lead.company].filter(Boolean).join(" · "),
+    duration: meeting.durationMinutes ?? 30,
+  };
+}
+
 function MeetingRow({ meeting, bookingLink, compact = false }) {
-  const style = STATUS_STYLES[meeting.status] ?? STATUS_STYLES.meeting_booked;
+  const style = STATUS_STYLES[meeting.status] ?? STATUS_STYLES.scheduled;
   return (
     <div className="row spread meeting-row">
       <div className="row meeting-row-main">
@@ -73,9 +60,13 @@ function MeetingRow({ meeting, bookingLink, compact = false }) {
       </div>
       <div className="row meeting-actions">
         <span className="badge" style={{ background: style.bg, color: style.color }}>{style.label}</span>
-        {bookingLink ? (
-          <a className="btn btn-primary btn-sm" href={bookingLink} target="_blank" rel="noreferrer">
-            <Icon name="link" size={14} color="#06231a" /> Booking link
+        {meeting.joinUrl ? (
+          <a className="btn btn-primary btn-sm" href={meeting.joinUrl} target="_blank" rel="noreferrer">
+            <Icon name="play" size={14} color="#06231a" /> Join call
+          </a>
+        ) : bookingLink ? (
+          <a className="btn btn-ghost btn-sm" href={bookingLink} target="_blank" rel="noreferrer">
+            <Icon name="link" size={14} /> Booking link
           </a>
         ) : null}
       </div>
@@ -84,29 +75,25 @@ function MeetingRow({ meeting, bookingLink, compact = false }) {
 }
 
 export default function MeetingsPage() {
-  const [leads, setLeads] = useState([]);
+  const [data, setData] = useState(null);
   const [bookingLink, setBookingLink] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([
-      api.get("/leads"),
-      api.get("/settings"),
-    ])
-      .then(([leadRes, settingsRes]) => {
-        const items = leadRes.data.items || [];
-        setLeads(items.filter(lead => lead.status === "meeting_booked" || lead.status === "won"));
-        setBookingLink(settingsRes.data?.agentConfig?.bookingLink || "");
+    api.get("/meetings")
+      .then(res => {
+        setData(res.data);
+        setBookingLink(res.data?.bookingLink || "");
       })
       .catch(() => setError("Meetings could not be loaded."))
       .finally(() => setLoading(false));
   }, []);
 
-  const meetings = useMemo(() => buildMeetingRows(leads), [leads]);
-  const todayMeetings = meetings.filter(meeting => meeting.upcoming && sameDay(meeting.scheduled, new Date()));
-  const upcomingMeetings = meetings.filter(meeting => meeting.upcoming && !sameDay(meeting.scheduled, new Date()));
-  const pastMeetings = meetings.filter(meeting => !meeting.upcoming);
+  const todayMeetings = useMemo(() => (data?.today || []).map(normalizeMeeting), [data]);
+  const upcomingMeetings = useMemo(() => (data?.upcoming || []).map(normalizeMeeting), [data]);
+  const pastMeetings = useMemo(() => (data?.past || []).map(normalizeMeeting), [data]);
+  const meetingCount = data?.summary?.total ?? 0;
 
   if (loading) {
     return (
@@ -121,7 +108,7 @@ export default function MeetingsPage() {
       <div className="row spread page-head">
         <div>
           <h1 className="display page-title">Meetings</h1>
-          <p className="muted page-subtitle">{meetings.length} booked conversations · calendar link only</p>
+          <p className="muted page-subtitle">{meetingCount} booked conversations · calendar link only</p>
         </div>
         {bookingLink ? (
           <a className="btn btn-dark btn-sm" href={bookingLink} target="_blank" rel="noreferrer">
@@ -151,7 +138,7 @@ export default function MeetingsPage() {
         </div>
       </section>
 
-      {meetings.length === 0 ? (
+      {meetingCount === 0 ? (
         <div className="empty-state">
           <Icon name="calendar" size={42} color="var(--faint)" />
           <p className="muted">No meetings booked yet</p>
@@ -165,7 +152,9 @@ export default function MeetingsPage() {
               <span className="chip"><Icon name="clock" size={13} /> Live prep queue</span>
             </div>
             <div className="col" style={{ gap: 10 }}>
-              {(todayMeetings.length ? todayMeetings : upcomingMeetings.slice(0, 1)).map(meeting => (
+              {todayMeetings.length === 0 ? (
+                <div className="soft-empty">No meetings today.</div>
+              ) : todayMeetings.map(meeting => (
                 <MeetingRow key={meeting.id} meeting={meeting} bookingLink={bookingLink} compact />
               ))}
             </div>
