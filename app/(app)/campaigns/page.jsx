@@ -100,7 +100,11 @@ export default function CampaignsPage() {
       setCampaignInList(data);
       await loadCampaigns();
     } catch (err) {
-      setError(err?.response?.data?.error || "Campaign action failed. Please try again.");
+      const details = err?.response?.data?.details;
+      const detailText = details && typeof details === "object"
+        ? ` Ready: ${details.ready ?? 0}, missing email: ${details.missingEmail ?? 0}, stopped: ${details.stopped ?? 0}.`
+        : "";
+      setError(`${err?.response?.data?.error || "Campaign action failed. Please try again."}${detailText}`);
     } finally {
       setBusyId("");
     }
@@ -126,7 +130,7 @@ export default function CampaignsPage() {
     { k: "Campaigns", v: summary.total },
     { k: "Active", v: summary.active },
     { k: "Enrolled leads", v: summary.enrolled },
-    { k: "Meetings booked", v: summary.meetings },
+    { k: "Messages sent", v: summary.sent },
   ];
 
   return (
@@ -210,7 +214,9 @@ export default function CampaignsPage() {
             {filteredCampaigns.map(campaign => {
               const statusStyle = STATUS_STYLES[campaign.status] ?? STATUS_STYLES.draft;
               const primaryAction = campaign.status === "active" ? "pause" : "launch";
-              const primaryLabel = campaign.status === "active" ? "Pause" : "Launch";
+              const hasReadyLeads = (campaign.stats?.ready ?? 0) > 0;
+              const launchBlocked = primaryAction === "launch" && campaign.channel === "email" && !hasReadyLeads;
+              const primaryLabel = campaign.status === "active" ? "Pause" : launchBlocked ? "Needs email" : "Launch";
               const actionBusy = busyId === campaign.id + primaryAction;
               return (
                 <div key={campaign.id} className="card" style={{ padding: 18, borderRadius: 8 }}>
@@ -232,7 +238,13 @@ export default function CampaignsPage() {
                         {statusStyle.label}
                       </span>
                       {campaign.status !== "completed" && (
-                        <button className="btn btn-ghost btn-sm" disabled={actionBusy} style={{ height: 32 }} onClick={() => runAction(campaign, primaryAction)}>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          disabled={actionBusy || launchBlocked}
+                          title={launchBlocked ? "Reveal or upload lead emails before launching." : undefined}
+                          style={{ height: 32 }}
+                          onClick={() => runAction(campaign, primaryAction)}
+                        >
                           <Icon name={primaryAction === "pause" ? "pause" : "play"} size={14} />
                           {actionBusy ? "Working..." : primaryLabel}
                         </button>
@@ -241,16 +253,17 @@ export default function CampaignsPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1.6fr repeat(4,minmax(0,1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-2)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(5,minmax(0,1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-2)" }}>
                     <div className="col" style={{ minWidth: 0 }}>
                       <span className="faint" style={{ fontSize: 11.5, fontWeight: 800 }}>ICP source</span>
                       <span className="ellip" style={{ fontWeight: 800, fontSize: 14, marginTop: 4 }}>{campaign.icpSource || "Not set"}</span>
                     </div>
                     {[
                       ["Enrolled", campaign.stats?.enrolled ?? 0],
+                      ["Ready", campaign.stats?.ready ?? 0],
+                      ["Missing email", campaign.stats?.missingEmail ?? 0],
+                      ["Queued", campaign.stats?.queued ?? 0],
                       ["Sent", campaign.stats?.sent ?? 0],
-                      ["Meetings", campaign.stats?.meetings ?? 0],
-                      ["Daily cap", campaign.channel === "email" ? campaign.dailySendCap : `${campaign.callCadencePerHour}/hr`],
                     ].map(([key, value]) => (
                       <div key={key} className="col">
                         <span className="faint" style={{ fontSize: 11.5, fontWeight: 800 }}>{key}</span>

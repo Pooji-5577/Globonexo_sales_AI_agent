@@ -71,11 +71,13 @@ export default function NewCampaignPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [draftRestored, setDraftRestored] = useState(false);
+  const [validationErrors, setValidationErrors] = useState([]);
 
   const [allLeads, setAllLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
   const [selectedLeadIds, setSelectedLeadIds] = useState(new Set());
   const [leadSearch, setLeadSearch] = useState("");
+  const setupReady = form.name.trim().length >= 3;
 
   useEffect(() => {
     api.get("/leads")
@@ -169,12 +171,10 @@ export default function NewCampaignPage() {
     });
   }, [filteredLeads]);
 
-  const canSubmit = useMemo(() => {
-    return form.name.trim().length >= 3 && !saving;
-  }, [form.name, saving]);
-
   const set = (key, value) => {
     setForm(current => ({ ...current, [key]: value }));
+    setValidationErrors([]);
+    setError("");
   };
 
   const updateStep = (index, key, value) => {
@@ -191,12 +191,48 @@ export default function NewCampaignPage() {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [form.channel]);
 
+  const validateForm = useCallback(() => {
+    const errors = [];
+
+    if (form.name.trim().length < 3) {
+      errors.push("Campaign name must be at least 3 characters.");
+    }
+
+    if (Number(form.maxLeads) < 1) {
+      errors.push("Maximum leads must be at least 1.");
+    }
+
+    if (form.channel === "email" && Number(form.dailySendCap) < 1) {
+      errors.push("Daily send cap must be at least 1.");
+    }
+
+    if (form.channel === "voice" && Number(form.callCadencePerHour) < 1) {
+      errors.push("Calls per hour must be at least 1.");
+    }
+
+    if (form.businessHoursStart >= form.businessHoursEnd) {
+      errors.push("Business hours end time must be after start time.");
+    }
+
+    return errors;
+  }, [form]);
+
   const submit = async event => {
     event.preventDefault();
-    if (!canSubmit) return;
+    if (saving) return;
+
+    const errors = validateForm();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      setError("");
+      const hasSetupError = errors.some(message => message.includes("Campaign name"));
+      scrollToSection(hasSetupError ? setupRef : controlsRef);
+      return;
+    }
 
     setSaving(true);
     setError("");
+    setValidationErrors([]);
 
     try {
       const { data: campaign } = await api.post("/campaigns", {
@@ -249,7 +285,7 @@ export default function NewCampaignPage() {
         </div>
         <div className="row" style={{ gap: 10 }}>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => { clearDraftStorage(); router.push("/campaigns"); }}>Cancel</button>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={!canSubmit}>
+          <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
             <Icon name="check" size={15} color="#06231a" /> {saving ? "Creating..." : "Create draft"}
           </button>
         </div>
@@ -258,6 +294,11 @@ export default function NewCampaignPage() {
       {error && (
         <div style={{ padding: "12px 24px", background: "#fff7ed", borderBottom: "1px solid #fed7aa", color: "#9a3412", fontSize: 13, fontWeight: 700 }}>
           {error}
+        </div>
+      )}
+      {validationErrors.length > 0 && (
+        <div style={{ padding: "12px 24px", background: "#fff7ed", borderBottom: "1px solid #fed7aa", color: "#9a3412", fontSize: 13, fontWeight: 700 }}>
+          {validationErrors[0]}
         </div>
       )}
 
@@ -612,12 +653,15 @@ export default function NewCampaignPage() {
               </div>
             ))}
 
-            <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--line)" }}>
+            <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: setupReady ? "var(--g-50)" : "#fff7ed", border: `1px solid ${setupReady ? "var(--g-100)" : "#fed7aa"}` }}>
               <div className="row" style={{ gap: 7, fontWeight: 800, fontSize: 13 }}>
-                <Icon name="checkCircle" size={15} color="var(--g-600)" /> Saved as draft
+                <Icon name={setupReady ? "checkCircle" : "alertCircle"} size={15} color={setupReady ? "var(--g-600)" : "#c2410c"} />
+                {setupReady ? "Ready to create draft" : "Setup incomplete"}
               </div>
-              <p className="muted" style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.5 }}>
-                Launch is available from the campaign list after the shell is created.
+              <p style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.5, color: setupReady ? "var(--muted)" : "#9a3412" }}>
+                {setupReady
+                  ? "Launch is available from the campaign list after the shell is created."
+                  : "Campaign name is required before saving this draft."}
               </p>
             </div>
           </aside>

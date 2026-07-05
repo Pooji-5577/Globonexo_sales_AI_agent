@@ -393,8 +393,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Build call history UI.
 
 **Poojitha — Meetings module**
-- [ ] Build Meetings UI from prototype.
-- [ ] Use calendar booking link only (no native booking).
+- [x] Build Meetings UI from prototype.
+- [x] Use calendar booking link only (no native booking).
 
 **Simha Teja**
 - [ ] Review call data model.
@@ -407,8 +407,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Build pricing page and billing/settings UI.
 
 **Poojitha — Pipeline + Prospects polish**
-- [ ] Polish prospects table and filters.
-- [ ] Polish pipeline board UI.
+- [x] Polish prospects table and filters.
+- [x] Polish pipeline board UI.
 
 **Simha Teja**
 - [ ] Review billing + pipeline polish.
@@ -421,8 +421,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Build plan gating middleware.
 
 **Poojitha — Pipeline + Prospects polish**
-- [ ] Polish prospects table and filters.
-- [ ] Polish pipeline board UI.
+- [x] Polish prospects table and filters.
+- [x] Polish pipeline board UI.
 
 **Simha Teja**
 - [ ] Review webhook security.
@@ -434,8 +434,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Handle call failures and retries.
 
 **Poojitha — Admin + Support module**
-- [ ] Build admin panel UI.
-- [ ] Build admin APIs for orgs/users/campaigns + suspend/impersonate.
+- [x] Build admin panel UI.
+- [x] Build admin APIs for orgs/users/campaigns + suspend/impersonate.
 
 **Simha Teja**
 - [ ] Weekend check-in.
@@ -464,8 +464,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Wire Billing UI to Stripe.
 
 **Poojitha — Admin + Support module**
-- [ ] Build support chat UI for users.
-- [ ] Build support ticket APIs with Supabase Realtime.
+- [x] Build support chat UI for users.
+- [x] Build support ticket APIs with Supabase Realtime.
 
 **Simha Teja**
 - [ ] Review settings + support.
@@ -478,8 +478,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Add PostHog event tracking backend.
 
 **Poojitha — Admin + Support module**
-- [ ] Build admin support ticket reply UI.
-- [ ] Send email notification on admin reply.
+- [x] Build admin support ticket reply UI.
+- [x] Send email notification on admin reply.
 
 **Simha Teja**
 - [ ] Review analytics + support.
@@ -492,8 +492,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Provide static/mock responses for v0.1.
 
 **Poojitha — Campaigns + Leads final polish**
-- [ ] Final polish on campaigns, prospects, pipeline, inbox.
-- [ ] Add loading/empty/error states.
+- [x] Final polish on campaigns, prospects, pipeline, inbox.
+- [x] Add loading/empty/error states.
 
 **Simha Teja**
 - [ ] Review AI agent chat.
@@ -506,10 +506,10 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Test Redis/BullMQ reliability.
 
 **Poojitha — Frontend cross-cutting**
-- [ ] Add PostHog event tracking on frontend.
-- [ ] Add error boundaries.
-- [ ] Add loading skeletons.
-- [ ] Verify all routes and links.
+- [x] Add PostHog event tracking on frontend.
+- [x] Add error boundaries.
+- [x] Add loading skeletons.
+- [x] Verify all routes and links.
 
 **Simha Teja**
 - [ ] Scope check — decide what to cut if behind.
@@ -521,8 +521,8 @@ The existing prototype (`frontend/components/GlobonexoPrototype.jsx`, 2,828 line
 - [ ] Load test queue + API.
 
 **Poojitha**
-- [ ] Fix critical frontend bugs.
-- [ ] Cross-browser and mobile sanity check.
+- [x] Fix critical frontend bugs.
+- [x] Cross-browser and mobile sanity check.
 
 **Simha Teja**
 - [ ] Code review + scope check.
