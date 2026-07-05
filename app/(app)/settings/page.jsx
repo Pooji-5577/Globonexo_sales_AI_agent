@@ -115,10 +115,20 @@ export default function SettingsPage() {
 
   const setupVoiceAgent = async () => {
     setError('');
+    setSuccess(false);
     setVoiceBusy(true);
     try {
+      // The Retell phone number field lives in this same section, so save it
+      // along with setting up the agent - otherwise it only exists in local
+      // form state until the separate page-level Save button is clicked,
+      // which isn't visible while scrolled down here, and gets lost on refresh.
+      await api.put('/settings', {
+        ...form,
+        dailyEmailSendCap: Number(form.dailyEmailSendCap),
+      });
       const { data } = await api.post('/voice/agents');
       setVoiceAgentId(data?.agentId || null);
+      setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to set up voice agent.');
     } finally {
