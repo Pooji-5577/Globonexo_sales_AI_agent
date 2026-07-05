@@ -23,6 +23,14 @@ const DISPOSITION_STYLES = {
 
 const FILTERS = ["all", "completed", "in_progress", "failed", "voicemail"];
 
+const FILTER_LABELS = {
+  all: "All",
+  completed: "Completed",
+  in_progress: "In Progress",
+  failed: "Failed",
+  voicemail: "Voicemail",
+};
+
 const EMPTY_STATE_COPY = {
   all:         { title: "No calls yet",             body: "Launch a voice campaign to start making calls." },
   completed:   { title: "No completed calls yet",   body: "Calls will show up here once the conversation finishes." },
@@ -201,6 +209,7 @@ export default function CallsPage() {
         {FILTERS.map(f => (
           <button
             key={f}
+            type="button"
             onClick={() => setFilter(f)}
             style={{
               padding: "5px 14px",
@@ -212,10 +221,11 @@ export default function CallsPage() {
               fontSize: 12,
               fontWeight: 600,
               cursor: "pointer",
-              textTransform: "capitalize",
+              whiteSpace: "nowrap",
+              flex: "none",
             }}
           >
-            {f === "in_progress" ? "In Progress" : f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+            {FILTER_LABELS[f]}
           </button>
         ))}
       </div>
