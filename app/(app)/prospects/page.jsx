@@ -258,7 +258,14 @@ export default function ProspectsPage() {
         campaignId: campaignId || undefined,
         rows: csvLeads,
       });
-      setNotice(`${data?.inserted ?? 0} CSV leads imported.`);
+      const inserted = data?.inserted ?? 0;
+      const skipped = data?.skipped ?? 0;
+      if (skipped > 0) {
+        const reasons = (data?.errors ?? []).map(e => `Row ${e.row}: ${e.message}`).join(" | ");
+        setError(`${inserted} imported, ${skipped} skipped. ${reasons}`);
+      } else {
+        setNotice(`${inserted} CSV leads imported.`);
+      }
     } catch (err) {
       setError(err?.response?.data?.error || "CSV upload failed. Check required fields and try again.");
     } finally {
