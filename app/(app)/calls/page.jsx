@@ -105,7 +105,7 @@ export default function CallsPage() {
     setError("");
     try {
       const params = filter !== "all" ? `?status=${filter}` : "";
-      const { data } = await api.get(`/api/calls${params}`);
+      const { data } = await api.get(`/calls${params}`);
       setCalls(data ?? []);
     } catch {
       setError("Failed to load calls.");
@@ -119,7 +119,7 @@ export default function CallsPage() {
   const handleRetry = async (callId) => {
     setRetrying(callId);
     try {
-      await api.post(`/api/calls/${callId}/retry`);
+      await api.post(`/calls/${callId}/retry`);
       showToast("Call re-queued successfully.");
       load();
     } catch (err) {

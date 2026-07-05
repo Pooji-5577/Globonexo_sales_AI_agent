@@ -42,6 +42,14 @@ const TIMEZONES = [
   "Asia/Kolkata",
 ];
 
+const DRAFT_STORAGE_KEY = "globonexo:new-campaign-draft";
+
+function parseCadenceDelays(cadence) {
+  if (!cadence) return null;
+  const days = (cadence.match(/\d+/g) || []).map(Number);
+  return days.length === 3 ? days : null;
+}
+
 function Field({ label, children, hint }) {
   return (
     <label className="field">
@@ -62,13 +70,14 @@ export default function NewCampaignPage() {
   const [steps, setSteps] = useState(DEFAULT_STEPS);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
 
   const [allLeads, setAllLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
   const [selectedLeadIds, setSelectedLeadIds] = useState(new Set());
   const [leadSearch, setLeadSearch] = useState("");
-  const setupReady = form.name.trim().length >= 3 && form.icpSource.trim().length >= 2;
+  const setupReady = form.name.trim().length >= 3;
 
   useEffect(() => {
     api.get("/leads")
@@ -76,6 +85,57 @@ export default function NewCampaignPage() {
       .catch(() => setAllLeads([]))
       .finally(() => setLeadsLoading(false));
   }, []);
+
+  // Restore any in-progress draft first. Only fall back to the onboarding
+  // cadence defaults when there's no draft to restore - otherwise the async
+  // onboarding fetch resolves after the restore and silently overwrites
+  // whatever delay values the user had already customized.
+  useEffect(() => {
+    let restoredFromDraft = false;
+    try {
+      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.form) setForm(current => ({ ...current, ...saved.form }));
+        if (saved.steps) {
+          setSteps(saved.steps);
+          restoredFromDraft = true;
+        }
+      }
+    } catch {
+      // ignore malformed/unavailable storage
+    }
+
+    if (!restoredFromDraft) {
+      api.get("/onboarding")
+        .then(({ data }) => {
+          const delays = parseCadenceDelays(data?.follow_up_cadence);
+          if (delays) {
+            setSteps(current => current.map((s, i) => ({ ...s, delayDays: delays[i] })));
+          }
+        })
+        .catch(() => {});
+    }
+
+    setDraftRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+    try {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ form, steps }));
+    } catch {
+      // ignore storage write failures (e.g. private browsing quota)
+    }
+  }, [form, steps, draftRestored]);
+
+  const clearDraftStorage = () => {
+    try {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
 
   const filteredLeads = useMemo(() => {
     if (!leadSearch.trim()) return allLeads;
@@ -138,10 +198,6 @@ export default function NewCampaignPage() {
       errors.push("Campaign name must be at least 3 characters.");
     }
 
-    if (form.icpSource.trim().length < 2) {
-      errors.push("Select or enter an ICP source before creating the draft.");
-    }
-
     if (Number(form.maxLeads) < 1) {
       errors.push("Maximum leads must be at least 1.");
     }
@@ -169,9 +225,7 @@ export default function NewCampaignPage() {
     if (errors.length > 0) {
       setValidationErrors(errors);
       setError("");
-      const hasSetupError = errors.some(message =>
-        message.includes("Campaign name") || message.includes("ICP source")
-      );
+      const hasSetupError = errors.some(message => message.includes("Campaign name"));
       scrollToSection(hasSetupError ? setupRef : controlsRef);
       return;
     }
@@ -200,9 +254,18 @@ export default function NewCampaignPage() {
         });
       }
 
+      clearDraftStorage();
       router.push(`/campaigns/${campaignId}`);
     } catch (err) {
-      setError(err?.response?.data?.error || "Campaign could not be created. Please check the fields and try again.");
+      console.error("Campaign creation failed:", err?.response?.status, err?.response?.data, err);
+      const backendError = err?.response?.data?.error;
+      const backendDetails = err?.response?.data?.details;
+      const detailText = backendDetails ? ` (${JSON.stringify(backendDetails)})` : "";
+      setError(
+        backendError
+          ? `${backendError}${detailText}`
+          : err?.message || "Campaign could not be created. Please check the fields and try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -221,7 +284,7 @@ export default function NewCampaignPage() {
           </div>
         </div>
         <div className="row" style={{ gap: 10 }}>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => router.push("/campaigns")}>Cancel</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { clearDraftStorage(); router.push("/campaigns"); }}>Cancel</button>
           <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
             <Icon name="check" size={15} color="#06231a" /> {saving ? "Creating..." : "Create draft"}
           </button>
@@ -336,9 +399,9 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="ICP source" hint="Where the initial target audience comes from. This is saved with the campaign for routing and later lead import work.">
+                <Field label="ICP source" hint="Where the initial target audience comes from. Optional at draft stage — you can add this before launch.">
                   <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 10 }}>
-                    <select className="input" value={ICP_OPTIONS.includes(form.icpSource) ? form.icpSource : "custom"} onChange={event => set("icpSource", event.target.value === "custom" ? "" : event.target.value)} required>
+                    <select className="input" value={ICP_OPTIONS.includes(form.icpSource) ? form.icpSource : "custom"} onChange={event => set("icpSource", event.target.value === "custom" ? "" : event.target.value)}>
                       <option value="">Select source</option>
                       {ICP_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
                       <option value="custom">Custom</option>
@@ -349,7 +412,6 @@ export default function NewCampaignPage() {
                       value={form.icpSource}
                       onChange={event => set("icpSource", event.target.value)}
                       maxLength={240}
-                      required
                     />
                   </div>
                 </Field>
@@ -599,7 +661,7 @@ export default function NewCampaignPage() {
               <p style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.5, color: setupReady ? "var(--muted)" : "#9a3412" }}>
                 {setupReady
                   ? "Launch is available from the campaign list after the shell is created."
-                  : "Campaign name and ICP source are required before saving this draft."}
+                  : "Campaign name is required before saving this draft."}
               </p>
             </div>
           </aside>
