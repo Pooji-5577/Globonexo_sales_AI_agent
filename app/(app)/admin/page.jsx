@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Icon from "../../components/ui/Icon";
-import Avatar from "../../components/ui/Avatar";
-import api from "../../lib/api";
+import Icon from "../../../components/ui/Icon";
+import Avatar from "../../../components/ui/Avatar";
+import api from "../../../lib/api";
 
 function Metric({ label, value, icon, tone }) {
   return (
@@ -53,9 +53,16 @@ export default function AdminPage() {
 
   const load = () => {
     setLoading(true);
-    api.get("/admin/overview")
+    setError("");
+    api.get("/admin/overview", { timeout: 10000 })
       .then(res => setData(res.data))
-      .catch(err => setError(err?.response?.status === 403 ? "Admin access required." : "Admin data could not be loaded."))
+      .catch(err => {
+        if (err.code === "ECONNABORTED") {
+          setError("Admin API timed out. Confirm the backend is running on port 5001, then refresh.");
+          return;
+        }
+        setError(err?.response?.status === 403 ? "Admin access required." : "Admin data could not be loaded.");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -116,7 +123,10 @@ export default function AdminPage() {
     setNotice("");
     try {
       const { data: tokenData } = await api.post(`/admin/organizations/${org.id}/impersonate`);
-      setNotice(`Impersonation token created for ${tokenData.userEmail}. Expires at ${new Date(tokenData.expiresAt).toLocaleTimeString()}.`);
+      setNotice(`Impersonating ${tokenData.userEmail}. Redirecting to their dashboard...`);
+      window.setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 700);
     } catch (err) {
       setError(err?.response?.data?.error || "Impersonation token could not be created.");
     }
