@@ -33,9 +33,16 @@ function StatusBadge({ status }) {
   );
 }
 
-function DispositionBadge({ disposition }) {
+function DispositionBadge({ disposition, status }) {
   if (!disposition) {
-    return <span style={{ fontSize: 11, color: "var(--faint)" }}>Analyzing…</span>;
+    // Retell only analyzes calls that actually completed - a failed, queued,
+    // or still-in-progress call has no transcript to analyze yet, so showing
+    // "Analyzing..." for those is misleading; only a completed call is
+    // genuinely waiting on the post-call analysis webhook.
+    if (status === "completed") {
+      return <span style={{ fontSize: 11, color: "var(--faint)" }}>Analyzing…</span>;
+    }
+    return <span style={{ fontSize: 11, color: "var(--faint)" }}>—</span>;
   }
   const d = DISPOSITION_STYLES[disposition];
   if (!d) return <span style={{ fontSize: 11, color: "var(--muted)" }}>{disposition}</span>;
@@ -67,7 +74,7 @@ function TranscriptModal({ call, onClose }) {
         <div className="row spread" style={{ marginBottom: 16 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>
-              {[call.leads?.first_name, call.leads?.last_name].filter(Boolean).join(" ") || "Unknown"}
+              {[call.leads?.first_name, call.leads?.last_name].filter(Boolean).join(" ") || call.leads?.name || "Unknown"}
             </div>
             <div style={{ fontSize: 12, color: "var(--muted)" }}>{call.leads?.company || ""}</div>
           </div>
@@ -197,7 +204,7 @@ export default function CallsPage() {
               </thead>
               <tbody>
                 {calls.map((call, i) => {
-                  const name = [call.leads?.first_name, call.leads?.last_name].filter(Boolean).join(" ") || "Unknown";
+                  const name = [call.leads?.first_name, call.leads?.last_name].filter(Boolean).join(" ") || call.leads?.name || "Unknown";
                   return (
                     <tr key={call.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--line-2)" }}>
                       <td style={{ padding: "12px 16px" }}>
@@ -206,7 +213,7 @@ export default function CallsPage() {
                       </td>
                       <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{call.campaigns?.name || "—"}</td>
                       <td style={{ padding: "12px 16px" }}><StatusBadge status={call.status} /></td>
-                      <td style={{ padding: "12px 16px" }}><DispositionBadge disposition={call.disposition} /></td>
+                      <td style={{ padding: "12px 16px" }}><DispositionBadge disposition={call.disposition} status={call.status} /></td>
                       <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{formatDuration(call.started_at, call.ended_at)}</td>
                       <td style={{ padding: "12px 16px", color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(call.created_at)}</td>
                       <td style={{ padding: "12px 16px" }}>
