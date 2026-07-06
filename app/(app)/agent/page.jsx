@@ -6,6 +6,19 @@ import api from "../../../lib/api";
 
 const QUICK = ['Draft follow-ups for no-replies', 'Find 50 new ICP accounts', 'Summarize hottest leads', 'Pause weekend sending'];
 
+const CHAT_STORAGE_KEY = 'globonexo_agent_chat';
+
+function loadSavedMessages() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 const MOCK_RESPONSES = {
   'Draft follow-ups for no-replies': "I've queued personalized follow-up drafts for every lead who hasn't replied yet. Review and approve them from your Inbox before they go out.",
   'Find 50 new ICP accounts': "Searching Apollo for accounts matching your ideal customer profile — I'll add the best 50 matches to your Prospects list and flag them for review.",
@@ -98,11 +111,22 @@ export default function AgentPage() {
   const scrollRef = useRef(null);
 
   useEffect(() => {
+    const saved = loadSavedMessages();
+
     api.get('/dashboard')
       .then(res => {
         const d = res.data;
         setSidebarData(d);
         if (d.agentName) setName(d.agentName);
+
+        // Restore a prior conversation instead of overwriting it with a fresh
+        // greeting - otherwise navigating away and back (or refreshing) always
+        // wiped the chat, since messages only ever lived in React state.
+        if (saved) {
+          setMsgs(saved);
+          return;
+        }
+
         const kpis = d.kpis || {};
         const firstName = d.user?.firstName || 'there';
         setMsgs([
@@ -119,12 +143,26 @@ export default function AgentPage() {
         ]);
       })
       .catch(() => {
+        if (saved) {
+          setMsgs(saved);
+          return;
+        }
         setMsgs([
           { who: 'agent', kind: 'text', text: `Hi 👋 I'm ${name}, your AI sales agent. How can I help?` },
         ]);
       })
       .finally(() => setInitialLoaded(true));
   }, []);
+
+  useEffect(() => {
+    if (!initialLoaded || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(msgs));
+    } catch {
+      // localStorage can throw in private browsing/quota-exceeded cases - chat
+      // still works for the session, it just won't persist across reloads.
+    }
+  }, [msgs, initialLoaded]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
