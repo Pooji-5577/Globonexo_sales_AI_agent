@@ -299,7 +299,18 @@ export default function ProspectsPage() {
     setNotice("");
     try {
       const { data } = await api.post("/leads/csv-upload", { campaignId: campaignId || undefined, rows: csvLeads });
-      setNotice(`${data?.inserted ?? 0} CSV leads imported.`);
+      const inserted = data?.inserted ?? 0;
+      const skipped = data?.skipped ?? 0;
+      if (skipped > 0) {
+        const reasons = (data?.errors ?? [])
+          .slice(0, 3)
+          .map(e => `row ${e.row}: ${e.message}`)
+          .join("; ");
+        const more = (data?.errors?.length ?? 0) > 3 ? "; ..." : "";
+        setError(`${inserted} CSV leads imported, ${skipped} row${skipped === 1 ? "" : "s"} skipped (${reasons}${more}).`);
+      } else {
+        setNotice(`${inserted} CSV leads imported.`);
+      }
       setCsvLeads([]);
       refreshLeads();
       setTab("table");
