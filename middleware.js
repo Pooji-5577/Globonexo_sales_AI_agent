@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
 
 const SITE_USERNAME = process.env.SITE_AUTH_USER;
 const SITE_PASSWORD = process.env.SITE_AUTH_PASSWORD;
+const SITE_AUTH_COOKIE = 'site_auth_ok';
 
 function unauthorizedResponse() {
   return new Response('Authentication required.', {
@@ -62,7 +63,9 @@ export function middleware(request) {
     return NextResponse.next();
   }
 
-  if (!isAuthorized(request)) {
+  const alreadyPassedSiteAuth = request.cookies.get(SITE_AUTH_COOKIE)?.value === '1';
+
+  if (!alreadyPassedSiteAuth && !isAuthorized(request)) {
     return unauthorizedResponse();
   }
 
@@ -72,7 +75,19 @@ export function middleware(request) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+
+  if (!alreadyPassedSiteAuth) {
+    response.cookies.set(SITE_AUTH_COOKIE, '1', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+      path: '/',
+    });
+  }
+
+  return response;
 }
 
 export const config = {
