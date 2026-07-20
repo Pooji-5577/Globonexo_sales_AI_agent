@@ -219,7 +219,12 @@ export default function CampaignsPage() {
               const primaryLabel = campaign.status === "active" ? "Pause" : launchBlocked ? "Needs email" : "Launch";
               const actionBusy = busyId === campaign.id + primaryAction;
               return (
-                <div key={campaign.id} className="card" style={{ padding: 18, borderRadius: 8 }}>
+                <div
+                  key={campaign.id}
+                  className="card"
+                  style={{ padding: 18, borderRadius: 8, cursor: "pointer" }}
+                  onClick={() => router.push(`/campaigns/${campaign.id}`)}
+                >
                   <div className="row spread" style={{ gap: 16, alignItems: "flex-start" }}>
                     <div className="row" style={{ gap: 12, minWidth: 0 }}>
                       <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "grid", placeItems: "center", flex: "none" }}>
@@ -243,13 +248,13 @@ export default function CampaignsPage() {
                           disabled={actionBusy || launchBlocked}
                           title={launchBlocked ? "Reveal or upload lead emails before launching." : undefined}
                           style={{ height: 32 }}
-                          onClick={() => runAction(campaign, primaryAction)}
+                          onClick={e => { e.stopPropagation(); runAction(campaign, primaryAction); }}
                         >
                           <Icon name={primaryAction === "pause" ? "pause" : "play"} size={14} />
                           {actionBusy ? "Working..." : primaryLabel}
                         </button>
                       )}
-                      <button className="btn btn-ghost btn-sm" disabled={busyId === campaign.id + "delete"} style={{ height: 32 }} onClick={() => deleteCampaign(campaign)}>Delete</button>
+                      <button className="btn btn-ghost btn-sm" disabled={busyId === campaign.id + "delete"} style={{ height: 32 }} onClick={e => { e.stopPropagation(); deleteCampaign(campaign); }}>Delete</button>
                     </div>
                   </div>
 
