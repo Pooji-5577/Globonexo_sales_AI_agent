@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api } from '../../lib/api';
 import { Icon } from '../ui/Icon';
 import { Field } from '../ui/Input';
+import { cleanText, isValidEmail } from '../../lib/validation';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -14,9 +15,14 @@ export function ForgotPasswordForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = cleanText(email, { max: 254 }).toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Enter a valid work email.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await api.post('/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email: normalizedEmail });
       setSent(true);
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong. Please try again.');

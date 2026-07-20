@@ -5,6 +5,7 @@ import api from "../../../lib/api";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import Segmented from "../../../components/ui/Segmented";
+import { cleanText, isValidEmail, normalizeUrl } from "../../../lib/validation";
 
 const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
 const STAGE_OPTIONS = ["all", "new", "queued", "contacted", "engaged", "meeting_booked", "not_interested", "unsubscribed"];
@@ -84,24 +85,38 @@ function getValue(row, headerMap, candidates) {
   return key ? row[headerMap[key]] || "" : "";
 }
 
+function safeExternalUrl(value) {
+  try {
+    return normalizeUrl(value);
+  } catch {
+    return "";
+  }
+}
+
 function csvToLeads(text) {
   const rows = parseCsv(text);
   if (rows.length < 2) return [];
   const headers = rows[0];
   const headerMap = Object.fromEntries(headers.map((header, index) => [normalizeHeader(header), index]));
 
-  return rows.slice(1).map(row => ({
-    firstName: getValue(row, headerMap, ["first name", "firstname", "first"]),
-    lastName: getValue(row, headerMap, ["last name", "lastname", "last"]),
-    name: getValue(row, headerMap, ["name", "full name", "fullname"]),
-    title: getValue(row, headerMap, ["title", "job title", "role"]),
-    company: getValue(row, headerMap, ["company", "organization", "account"]),
-    email: getValue(row, headerMap, ["email", "work email"]),
-    phone: getValue(row, headerMap, ["phone", "mobile", "phone number"]),
-    location: getValue(row, headerMap, ["location", "city", "geo"]),
-    linkedinUrl: getValue(row, headerMap, ["linkedin", "linkedin url", "linkedinurl"]),
-    rawData: Object.fromEntries(headers.map((header, index) => [header, row[index] || ""])),
-  })).filter(lead => lead.name || lead.firstName || lead.lastName || lead.email || lead.company);
+  return rows.slice(1).map(row => {
+    const email = cleanText(getValue(row, headerMap, ["email", "work email"]), { max: 254 }).toLowerCase();
+    return {
+      firstName: cleanText(getValue(row, headerMap, ["first name", "firstname", "first"]), { max: 80 }),
+      lastName: cleanText(getValue(row, headerMap, ["last name", "lastname", "last"]), { max: 80 }),
+      name: cleanText(getValue(row, headerMap, ["name", "full name", "fullname"]), { max: 160 }),
+      title: cleanText(getValue(row, headerMap, ["title", "job title", "role"]), { max: 160 }),
+      company: cleanText(getValue(row, headerMap, ["company", "organization", "account"]), { max: 160 }),
+      email: isValidEmail(email) ? email : "",
+      phone: cleanText(getValue(row, headerMap, ["phone", "mobile", "phone number"]), { max: 40 }),
+      location: cleanText(getValue(row, headerMap, ["location", "city", "geo"]), { max: 160 }),
+      linkedinUrl: safeExternalUrl(getValue(row, headerMap, ["linkedin", "linkedin url", "linkedinurl"])),
+      rawData: Object.fromEntries(headers.map((header, index) => [
+        cleanText(header, { max: 120 }),
+        cleanText(row[index] || "", { max: 500, multiline: true }),
+      ])),
+    };
+  }).filter(lead => lead.name || lead.firstName || lead.lastName || lead.email || lead.company);
 }
 
 function leadName(lead) {
@@ -113,13 +128,16 @@ function stageStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
-function LeadRow({ lead, onDelete, onEnrich, enriching }) {
+function LeadRow({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
   const name = leadName(lead);
   const score = lead.score ?? 0;
   const status = lead.status || "new";
   const source = lead.source || "manual";
-  const hasEmail = Boolean(lead.email);
+  const safeEmail = isValidEmail(lead.email) ? lead.email : "";
+  const hasEmail = Boolean(safeEmail);
+  const safeLinkedIn = safeExternalUrl(lead.linkedinUrl);
   const sendReady = hasEmail && !STOPPED_STATUSES.has(status);
+  const canSendNow = sendReady && Boolean(lead.campaignId) && status !== "contacted";
   const canRevealEmail = !hasEmail && source === "apollo";
 
   return (
@@ -148,7 +166,7 @@ function LeadRow({ lead, onDelete, onEnrich, enriching }) {
       </td>
       <td><span className="faint" style={{ fontSize: 13 }}>{lead.location || "-"}</span></td>
       <td>
-        <div className="row" style={{ gap: 6, justifyContent: "flex-end", minWidth: 124 }}>
+        <div className="row" style={{ gap: 6, justifyContent: "flex-end", minWidth: 168, flexWrap: "wrap" }}>
           {canRevealEmail ? (
             <button
               className="btn btn-ghost btn-sm"
@@ -160,12 +178,82 @@ function LeadRow({ lead, onDelete, onEnrich, enriching }) {
               {enriching ? "Revealing..." : "Reveal email"}
             </button>
           ) : null}
-          {lead.email ? <a className="icon-btn" href={`mailto:${lead.email}`} title="Email lead"><Icon name="mail" size={14} /></a> : null}
-          {lead.linkedinUrl ? <a className="icon-btn" href={lead.linkedinUrl} target="_blank" rel="noreferrer" title="Open LinkedIn"><Icon name="link" size={14} /></a> : null}
+          <button
+            className="btn btn-ghost btn-sm"
+            type="button"
+            disabled={!canSendNow || sending}
+            onClick={() => onSendNow(lead.id)}
+            title={!hasEmail ? "Lead needs an email" : !lead.campaignId ? "Attach lead to an email campaign first" : status === "contacted" ? "Step 1 has already been sent" : STOPPED_STATUSES.has(status) ? "Sequence is stopped for this lead" : "Send campaign email now"}
+            style={{ height: 32, padding: "0 10px", fontSize: 12 }}
+          >
+            <Icon name="send" size={13} /> {sending ? "Sending..." : "Send now"}
+          </button>
+          {safeEmail ? <a className="icon-btn" href={`mailto:${safeEmail}`} title="Email lead"><Icon name="mail" size={14} /></a> : null}
+          {safeLinkedIn ? <a className="icon-btn" href={safeLinkedIn} target="_blank" rel="noreferrer" title="Open LinkedIn"><Icon name="link" size={14} /></a> : null}
           <button className="icon-btn danger" type="button" onClick={() => onDelete(lead.id)} title="Delete lead"><Icon name="logout" size={14} /></button>
         </div>
       </td>
     </tr>
+  );
+}
+
+function LeadMobileCard({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
+  const name = leadName(lead);
+  const score = lead.score ?? 0;
+  const status = lead.status || "new";
+  const source = lead.source || "manual";
+  const safeEmail = isValidEmail(lead.email) ? lead.email : "";
+  const hasEmail = Boolean(safeEmail);
+  const safeLinkedIn = safeExternalUrl(lead.linkedinUrl);
+  const sendReady = hasEmail && !STOPPED_STATUSES.has(status);
+  const canSendNow = sendReady && Boolean(lead.campaignId) && status !== "contacted";
+  const canRevealEmail = !hasEmail && source === "apollo";
+
+  return (
+    <article className="prospect-mobile-card card">
+      <div className="row" style={{ gap: 11, minWidth: 0 }}>
+        <Avatar name={name} size={36} />
+        <div className="col" style={{ minWidth: 0 }}>
+          <span style={{ fontWeight: 800, fontSize: 14 }} className="ellip">{name}</span>
+          <span className="faint ellip" style={{ fontSize: 12 }}>{lead.title || "No title"} · {lead.company || "No company"}</span>
+        </div>
+      </div>
+
+      <div className="prospect-mobile-meta">
+        <div>
+          <span>Stage</span>
+          <strong><span className="badge" style={stageStyle(status)}>{STAGE_LABELS[status] || status}</span></strong>
+        </div>
+        <div>
+          <span>Send ready</span>
+          <strong><span className={`chip ${sendReady ? "chip-ready" : "chip-blocked"}`}>{sendReady ? "Ready" : hasEmail ? "Stopped" : "Needs email"}</span></strong>
+        </div>
+        <div>
+          <span>Score</span>
+          <strong>{score}</strong>
+        </div>
+        <div>
+          <span>Location</span>
+          <strong>{lead.location || "-"}</strong>
+        </div>
+      </div>
+
+      <div className="prospect-mobile-email">{lead.email || "Email not revealed"}</div>
+
+      <div className="row prospect-mobile-actions">
+        {canRevealEmail ? (
+          <button className="btn btn-ghost btn-sm" type="button" disabled={enriching} onClick={() => onEnrich(lead.id)}>
+            {enriching ? "Revealing..." : "Reveal email"}
+          </button>
+        ) : null}
+        <button className="btn btn-ghost btn-sm" type="button" disabled={!canSendNow || sending} onClick={() => onSendNow(lead.id)}>
+          <Icon name="send" size={14} /> {sending ? "Sending..." : "Send now"}
+        </button>
+        {safeEmail ? <a className="icon-btn" href={`mailto:${safeEmail}`} title="Email lead"><Icon name="mail" size={14} /></a> : null}
+        {safeLinkedIn ? <a className="icon-btn" href={safeLinkedIn} target="_blank" rel="noreferrer" title="Open LinkedIn"><Icon name="link" size={14} /></a> : null}
+        <button className="icon-btn danger" type="button" onClick={() => onDelete(lead.id)} title="Delete lead"><Icon name="logout" size={14} /></button>
+      </div>
+    </article>
   );
 }
 
@@ -195,6 +283,7 @@ export default function ProspectsPage() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [enrichingId, setEnrichingId] = useState("");
+  const [sendingId, setSendingId] = useState("");
   const [bulkEnriching, setBulkEnriching] = useState(false);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState("all");
@@ -335,6 +424,25 @@ export default function ProspectsPage() {
     }
   };
 
+  const sendLeadNow = async id => {
+    setSendingId(id);
+    setError("");
+    setNotice("");
+    try {
+      const { data } = await api.post(`/leads/${id}/send-now`);
+      if (data?.lead) {
+        setLeads(current => current.map(lead => lead.id === id ? data.lead : lead));
+      } else {
+        refreshLeads();
+      }
+      setNotice("Email sent to this lead.");
+    } catch (err) {
+      setError(err?.response?.data?.error || "Could not send this email now.");
+    } finally {
+      setSendingId("");
+    }
+  };
+
   const enrichVisibleLeads = async () => {
     if (revealableLeads.length === 0 || bulkEnriching) return;
     setBulkEnriching(true);
@@ -392,7 +500,7 @@ export default function ProspectsPage() {
               <StatCard label="emails revealed" value={metrics.revealed} icon="mail" />
             </div>
 
-            <div className="card table-shell">
+            <div className="card table-shell prospects-table-shell">
               <div className="filter-bar">
                 <div className="input-wrap filter-search">
                   <span className="lead-ico"><Icon name="search" size={16} /></span>
@@ -442,11 +550,30 @@ export default function ProspectsPage() {
                         lead={lead}
                         onDelete={deleteLead}
                         onEnrich={enrichLead}
+                        onSendNow={sendLeadNow}
                         enriching={enrichingId === lead.id}
+                        sending={sendingId === lead.id}
                       />
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="prospects-mobile-list">
+                {leadLoading ? (
+                  <div className="soft-empty">Loading prospects...</div>
+                ) : filteredLeads.length === 0 ? (
+                  <div className="soft-empty">No prospects match the current filters.</div>
+                ) : filteredLeads.map(lead => (
+                  <LeadMobileCard
+                    key={lead.id}
+                    lead={lead}
+                    onDelete={deleteLead}
+                    onEnrich={enrichLead}
+                    onSendNow={sendLeadNow}
+                    enriching={enrichingId === lead.id}
+                    sending={sendingId === lead.id}
+                  />
+                ))}
               </div>
             </div>
           </div>

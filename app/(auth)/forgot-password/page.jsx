@@ -7,14 +7,14 @@ export const metadata = {
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="screen" style={{ flexDirection: 'row' }}>
+    <div className="screen auth-screen" style={{ flexDirection: 'row' }}>
       <AuthAside
         kicker="Account recovery"
         headline="Let's get you back in."
         sub="We'll email a secure link to reset your password. Expires in 15 minutes."
         bullets={['Encrypted reset link', 'No password shown to support', 'Back in under a minute']}
       />
-      <div className="grow" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
+      <div className="grow auth-main" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
         <ForgotPasswordForm />
       </div>
     </div>

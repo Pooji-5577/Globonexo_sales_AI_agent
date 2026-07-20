@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { Field } from '../../../components/ui/Input';
 import Icon from '../../../components/ui/Icon';
+import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
 
 const TONES = [
   { value: 'consultative', label: 'Consultative' },
@@ -113,10 +114,26 @@ export default function SettingsPage() {
     setError('');
     setSuccess(false);
     setSaving(true);
+    let orgWebsite = '';
+    let bookingLink = '';
+    try {
+      orgWebsite = normalizeUrl(form.orgWebsite);
+      bookingLink = normalizeUrl(form.bookingLink);
+    } catch {
+      setSaving(false);
+      setError('Enter valid website and booking URLs, or leave them blank.');
+      return;
+    }
     try {
       await api.put('/settings', {
-        ...form,
-        dailyEmailSendCap: Number(form.dailyEmailSendCap),
+        firstName: cleanText(form.firstName, { max: 80 }),
+        lastName: cleanText(form.lastName, { max: 80 }),
+        orgName: cleanText(form.orgName, { max: 160 }),
+        orgWebsite,
+        tone: TONES.some(tone => tone.value === form.tone) ? form.tone : 'consultative',
+        autoApproveReplies: Boolean(form.autoApproveReplies),
+        dailyEmailSendCap: clampNumber(form.dailyEmailSendCap, { min: 1, max: 500, fallback: 100 }),
+        bookingLink,
       });
       setSuccess(true);
     } catch (err) {
@@ -135,9 +152,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="scroll grow" style={{ minHeight: 0 }}>
-      <div style={{ padding: '34px 40px 48px', maxWidth: 1180, width: '100%' }}>
-        <div className="row spread" style={{ gap: 18, alignItems: 'flex-start', marginBottom: 24 }}>
+    <div className="scroll grow settings-page" style={{ minHeight: 0 }}>
+      <div className="settings-inner" style={{ padding: '34px 40px 48px', maxWidth: 1180, width: '100%' }}>
+        <div className="row spread settings-head" style={{ gap: 18, alignItems: 'flex-start', marginBottom: 24 }}>
           <div>
             <h1 className="display" style={{ fontSize: 28, marginBottom: 8 }}>Settings</h1>
             <p className="muted" style={{ fontSize: 14 }}>
@@ -156,7 +173,7 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 20, alignItems: 'start' }}>
+        <div className="settings-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 20, alignItems: 'start' }}>
           <form id="settings-form" onSubmit={handleSubmit} className="col" style={{ gap: 18 }}>
             <section className="card" style={{ padding: 24, borderRadius: 8 }}>
               <div className="row" style={{ gap: 10, marginBottom: 20 }}>
@@ -168,7 +185,7 @@ export default function SettingsPage() {
                   <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Shown in the workspace header and account records.</p>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
+              <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
                 <Field label="First name" value={form.firstName || ''} onChange={set('firstName')} />
                 <Field label="Last name" value={form.lastName || ''} onChange={set('lastName')} />
               </div>
@@ -216,7 +233,7 @@ export default function SettingsPage() {
                   hint="e.g. https://calendly.com/yourname/15min"
                 />
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 180px', gap: 14 }}>
+                <div className="settings-agent-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 180px', gap: 14 }}>
                   <div className="field">
                     <label>Outreach tone</label>
                     <div className="input-wrap">
@@ -301,7 +318,7 @@ export default function SettingsPage() {
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 16, alignItems: 'center' }}>
+              <div className="settings-gmail-row" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 16, alignItems: 'center' }}>
                 <div className="col" style={{ gap: 6, minWidth: 0 }}>
                   <span className="ellip" style={{ fontSize: 14, fontWeight: 800 }}>
                     {gmailLoading ? 'Checking Gmail status...' : gmailStatus.connected ? gmailStatus.email || 'Gmail account connected' : 'No Gmail account connected'}
@@ -342,7 +359,7 @@ export default function SettingsPage() {
             {success && <p style={{ fontSize: 13.5, color: 'var(--g-700)', fontWeight: 800 }}>Settings saved successfully.</p>}
           </form>
 
-          <aside className="col" style={{ gap: 14, position: 'sticky', top: 24 }}>
+          <aside className="col settings-aside" style={{ gap: 14, position: 'sticky', top: 24 }}>
             <section className="card" style={{ padding: 20, borderRadius: 8 }}>
               <div className="row" style={{ gap: 12 }}>
                 <span style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--g-50)', border: '1px solid var(--g-100)', display: 'grid', placeItems: 'center', color: 'var(--g-700)' }}>

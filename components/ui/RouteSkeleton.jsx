@@ -15,10 +15,10 @@ export default function RouteSkeleton({ variant = "dashboard" }) {
 
   if (variant === "public") {
     return (
-      <div className="screen" style={{ padding: 28 }}>
-        <div className="module-skeleton" style={{ maxWidth: 1120, width: "100%", margin: "0 auto" }}>
-          <span className="skeleton-line" style={{ width: 220, height: 34 }} />
-          <span className="skeleton-block" style={{ height: 420 }} />
+      <div className="screen public-route-skeleton">
+        <div className="module-skeleton public-route-skeleton-inner">
+          <span className="skeleton-line public-route-skeleton-title" />
+          <span className="skeleton-block public-route-skeleton-block" />
         </div>
       </div>
     );

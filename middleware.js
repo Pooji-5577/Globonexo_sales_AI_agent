@@ -13,12 +13,22 @@ const PUBLIC_PATHS = [
   '/callback',
 ];
 
+const SESSION_COOKIE_NAMES = [
+  'access_token',
+  'refresh_token',
+  'session',
+  'impersonation_token',
+];
+
 export function middleware(request) {
   const { pathname } = request.nextUrl;
-  const hasSession = Boolean(request.cookies.get('refresh_token'));
+  const isPublicPath = PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`));
+  const hasSession = SESSION_COOKIE_NAMES.some(name => Boolean(request.cookies.get(name)));
 
-  if (!hasSession && !PUBLIC_PATHS.includes(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  if (!hasSession && !isPublicPath) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

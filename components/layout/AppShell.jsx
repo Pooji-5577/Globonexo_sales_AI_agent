@@ -50,6 +50,8 @@ export default function AppShell({ children }) {
   const activeTab = pathname.split('/')[1] || 'dashboard';
   const [user, setUser] = useState(null);
   const [org, setOrg] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     api.get('/auth/me')
@@ -57,8 +59,16 @@ export default function AppShell({ children }) {
         setUser(res.data.user);
         setOrg(res.data.organization);
       })
-      .catch(() => {});
+      .catch(() => {
+        const next = encodeURIComponent(pathname || '/dashboard');
+        router.replace(`/login?next=${next}`);
+      })
+      .finally(() => setAuthChecked(true));
   }, []);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   const userName = user
     ? [user.first_name, user.last_name].filter(Boolean).join(' ') || 'User'
@@ -72,22 +82,44 @@ export default function AppShell({ children }) {
     window.location.href = '/login';
   };
 
+  const goTo = (path) => {
+    setMobileNavOpen(false);
+    router.push(path);
+  };
+
+  if (!authChecked) {
+    return (
+      <div className="screen app-shell-screen" style={{ display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
+        <p className="muted">Checking session...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="screen app-shell-screen" style={{ flexDirection: 'row', background: 'var(--bg)' }}>
       <aside className="app-shell-sidebar" style={{ width: 248, flex: 'none', background: '#fff', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: '18px 14px' }}>
-        <div style={{ padding: '4px 6px 16px' }}><Logo size={28} /></div>
-        <button className="btn btn-primary btn-sm" style={{ marginBottom: 14, fontSize: 13.5 }} onClick={() => router.push('/campaigns/new')}>
+        <div className="app-shell-brand" style={{ padding: '4px 6px 16px' }}><Logo size={28} /></div>
+        <button className="btn btn-primary btn-sm app-shell-new" style={{ marginBottom: 14, fontSize: 13.5 }} onClick={() => goTo('/campaigns/new')}>
           <Icon name="plus" size={15} color="#06231a" /> New campaign
         </button>
+        <button
+          className="app-shell-menu-btn"
+          type="button"
+          aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen(open => !open)}
+        >
+          <Icon name={mobileNavOpen ? "close" : "menu"} size={22} />
+        </button>
 
-        <nav className="col scroll grow" style={{ gap: 0 }}>
+        <nav className="col scroll grow app-shell-nav" style={{ gap: 0 }}>
           {NAV_GROUPS.map((g, gi) => (
             <div key={gi} style={{ marginBottom: 4 }}>
               {g.label && <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--faint)', padding: '10px 10px 4px' }}>{g.label}</div>}
               {g.items.map(n => {
                 const active = activeTab === n.id;
                 return (
-                  <button key={n.id} onClick={() => router.push('/' + n.id)} style={{
+                  <button key={n.id} onClick={() => goTo('/' + n.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 10, height: 40, padding: '0 10px', width: '100%',
                     borderRadius: 10, fontWeight: 700, fontSize: 14, textAlign: 'left',
                     color: active ? '#06231a' : 'var(--ink-2)',
@@ -103,14 +135,44 @@ export default function AppShell({ children }) {
           ))}
         </nav>
 
-        <button className="row nw" onClick={handleLogout} style={{ gap: 9, marginTop: 10, padding: '0 6px', height: 36, color: 'var(--muted)', fontWeight: 700, fontSize: 13.5, flex: 'none' }}>
+        <div className={`app-shell-mobile-drawer ${mobileNavOpen ? 'is-open' : ''}`}>
+          {NAV_GROUPS.map((g, gi) => (
+            <div key={gi} className="app-shell-mobile-group">
+              {g.label && <div className="app-shell-mobile-label">{g.label}</div>}
+              {g.items.map(n => {
+                const active = activeTab === n.id;
+                return (
+                  <button
+                    key={n.id}
+                    type="button"
+                    className={`app-shell-mobile-item ${active ? 'is-active' : ''}`}
+                    onClick={() => goTo('/' + n.id)}
+                  >
+                    <Icon name={n.ico} size={18} color={active ? 'var(--g-600)' : 'var(--muted)'} />
+                    <span>{n.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+          <div className="app-shell-mobile-actions">
+            <button className="btn btn-primary btn-sm" type="button" onClick={() => goTo('/campaigns/new')}>
+              <Icon name="plus" size={15} color="#06231a" /> New campaign
+            </button>
+            <button className="row nw app-shell-mobile-logout" type="button" onClick={handleLogout}>
+              <Icon name="logout" size={17} /> Log out
+            </button>
+          </div>
+        </div>
+
+        <button className="row nw app-shell-logout" onClick={handleLogout} style={{ gap: 9, marginTop: 10, padding: '0 6px', height: 36, color: 'var(--muted)', fontWeight: 700, fontSize: 13.5, flex: 'none' }}>
           <Icon name="logout" size={17} /> Log out
         </button>
       </aside>
 
       <div className="grow col" style={{ minWidth: 0 }}>
         <header className="row spread app-shell-header" style={{ height: 62, flex: 'none', padding: '0 24px', borderBottom: '1px solid var(--line)', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(8px)' }}>
-          <div className="input-wrap" style={{ width: 320 }}>
+          <div className="input-wrap app-shell-search" style={{ width: 320 }}>
             <span className="lead-ico"><Icon name="search" size={17} /></span>
             <input className="input has-ico" style={{ height: 40, background: 'var(--bg)', fontSize: 14 }} placeholder="Search leads, accounts, replies…" />
           </div>

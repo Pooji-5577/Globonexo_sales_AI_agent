@@ -134,8 +134,8 @@ export default function CampaignsPage() {
   ];
 
   return (
-    <div className="col" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-      <div className="row spread" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff", gap: 16 }}>
+    <div className="col campaigns-page" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div className="row spread campaigns-header" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff", gap: 16 }}>
         <div>
           <h1 className="display" style={{ fontSize: 22 }}>Campaigns</h1>
           <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>
@@ -147,17 +147,17 @@ export default function CampaignsPage() {
         </button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 12, padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff" }}>
+      <div className="campaigns-metric-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 12, padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff" }}>
         {metrics.map(metric => (
-          <div key={metric.k} className="card" style={{ padding: "12px 16px", borderRadius: 8 }}>
+          <div key={metric.k} className="card campaigns-metric-card" style={{ padding: "12px 16px", borderRadius: 8 }}>
             <div className="faint" style={{ fontSize: 12, fontWeight: 800 }}>{metric.k}</div>
             <div className="display" style={{ fontSize: 26, marginTop: 5 }}>{metric.v}</div>
           </div>
         ))}
       </div>
 
-      <div className="row spread" style={{ gap: 12, padding: "14px 24px", borderBottom: "1px solid var(--line)", background: "#fff", flex: "none" }}>
-        <div className="input-wrap" style={{ width: 320, maxWidth: "100%" }}>
+      <div className="row spread campaigns-filter-bar" style={{ gap: 12, padding: "14px 24px", borderBottom: "1px solid var(--line)", background: "#fff", flex: "none" }}>
+        <div className="input-wrap campaigns-search" style={{ width: 320, maxWidth: "100%" }}>
           <span className="lead-ico"><Icon name="search" size={16} /></span>
           <input
             className="input has-ico"
@@ -167,7 +167,7 @@ export default function CampaignsPage() {
             onChange={event => setSearch(event.target.value)}
           />
         </div>
-        <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div className="row campaigns-status-filters" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {["all", "draft", "active", "paused", "completed"].map(status => (
             <button
               key={status}
@@ -193,7 +193,7 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      <div className="scroll grow" style={{ padding: "16px 24px", minHeight: 0 }}>
+      <div className="scroll grow campaigns-scroll" style={{ padding: "16px 24px", minHeight: 0 }}>
         {loading ? (
           <CampaignSkeleton />
         ) : filteredCampaigns.length === 0 ? (
@@ -219,8 +219,21 @@ export default function CampaignsPage() {
               const primaryLabel = campaign.status === "active" ? "Pause" : launchBlocked ? "Needs email" : "Launch";
               const actionBusy = busyId === campaign.id + primaryAction;
               return (
-                <div key={campaign.id} className="card" style={{ padding: 18, borderRadius: 8 }}>
-                  <div className="row spread" style={{ gap: 16, alignItems: "flex-start" }}>
+                <div
+                  key={campaign.id}
+                  className="card campaigns-card"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => router.push(`/campaigns/${campaign.id}`)}
+                  onKeyDown={event => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/campaigns/${campaign.id}`);
+                    }
+                  }}
+                  style={{ padding: 18, borderRadius: 8, cursor: "pointer" }}
+                >
+                  <div className="row spread campaigns-card-head" style={{ gap: 16, alignItems: "flex-start" }}>
                     <div className="row" style={{ gap: 12, minWidth: 0 }}>
                       <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "grid", placeItems: "center", flex: "none" }}>
                         <Icon name={campaign.channel === "voice" ? "phone" : "send"} size={20} color="var(--g-600)" />
@@ -232,7 +245,7 @@ export default function CampaignsPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="row" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <div className="row campaigns-card-actions" style={{ gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <span className="badge" style={{ background: statusStyle.bg, color: statusStyle.color, height: 26 }}>
                         <span style={{ width: 6, height: 6, borderRadius: 99, background: statusStyle.dot, flex: "none" }} />
                         {statusStyle.label}
@@ -243,17 +256,30 @@ export default function CampaignsPage() {
                           disabled={actionBusy || launchBlocked}
                           title={launchBlocked ? "Reveal or upload lead emails before launching." : undefined}
                           style={{ height: 32 }}
-                          onClick={() => runAction(campaign, primaryAction)}
+                          onClick={event => {
+                            event.stopPropagation();
+                            runAction(campaign, primaryAction);
+                          }}
                         >
                           <Icon name={primaryAction === "pause" ? "pause" : "play"} size={14} />
                           {actionBusy ? "Working..." : primaryLabel}
                         </button>
                       )}
-                      <button className="btn btn-ghost btn-sm" disabled={busyId === campaign.id + "delete"} style={{ height: 32 }} onClick={() => deleteCampaign(campaign)}>Delete</button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        disabled={busyId === campaign.id + "delete"}
+                        style={{ height: 32 }}
+                        onClick={event => {
+                          event.stopPropagation();
+                          deleteCampaign(campaign);
+                        }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(5,minmax(0,1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-2)" }}>
+                  <div className="campaigns-stat-grid" style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(5,minmax(0,1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-2)" }}>
                     <div className="col" style={{ minWidth: 0 }}>
                       <span className="faint" style={{ fontSize: 11.5, fontWeight: 800 }}>ICP source</span>
                       <span className="ellip" style={{ fontWeight: 800, fontSize: 14, marginTop: 4 }}>{campaign.icpSource || "Not set"}</span>

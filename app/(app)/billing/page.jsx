@@ -33,8 +33,8 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="scroll grow" style={{ padding: '24px 32px', minHeight: 0 }}>
-      <div className="row spread" style={{ marginBottom: 28 }}>
+    <div className="scroll grow billing-page" style={{ padding: '24px 32px', minHeight: 0 }}>
+      <div className="row spread billing-head" style={{ marginBottom: 28 }}>
         <div>
           <h1 className="display" style={{ fontSize: 24 }}>Billing & plan</h1>
           <p className="muted" style={{ fontSize: 13.5, marginTop: 3 }}>You&apos;re on the <b style={{ color: 'var(--g-700)' }}>{currentPlanConfig.name} plan</b></p>
@@ -48,9 +48,9 @@ export default function BillingPage() {
         </div>
       </div>
 
-      <div className="card" style={{ padding: 24, marginBottom: 28 }}>
+      <div className="card billing-usage-card" style={{ padding: 24, marginBottom: 28 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Current usage</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
+        <div className="billing-usage-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
           {[
             { k: 'Emails sent this month', v: usage?.emailsSentThisMonth ?? 0, max: currentPlanConfig.emailCap },
             { k: 'Seats used', v: usage?.seatsUsed ?? 0, max: currentPlanConfig.seats ?? 1 },
@@ -69,12 +69,12 @@ export default function BillingPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+      <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
         {PLAN_CONFIG.map(p => {
           const isCurrent = p.id === currentPlanId;
           const price = annual ? p.priceAnnual : p.priceMonthly;
           return (
-            <div key={p.id} className="card" style={{ padding: 32, border: isCurrent ? '2px solid var(--g-400)' : '1px solid var(--line)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={p.id} className="card billing-plan-card" style={{ padding: 32, border: isCurrent ? '2px solid var(--g-400)' : '1px solid var(--line)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               {isCurrent && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--g-500)', color: '#06231a', fontSize: 11.5, fontWeight: 800, padding: '5px 14px', borderBottomLeftRadius: 10 }}>Current plan</div>}
               <div className="display" style={{ fontSize: 26 }}>{p.name}</div>
               <div style={{ marginTop: 10 }}>

@@ -6,6 +6,7 @@ import Aurora from "../../components/ui/Aurora";
 import Icon from "../../components/ui/Icon";
 import Field from "../../components/ui/Field";
 import api from "../../lib/api";
+import { clampNumber, cleanList, cleanText, normalizeUrl } from "../../lib/validation";
 
 const STEPS = [
   { title: 'Profile', sub: 'Tell Nexo who is setting up the workspace.', ico: 'user' },
@@ -118,36 +119,72 @@ export default function OnboardingPage() {
     [k]: prev[k].includes(v) ? prev[k].filter(x => x !== v) : [...prev[k], v],
   }));
 
-  const next = () => setStep(s => s + 1);
   const back = () => step > 0 ? setStep(s => s - 1) : router.push('/signup');
+
+  const validateCurrentStep = () => {
+    if (step === 0 && (!cleanText(d.firstName, { max: 80 }) || !cleanText(d.company, { max: 160 }))) {
+      return 'Enter your first name and company.';
+    }
+    if (step === 1 && (cleanText(d.productDescription, { max: 4000, multiline: true }).length < 20 || cleanText(d.valueProp, { max: 2000, multiline: true }).length < 10)) {
+      return 'Add product context and a measurable customer outcome.';
+    }
+    if (step === 2 && (d.titles.length === 0 || d.targetIndustries.length === 0)) {
+      return 'Select at least one target title and industry.';
+    }
+    return '';
+  };
+
+  const continueStep = () => {
+    const message = validateCurrentStep();
+    if (message) {
+      setError(message);
+      return;
+    }
+    setError('');
+    setStep(s => s + 1);
+  };
 
   const launch = async () => {
     setError('');
     setLoading(true);
+    let bookingLink = '';
     try {
-      await api.post('/onboarding', {
-        productDescription: d.productDescription,
-        valueProp: d.valueProp,
-        firstName: d.firstName,
-        lastName: d.lastName,
-        company: d.company,
-        role: d.role,
-        industry: d.industry,
-        painPoints: d.painPoints,
-        tone: d.tone,
-        hookStyle: d.hookStyle,
-        followUpCadence: d.followUpCadence,
-        icpTitles: d.titles,
-        icpCompanySizes: d.companySizes,
-        icpTargetIndustries: d.targetIndustries,
-        icpGeos: d.geos,
-        meetingTarget: Number(d.meetingTarget) || 15,
-        dealSize: d.dealSize,
-        salesCycle: d.salesCycle,
-        agentName: d.agentName,
-        bookingLink: d.bookingLink || undefined,
-        tools: d.tools,
-      });
+      bookingLink = normalizeUrl(d.bookingLink);
+    } catch {
+      setLoading(false);
+      setError('Enter a valid booking link or leave it blank.');
+      return;
+    }
+    const payload = {
+      productDescription: cleanText(d.productDescription, { max: 4000, multiline: true }),
+      valueProp: cleanText(d.valueProp, { max: 2000, multiline: true }),
+      firstName: cleanText(d.firstName, { max: 80 }),
+      lastName: cleanText(d.lastName, { max: 80 }),
+      company: cleanText(d.company, { max: 160 }),
+      role: cleanText(d.role, { max: 80 }),
+      industry: cleanText(d.industry, { max: 120 }),
+      painPoints: cleanText(d.painPoints, { max: 2000, multiline: true }),
+      tone: cleanText(d.tone, { max: 80 }),
+      hookStyle: cleanText(d.hookStyle, { max: 120 }),
+      followUpCadence: cleanText(d.followUpCadence, { max: 120 }),
+      icpTitles: cleanList(d.titles),
+      icpCompanySizes: cleanList(d.companySizes),
+      icpTargetIndustries: cleanList(d.targetIndustries),
+      icpGeos: cleanList(d.geos),
+      meetingTarget: clampNumber(d.meetingTarget, { min: 1, max: 50, fallback: 15 }),
+      dealSize: cleanText(d.dealSize, { max: 80 }),
+      salesCycle: cleanText(d.salesCycle, { max: 80 }),
+      agentName: cleanText(d.agentName, { max: 80 }) || 'Nexo',
+      bookingLink: bookingLink || undefined,
+      tools: cleanList(d.tools),
+    };
+    if (!payload.firstName || !payload.company || !payload.productDescription || !payload.valueProp) {
+      setLoading(false);
+      setError('Complete the required onboarding fields before launch.');
+      return;
+    }
+    try {
+      await api.post('/onboarding', payload);
     } catch (err) {
       // If the API returns a validation error, surface it. Otherwise proceed
       // (backend may not be running yet during local frontend dev).
@@ -244,6 +281,12 @@ export default function OnboardingPage() {
                 <p className="muted" style={{ fontSize: 14, marginTop: 3 }}>{s.sub}</p>
               </div>
             </div>
+
+            {error && step !== 4 && (
+              <div style={{ padding: '12px 16px', borderRadius: 'var(--r-md)', background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13.5, fontWeight: 600, marginBottom: 18 }}>
+                {error}
+              </div>
+            )}
 
             {/* Step 0: Profile */}
             {step === 0 && (
@@ -375,7 +418,7 @@ export default function OnboardingPage() {
             <Icon name="arrowLeft" size={17} /> Back
           </button>
           {step < STEPS.length - 1 ? (
-            <button className="btn btn-primary btn-lg" onClick={next}>
+            <button className="btn btn-primary btn-lg" onClick={continueStep}>
               Continue <Icon name="arrow" size={18} color="#06231a" />
             </button>
           ) : (

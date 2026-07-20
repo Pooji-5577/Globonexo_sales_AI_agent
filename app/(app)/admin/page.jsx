@@ -4,6 +4,9 @@ import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import api from "../../../lib/api";
+import { cleanText } from "../../../lib/validation";
+
+const SUPPORT_STATUSES = new Set(["open", "resolved", "closed"]);
 
 function Metric({ label, value, icon, tone }) {
   return (
@@ -134,12 +137,13 @@ export default function AdminPage() {
 
   const sendAdminReply = async event => {
     event.preventDefault();
-    if (!selectedTicketId || !replyBody.trim()) return;
+    const safeBody = cleanText(replyBody, { max: 4000, multiline: true });
+    if (!selectedTicketId || !safeBody) return;
     setReplying(true);
     setError("");
     setNotice("");
     try {
-      const { data: message } = await api.post(`/support/admin/tickets/${selectedTicketId}/messages`, { body: replyBody });
+      const { data: message } = await api.post(`/support/admin/tickets/${selectedTicketId}/messages`, { body: safeBody });
       setSelectedTicket(current => current ? { ...current, messages: appendMessageOnce(current.messages, message) } : current);
       setReplyBody("");
       setNotice("Reply sent and email notification queued.");
@@ -152,7 +156,7 @@ export default function AdminPage() {
   };
 
   const updateAdminTicketStatus = async status => {
-    if (!selectedTicketId) return;
+    if (!selectedTicketId || !SUPPORT_STATUSES.has(status)) return;
     setError("");
     try {
       await api.patch(`/support/admin/tickets/${selectedTicketId}/status`, { status });

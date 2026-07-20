@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import api from "../../../lib/api";
+import { assertSafeExternalUrl, cleanText } from "../../../lib/validation";
 
 const STATUS_LABELS = {
   pending: "Draft pending",
@@ -78,7 +79,12 @@ export default function InboxPage() {
     setActionBusy(action);
     setError("");
     try {
-      const payload = action === "approve" ? { body: draftBody } : undefined;
+      const payload = action === "approve" ? { body: cleanText(draftBody, { max: 8000, multiline: true }) } : undefined;
+      if (action === "approve" && !payload.body) {
+        setError("Draft reply cannot be empty.");
+        setActionBusy("");
+        return;
+      }
       const { data } = await api.post(`/emails/${selectedId}/${action}`, payload);
       if (action === "approve") {
         setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: "approved" } : item));
@@ -102,7 +108,13 @@ export default function InboxPage() {
     setActionBusy("edit");
     setError("");
     try {
-      const { data } = await api.patch(`/emails/${selectedId}/draft`, { body: draftBody });
+      const body = cleanText(draftBody, { max: 8000, multiline: true });
+      if (!body) {
+        setError("Draft reply cannot be empty.");
+        setActionBusy("");
+        return;
+      }
+      const { data } = await api.patch(`/emails/${selectedId}/draft`, { body });
       setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: data.ai_draft_status } : item));
       setDetail(current => current ? { ...current, ...data } : current);
       setDraftBody(data.ai_draft_reply || "");
@@ -118,7 +130,7 @@ export default function InboxPage() {
     setError("");
     try {
       const { data } = await api.get("/gmail/auth-url");
-      window.location.href = data.url;
+      window.location.href = assertSafeExternalUrl(data.url);
     } catch (err) {
       setError("Gmail connection could not be started.");
       setActionBusy("");
@@ -140,8 +152,8 @@ export default function InboxPage() {
   const draftStatus = detail?.ai_draft_status || thread?.aiDraftStatus || "pending";
 
   return (
-    <div className="row" style={{ flex: 1, minHeight: 0, alignItems: "stretch", overflow: "hidden" }}>
-      <div className="scroll" style={{ width: 340, flex: "none", borderRight: "1px solid var(--line)", background: "#fff" }}>
+    <div className="row inbox-page" style={{ flex: 1, minHeight: 0, alignItems: "stretch", overflow: "hidden" }}>
+      <div className="scroll inbox-thread-list" style={{ width: 340, flex: "none", borderRight: "1px solid var(--line)", background: "#fff" }}>
         <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid var(--line)" }}>
           <div className="row spread" style={{ gap: 12 }}>
             <h1 className="display" style={{ fontSize: 20 }}>Inbox</h1>
@@ -195,8 +207,8 @@ export default function InboxPage() {
         )}
       </div>
 
-      <div className="grow col" style={{ minWidth: 0, background: "var(--bg)" }}>
-        <div className="row spread" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", background: "#fff", flex: "none" }}>
+      <div className="grow col inbox-detail-pane" style={{ minWidth: 0, background: "var(--bg)" }}>
+        <div className="row spread inbox-detail-head" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", background: "#fff", flex: "none" }}>
           {hasThreads ? (
             <>
               <div className="row" style={{ gap: 11, minWidth: 0 }}>
@@ -224,7 +236,7 @@ export default function InboxPage() {
           )}
         </div>
 
-        <div className="scroll grow" style={{ padding: "20px 24px" }}>
+        <div className="scroll grow inbox-detail-scroll" style={{ padding: "20px 24px" }}>
           {error && (
             <div style={{ padding: 12, marginBottom: 14, borderRadius: 8, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", fontSize: 13, fontWeight: 700 }}>
               {error}
@@ -232,8 +244,8 @@ export default function InboxPage() {
           )}
 
           {!hasThreads ? (
-            <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 16, alignItems: "start" }}>
-              <div className="col" style={{ gap: 14, maxWidth: 760 }}>
+            <div className="inbox-empty-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 16, alignItems: "start" }}>
+              <div className="col inbox-empty-main" style={{ gap: 14, maxWidth: 760 }}>
                 <section className="card" style={{ padding: 20, borderRadius: 8 }}>
                   <div className="row" style={{ gap: 10, marginBottom: 12 }}>
                     <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)" }}>
@@ -272,7 +284,7 @@ export default function InboxPage() {
                 </section>
               </div>
 
-              <aside className="card" style={{ padding: 18, borderRadius: 8 }}>
+              <aside className="card inbox-requirements" style={{ padding: 18, borderRadius: 8 }}>
                 <h2 style={{ fontSize: 14, fontWeight: 800 }}>Inbox requirements</h2>
                 <div className="col" style={{ gap: 11, marginTop: 14 }}>
                   {[
