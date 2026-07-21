@@ -38,6 +38,16 @@ const STAGE_COLORS = {
   not_interested: "#f59e0b",
   unsubscribed: "#ef4444",
 };
+const DEFAULT_MANUAL_LEAD = {
+  firstName: "",
+  lastName: "",
+  title: "",
+  company: "",
+  email: "",
+  phone: "",
+  location: "",
+  linkedinUrl: "",
+};
 
 function splitList(value) {
   return value.split(",").map(item => item.trim()).filter(Boolean);
@@ -291,6 +301,8 @@ export default function ProspectsPage() {
   const [sortBy, setSortBy] = useState("created_desc");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [manualLead, setManualLead] = useState(DEFAULT_MANUAL_LEAD);
+  const [manualLoading, setManualLoading] = useState(false);
 
   const refreshLeads = () => {
     setLeadLoading(true);
@@ -410,6 +422,68 @@ export default function ProspectsPage() {
     }
   };
 
+  const setManualLeadField = (key, value) => {
+    setManualLead(current => ({ ...current, [key]: value }));
+    setError("");
+    setNotice("");
+  };
+
+  const createManualLead = async event => {
+    event.preventDefault();
+    if (manualLoading) return;
+
+    const firstName = cleanText(manualLead.firstName, { max: 120 });
+    const lastName = cleanText(manualLead.lastName, { max: 120 });
+    const title = cleanText(manualLead.title, { max: 160 });
+    const company = cleanText(manualLead.company, { max: 160 });
+    const email = cleanText(manualLead.email, { max: 254 }).toLowerCase();
+    const phone = cleanText(manualLead.phone, { max: 80 });
+    const location = cleanText(manualLead.location, { max: 160 });
+    const linkedinUrl = safeExternalUrl(manualLead.linkedinUrl);
+
+    setError("");
+    setNotice("");
+
+    if (!firstName && !lastName && !email && !company) {
+      setError("Add a name, email, or company before saving this prospect.");
+      return;
+    }
+    if (email && !isValidEmail(email)) {
+      setError("Enter a valid email address or leave it blank.");
+      return;
+    }
+    if (manualLead.linkedinUrl.trim() && !linkedinUrl) {
+      setError("Enter a valid LinkedIn URL or leave it blank.");
+      return;
+    }
+
+    setManualLoading(true);
+    try {
+      const { data } = await api.post("/leads", {
+        campaignId: campaignId || undefined,
+        source: "manual",
+        firstName,
+        lastName,
+        name: [firstName, lastName].filter(Boolean).join(" ") || undefined,
+        title,
+        company,
+        email,
+        phone,
+        location,
+        linkedinUrl,
+      });
+
+      setLeads(current => [data, ...current.filter(lead => lead.id !== data.id)]);
+      setManualLead(DEFAULT_MANUAL_LEAD);
+      setNotice(`${leadName(data)} added manually${campaignId ? " and attached to the selected campaign" : ""}.`);
+      setTab("table");
+    } catch (err) {
+      setError(err?.response?.data?.error || "Manual prospect could not be added.");
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
   const deleteLead = async id => {
     try {
       await api.delete(`/leads/${id}`);
@@ -487,6 +561,7 @@ export default function ProspectsPage() {
         <Segmented
           options={[
             { label: "Lead table", value: "table" },
+            { label: "Manual add", value: "manual" },
             { label: "Apollo search", value: "apollo" },
             { label: "CSV upload", value: "csv" },
           ]}
@@ -529,8 +604,8 @@ export default function ProspectsPage() {
                 <button className="btn btn-ghost btn-sm" type="button" disabled={revealableLeads.length === 0 || bulkEnriching} onClick={enrichVisibleLeads}>
                   <Icon name="mail" size={15} /> {bulkEnriching ? "Revealing..." : `Reveal emails (${revealableLeads.length})`}
                 </button>
-                <button className="btn btn-primary btn-sm" type="button" onClick={() => setTab("apollo")}>
-                  <Icon name="plus" size={15} color="#06231a" /> Add prospects
+                <button className="btn btn-primary btn-sm" type="button" onClick={() => setTab("manual")}>
+                  <Icon name="plus" size={15} color="#06231a" /> Add manually
                 </button>
               </div>
 
@@ -588,6 +663,39 @@ export default function ProspectsPage() {
               </div>
             </div>
           </div>
+        ) : tab === "manual" ? (
+          <form className="card source-panel" onSubmit={createManualLead}>
+            <div className="source-panel-head">
+              <span><Icon name="user" size={18} /></span>
+              <div>
+                <h2>Add prospect manually</h2>
+                <p className="faint">Create one prospect directly in your lead table.</p>
+              </div>
+            </div>
+            <div className="form-grid">
+              <label className="field"><span>First name</span><input className="input" value={manualLead.firstName} onChange={event => setManualLeadField("firstName", event.target.value)} placeholder="Priya" maxLength={120} /></label>
+              <label className="field"><span>Last name</span><input className="input" value={manualLead.lastName} onChange={event => setManualLeadField("lastName", event.target.value)} placeholder="Shah" maxLength={120} /></label>
+              <label className="field"><span>Email</span><input className="input" value={manualLead.email} onChange={event => setManualLeadField("email", event.target.value)} placeholder="priya@company.com" maxLength={254} /></label>
+              <label className="field"><span>Phone</span><input className="input" value={manualLead.phone} onChange={event => setManualLeadField("phone", event.target.value)} placeholder="+1 555 0100" maxLength={80} /></label>
+              <label className="field"><span>Company</span><input className="input" value={manualLead.company} onChange={event => setManualLeadField("company", event.target.value)} placeholder="Acme Inc." maxLength={160} /></label>
+              <label className="field"><span>Title</span><input className="input" value={manualLead.title} onChange={event => setManualLeadField("title", event.target.value)} placeholder="VP Sales" maxLength={160} /></label>
+              <label className="field"><span>Location</span><input className="input" value={manualLead.location} onChange={event => setManualLeadField("location", event.target.value)} placeholder="New York, NY" maxLength={160} /></label>
+              <label className="field"><span>LinkedIn URL</span><input className="input" value={manualLead.linkedinUrl} onChange={event => setManualLeadField("linkedinUrl", event.target.value)} placeholder="https://linkedin.com/in/..." maxLength={500} /></label>
+              <label className="field">
+                <span>Attach to campaign</span>
+                <select className="input" value={campaignId} onChange={event => setCampaignId(event.target.value)}>
+                  <option value="">No campaign yet</option>
+                  {campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="row spread source-actions">
+              <span className="faint">Name, email, or company is required. Email and phone can be added later.</span>
+              <button className="btn btn-primary btn-sm" type="submit" disabled={manualLoading}>
+                <Icon name="plus" size={15} color="#06231a" /> {manualLoading ? "Adding..." : "Add prospect"}
+              </button>
+            </div>
+          </form>
         ) : tab === "apollo" ? (
           <form className="card source-panel" onSubmit={runApolloSearch}>
             <div className="source-panel-head">
