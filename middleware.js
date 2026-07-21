@@ -10,6 +10,12 @@ const PUBLIC_PATHS = [
   '/pricing',
   '/terms',
   '/privacy',
+  '/refund',
+  '/cookies',
+  '/about',
+  '/contact',
+  '/help',
+  '/faq',
   '/callback',
 ];
 

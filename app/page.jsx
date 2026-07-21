@@ -5,6 +5,7 @@ import Link from "next/link";
 import Logo from "../components/ui/Logo";
 import Aurora from "../components/ui/Aurora";
 import Icon from "../components/ui/Icon";
+import PublicFooter from "../components/layout/PublicFooter";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -172,18 +173,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <footer className="landing-footer landing-section">
-          <Logo size={30} />
-          <div>
-            <button onClick={() => scrollTo('product')}>Product</button>
-            <button onClick={() => scrollTo('how-it-works')}>How it works</button>
-            <button onClick={() => scrollTo('results')}>Results</button>
-            <Link href="/pricing">Pricing</Link>
-            <Link href="/terms">Terms</Link>
-            <Link href="/privacy">Privacy</Link>
-          </div>
-          <span>© 2026 Globonexo, Inc.</span>
-        </footer>
+        <PublicFooter />
       </div>
     </div>
   );
