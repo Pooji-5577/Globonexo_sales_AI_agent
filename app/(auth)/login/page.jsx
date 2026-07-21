@@ -7,14 +7,14 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="screen" style={{ flexDirection: 'row' }}>
+    <div className="screen auth-screen" style={{ flexDirection: 'row' }}>
       <AuthAside
         kicker="Welcome back"
         headline="Your pipeline ran all night."
         sub="While you were away, your agent sent 84 emails, handled 19 replies and booked 3 meetings."
         bullets={['Autonomous outreach & follow-up', 'Real-time buying-intent signals', 'Meetings booked on autopilot']}
       />
-      <div className="grow" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
+      <div className="grow auth-main" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
         <LoginForm />
       </div>
     </div>

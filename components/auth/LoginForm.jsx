@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { Icon } from '../ui/Icon';
 import { Field } from '../ui/Input';
+import { cleanText, isValidEmail } from '../../lib/validation';
 
 export function LoginForm() {
   const router = useRouter();
@@ -17,9 +18,18 @@ export function LoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    const normalizedEmail = cleanText(email, { max: 254 }).toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      setError('Enter a valid work email.');
+      return;
+    }
+    if (!password) {
+      setError('Enter your password.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await login(email, password);
+      await login(normalizedEmail, password);
       localStorage.setItem('returning_user', '1');
       router.push('/dashboard');
     } catch (err) {

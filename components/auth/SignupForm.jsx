@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { Icon } from '../ui/Icon';
 import { Field } from '../ui/Input';
+import { cleanText, isStrongPassword, isValidEmail } from '../../lib/validation';
 
 export function SignupForm() {
   const router = useRouter();
@@ -23,9 +24,28 @@ export function SignupForm() {
       setError('Please agree to the Terms and Privacy Policy.');
       return;
     }
+    const payload = {
+      firstName: cleanText(form.firstName, { max: 80 }),
+      lastName: cleanText(form.lastName, { max: 80 }),
+      email: cleanText(form.email, { max: 254 }).toLowerCase(),
+      company: cleanText(form.company, { max: 160 }),
+      password: form.password,
+    };
+    if (!payload.firstName || !payload.lastName || !payload.company) {
+      setError('Enter your name and company.');
+      return;
+    }
+    if (!isValidEmail(payload.email)) {
+      setError('Enter a valid work email.');
+      return;
+    }
+    if (!isStrongPassword(payload.password)) {
+      setError('Use 8+ characters with a letter, number, and symbol.');
+      return;
+    }
     setSubmitting(true);
     try {
-      await signup(form);
+      await signup(payload);
       localStorage.setItem('returning_user', '1');
       router.push('/onboarding');
     } catch (err) {

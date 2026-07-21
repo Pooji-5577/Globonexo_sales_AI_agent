@@ -5,6 +5,7 @@ import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import api from "../../../lib/api";
 import { getSupabaseBrowserClient } from "../../../lib/supabase-browser";
+import { cleanText } from "../../../lib/validation";
 
 const STATUS_STYLES = {
   open: { label: "Open", bg: "var(--g-50)", color: "var(--g-700)" },
@@ -141,12 +142,14 @@ export default function SupportPage() {
 
   const createTicket = async event => {
     event.preventDefault();
-    if (!subject.trim() || !newBody.trim()) return;
+    const safeSubject = cleanText(subject, { max: 180 });
+    const safeBody = cleanText(newBody, { max: 4000, multiline: true });
+    if (!safeSubject || !safeBody) return;
     setCreating(true);
     setError("");
     setNotice("");
     try {
-      const { data } = await api.post("/support/tickets", { subject, body: newBody });
+      const { data } = await api.post("/support/tickets", { subject: safeSubject, body: safeBody });
       setSubject("");
       setNewBody("");
       setNotice("Support ticket created.");
@@ -161,12 +164,13 @@ export default function SupportPage() {
 
   const sendReply = async event => {
     event.preventDefault();
-    if (!selectedId || !replyBody.trim()) return;
+    const safeBody = cleanText(replyBody, { max: 4000, multiline: true });
+    if (!selectedId || !safeBody) return;
     setSending(true);
     setError("");
     setNotice("");
     try {
-      const { data } = await api.post(`/support/tickets/${selectedId}/messages`, { body: replyBody });
+      const { data } = await api.post(`/support/tickets/${selectedId}/messages`, { body: safeBody });
       setReplyBody("");
       setDetail(current => current ? { ...current, messages: appendMessageOnce(current.messages, data) } : current);
       await loadTickets();

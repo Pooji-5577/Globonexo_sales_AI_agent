@@ -22,6 +22,8 @@ export function Icon({ name, size = 22, stroke = 1.8, color = 'currentColor', fi
     send: <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"/>,
     bell: <><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></>,
     search: <><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></>,
+    menu: <path d="M4 6h16M4 12h16M4 18h16"/>,
+    close: <path d="M6 6l12 12M18 6 6 18"/>,
     plus: <path d="M12 5v14M5 12h14"/>,
     calendar: <><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></>,
     phone: <path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/>,

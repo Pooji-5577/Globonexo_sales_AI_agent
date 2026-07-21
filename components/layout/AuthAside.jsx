@@ -4,7 +4,7 @@ import { Icon } from '../ui/Icon';
 
 export function AuthAside({ kicker, headline, sub, bullets }) {
   return (
-    <div style={{
+    <div className="auth-aside" style={{
       position: 'relative', width: 420, flex: 'none', overflow: 'hidden',
       background: 'linear-gradient(160deg, #06311f, #064d33 55%, #066b4a)',
       color: '#fff', padding: '42px 40px', display: 'flex', flexDirection: 'column',

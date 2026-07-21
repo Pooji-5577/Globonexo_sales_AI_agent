@@ -7,7 +7,13 @@ const nextConfig = {
     return [
       {
         source: '/:path*',
-        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
       },
     ];
   },
@@ -15,10 +21,7 @@ const nextConfig = {
   // calling the backend's domain directly. The backend and frontend are
   // deployed as two separate Vercel projects on two different domains, so a
   // login cookie set by a direct cross-domain call is invisible to
-  // middleware.js (which only ever sees cookies scoped to this domain). This
-  // rewrite makes every /api/* call same-origin from the browser's point of
-  // view - Vercel forwards it server-side to the real backend - so the
-  // login cookie ends up scoped to this domain and middleware.js can see it.
+  // middleware.js. This keeps /api/* same-origin from the browser's point of view.
   async rewrites() {
     const backendOrigin = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
     return [

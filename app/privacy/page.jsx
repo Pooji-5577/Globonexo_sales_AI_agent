@@ -3,7 +3,7 @@ export const metadata = {
   description: "Privacy Policy for Globonexo Sales AI.",
 };
 
-import Link from "next/link";
+import LegalPage from "../../components/layout/LegalPage";
 
 const sections = [
   {
@@ -41,38 +41,5 @@ const sections = [
 ];
 
 export default function PrivacyPage() {
-  return (
-    <div className="public-page">
-      <main className="legal-page public-section">
-        <header className="legal-hero">
-          <div>
-            <Link className="legal-back" href="/">Back to home</Link>
-            <span className="eyebrow">Legal</span>
-          </div>
-          <h1 className="display">Privacy Policy</h1>
-          <p className="legal-updated">Last updated: June 19, 2026</p>
-        </header>
-
-        <div className="legal-layout">
-          <aside className="legal-toc" aria-label="Privacy sections">
-            <span>On this page</span>
-            {sections.map((section) => (
-              <a key={section.title} href={`#${section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
-                {section.title.replace(/^\d+\.\s*/, "")}
-              </a>
-            ))}
-          </aside>
-
-          <article className="legal-card">
-            {sections.map((section) => (
-              <section key={section.title} id={section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}>
-                <h2>{section.title}</h2>
-                <p>{section.body}</p>
-              </section>
-            ))}
-          </article>
-        </div>
-      </main>
-    </div>
-  );
+  return <LegalPage title="Privacy Policy" updated="June 19, 2026" sections={sections} />;
 }
