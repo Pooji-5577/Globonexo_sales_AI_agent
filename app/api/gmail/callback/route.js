@@ -30,8 +30,8 @@ export async function GET(request) {
   }
 
   try {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL;
-    const response = await fetch(`${apiBase}/gmail/callback`, {
+    const apiBase = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
+    const response = await fetch(`${apiBase}/api/gmail/callback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -2,6 +2,57 @@
 import React, { useState, useEffect } from "react";
 import api from "../../../lib/api";
 
+function buildFallbackAnalytics(campaignsPayload, callsPayload) {
+  const campaigns = campaignsPayload?.campaigns ?? [];
+  const callSummary = callsPayload?.summary ?? {};
+
+  const sent = campaigns.reduce((sum, item) => sum + (item.sent ?? 0), 0);
+  const replied = campaigns.reduce((sum, item) => sum + (item.replies ?? 0), 0);
+  const meetingsFromEmail = campaigns.reduce((sum, item) => sum + (item.meetings ?? 0), 0);
+  const prospects = campaigns.reduce((sum, item) => sum + (item.enrolled ?? 0), 0);
+  const meetingsBooked = meetingsFromEmail + (callSummary.meetingsBooked ?? 0);
+  const replyRate = sent > 0 ? ((replied / sent) * 100).toFixed(1) : "0";
+
+  return {
+    summary: {
+      meetings: meetingsBooked,
+      replyRate,
+      emailsSent: sent,
+    },
+    dailyEmails: [],
+    dailyMeetings: [],
+    dayLabels: [],
+    funnel: {
+      prospects,
+      emailed: sent,
+      replied,
+      meetingsBooked,
+      closed: 0,
+    },
+    calls: {
+      total: callSummary.totalCalls ?? 0,
+      answered: callSummary.answered ?? 0,
+      answerRate: callSummary.answerRate ?? '0',
+      meetingsBooked: callSummary.meetingsBooked ?? 0,
+      voicemail: callSummary.voicemail ?? 0,
+      failed: callSummary.failed ?? 0,
+    },
+  };
+}
+
+async function loadAnalytics() {
+  try {
+    const res = await api.get('/dashboard/analytics');
+    return res.data;
+  } catch {
+    const [campaignsRes, callsRes] = await Promise.all([
+      api.get('/analytics/campaigns'),
+      api.get('/analytics/calls'),
+    ]);
+    return buildFallbackAnalytics(campaignsRes.data, callsRes.data);
+  }
+}
+
 function BarChart({ title, data, labels, color, max }) {
   const actualMax = max || Math.max(...data, 1);
   return (
@@ -51,8 +102,8 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/dashboard/analytics')
-      .then(res => setData(res.data))
+    loadAnalytics()
+      .then(res => setData(res))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -75,6 +126,7 @@ export default function AnalyticsPage() {
 
   const summary = data.summary ?? {};
   const funnel = data.funnel ?? { prospects: 0, emailed: 0, replied: 0, meetingsBooked: 0, closed: 0 };
+  const calls = data.calls ?? null;
 
   return (
     <div className="scroll grow" style={{ padding: '18px 24px', minHeight: 0 }}>
@@ -95,10 +147,29 @@ export default function AnalyticsPage() {
         ))}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-        <BarChart title="Emails sent (last 7 days)" data={data.dailyEmails ?? []} labels={data.dayLabels ?? []} color="var(--teal)" />
-        <BarChart title="Meetings booked (last 7 days)" data={data.dailyMeetings ?? []} labels={data.dayLabels ?? []} color="var(--g-500)" />
+        <BarChart title="Emails sent (last 7 days)" data={(data.dailyEmails?.length ? data.dailyEmails : [summary.emailsSent ?? 0])} labels={(data.dayLabels?.length ? data.dayLabels : ['Total'])} color="var(--teal)" />
+        <BarChart title="Meetings booked (last 7 days)" data={(data.dailyMeetings?.length ? data.dailyMeetings : [summary.meetings ?? 0])} labels={(data.dayLabels?.length ? data.dayLabels : ['Total'])} color="var(--g-500)" />
       </div>
       <FunnelChart funnel={funnel} />
+      {calls && (
+        <div className="card" style={{ padding: 18, marginTop: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Call performance</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
+            {[
+              { k: 'Total calls', v: calls.total ?? 0 },
+              { k: 'Answer rate', v: `${calls.answerRate ?? 0}%` },
+              { k: 'Meetings booked', v: calls.meetingsBooked ?? 0 },
+              { k: 'Voicemail', v: calls.voicemail ?? 0 },
+              { k: 'Failed', v: calls.failed ?? 0 },
+            ].map(s => (
+              <div key={s.k} className="col">
+                <span className="faint" style={{ fontSize: 11.5, fontWeight: 700 }}>{s.k}</span>
+                <span style={{ fontWeight: 800, fontSize: 20, marginTop: 4 }}>{s.v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

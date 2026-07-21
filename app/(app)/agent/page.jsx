@@ -4,12 +4,61 @@ import Icon from "../../../components/ui/Icon";
 import Typing from "../../../components/ui/Typing";
 import api from "../../../lib/api";
 
-function getAgentName() {
-  if (typeof window === "undefined") return "Nexo";
-  return window.__agentName || "Nexo";
+const QUICK = ['Draft follow-ups for no-replies', 'Find 50 new ICP accounts', 'Summarize hottest leads', 'Pause weekend sending'];
+
+const CHAT_STORAGE_KEY = 'globonexo_agent_chat';
+
+function loadSavedMessages() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
-const QUICK = ['Draft follow-ups for no-replies', 'Find 50 new ICP accounts', 'Summarize hottest leads', 'Pause weekend sending'];
+const MOCK_RESPONSES = {
+  'Draft follow-ups for no-replies': "I've queued personalized follow-up drafts for every lead who hasn't replied yet. Review and approve them from your Inbox before they go out.",
+  'Find 50 new ICP accounts': "Searching Apollo for accounts matching your ideal customer profile — I'll add the best 50 matches to your Prospects list and flag them for review.",
+};
+
+function leadDisplayName(l) {
+  return l.name || [l.firstName, l.lastName].filter(Boolean).join(' ') || 'Unknown';
+}
+
+async function respondPauseWeekendSending() {
+  try {
+    const { data } = await api.get('/campaigns');
+    const active = (data?.items || []).filter(c => c.channel === 'email' && c.status === 'active');
+    if (active.length === 0) {
+      return "You don't have any active email campaigns right now — nothing to pause.";
+    }
+    await Promise.all(active.map(c => api.post(`/campaigns/${c.id}/pause`)));
+    const names = active.map(c => c.name).join(', ');
+    return `Paused sending for ${active.length} active campaign${active.length > 1 ? 's' : ''}: ${names}. They'll resume when you're ready.`;
+  } catch {
+    return 'Something went wrong pausing your campaigns — check the Campaigns page.';
+  }
+}
+
+async function respondSummarizeHotLeads() {
+  try {
+    const { data } = await api.get('/leads');
+    const hot = (data?.items || [])
+      .filter(l => (l.score ?? 0) > 0)
+      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+      .slice(0, 5);
+    if (hot.length === 0) {
+      return "No hot leads right now — I'll flag them here as soon as they come in.";
+    }
+    const lines = hot.map(l => `• ${leadDisplayName(l)}${l.company ? ` (${l.company})` : ''} — score ${l.score}`);
+    return `Here are your hottest leads:\n${lines.join('\n')}`;
+  } catch {
+    return 'Something went wrong pulling your leads — check the Prospects page.';
+  }
+}
 
 function Bubble({ m, name }) {
   const isUser = m.who === 'user';
@@ -24,7 +73,7 @@ function Bubble({ m, name }) {
         {!isUser && <AgentAvatar />}
         <div style={{
           maxWidth: 480, padding: '12px 16px', fontSize: 14.5, lineHeight: 1.55,
-          borderRadius: 18, fontWeight: isUser ? 600 : 500,
+          borderRadius: 18, fontWeight: isUser ? 600 : 500, whiteSpace: 'pre-line',
           background: isUser ? 'linear-gradient(180deg,var(--g-400),var(--g-500))' : '#fff',
           color: isUser ? '#06231a' : 'var(--ink)',
           border: isUser ? 'none' : '1px solid var(--line)',
@@ -58,14 +107,26 @@ export default function AgentPage() {
   const [typing, setTyping] = useState(false);
   const [sidebarData, setSidebarData] = useState(null);
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [name, setName] = useState('Nexo');
   const scrollRef = useRef(null);
-  const name = getAgentName();
 
   useEffect(() => {
+    const saved = loadSavedMessages();
+
     api.get('/dashboard')
       .then(res => {
         const d = res.data;
         setSidebarData(d);
+        if (d.agentName) setName(d.agentName);
+
+        // Restore a prior conversation instead of overwriting it with a fresh
+        // greeting - otherwise navigating away and back (or refreshing) always
+        // wiped the chat, since messages only ever lived in React state.
+        if (saved) {
+          setMsgs(saved);
+          return;
+        }
+
         const kpis = d.kpis || {};
         const firstName = d.user?.firstName || 'there';
         setMsgs([
@@ -82,6 +143,10 @@ export default function AgentPage() {
         ]);
       })
       .catch(() => {
+        if (saved) {
+          setMsgs(saved);
+          return;
+        }
         setMsgs([
           { who: 'agent', kind: 'text', text: `Hi 👋 I'm ${name}, your AI sales agent. How can I help?` },
         ]);
@@ -90,19 +155,42 @@ export default function AgentPage() {
   }, []);
 
   useEffect(() => {
+    if (!initialLoaded || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(msgs));
+    } catch {
+      // localStorage can throw in private browsing/quota-exceeded cases - chat
+      // still works for the session, it just won't persist across reloads.
+    }
+  }, [msgs, initialLoaded]);
+
+  useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [msgs, typing]);
 
-  const send = (text) => {
+  const send = async (text) => {
     const t = (text || input).trim();
     if (!t) return;
     setMsgs(m => [...m, { who: 'user', kind: 'text', text: t }]);
     setInput('');
     setTyping(true);
-    setTimeout(() => {
-      setTyping(false);
-      setMsgs(m => [...m, { who: 'agent', kind: 'text', text: "On it — I'll handle that and report back. Anything worth your attention will land in your Inbox with a summary." }]);
-    }, 1400);
+
+    const minDelay = new Promise(resolve => setTimeout(resolve, 1400));
+    let replyText;
+    if (t === 'Pause weekend sending') {
+      [replyText] = await Promise.all([respondPauseWeekendSending(), minDelay]);
+    } else if (t === 'Summarize hottest leads') {
+      [replyText] = await Promise.all([respondSummarizeHotLeads(), minDelay]);
+    } else if (MOCK_RESPONSES[t]) {
+      await minDelay;
+      replyText = MOCK_RESPONSES[t];
+    } else {
+      await minDelay;
+      replyText = "On it — I'll handle that and report back. Anything worth your attention will land in your Inbox with a summary.";
+    }
+
+    setTyping(false);
+    setMsgs(m => [...m, { who: 'agent', kind: 'text', text: replyText }]);
   };
 
   const kpis = sidebarData?.kpis ?? {};

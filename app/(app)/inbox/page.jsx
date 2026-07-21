@@ -31,6 +31,7 @@ export default function InboxPage() {
   const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null });
   const [actionBusy, setActionBusy] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [draftBody, setDraftBody] = useState("");
 
   useEffect(() => {
@@ -64,6 +65,7 @@ export default function InboxPage() {
 
     setDetailLoading(true);
     setError("");
+    setSuccess("");
     api.get(`/inbox/${selectedId}`)
       .then(res => {
         setDetail(res.data);
@@ -78,6 +80,7 @@ export default function InboxPage() {
 
     setActionBusy(action);
     setError("");
+    setSuccess("");
     try {
       const payload = action === "approve" ? { body: cleanText(draftBody, { max: 8000, multiline: true }) } : undefined;
       if (action === "approve" && !payload.body) {
@@ -90,10 +93,12 @@ export default function InboxPage() {
         setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: "approved" } : item));
         setDetail(current => current ? { ...current, ...data } : current);
         setDraftBody(data.ai_draft_reply || "");
+        setSuccess("Reply approved — it's queued to send to the prospect.");
       } else {
         setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: data.ai_draft_status } : item));
         setDetail(current => current ? { ...current, ...data } : current);
         setDraftBody(data.ai_draft_reply || "");
+        setSuccess(action === "regenerate" ? "New draft generated." : "Reply rejected.");
       }
     } catch (err) {
       setError(action === "approve" ? "AI draft could not be approved." : "AI draft action could not be completed.");
@@ -107,6 +112,7 @@ export default function InboxPage() {
 
     setActionBusy("edit");
     setError("");
+    setSuccess("");
     try {
       const body = cleanText(draftBody, { max: 8000, multiline: true });
       if (!body) {
@@ -118,6 +124,7 @@ export default function InboxPage() {
       setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: data.ai_draft_status } : item));
       setDetail(current => current ? { ...current, ...data } : current);
       setDraftBody(data.ai_draft_reply || "");
+      setSuccess("Draft edit saved.");
     } catch (err) {
       setError("AI draft edit could not be saved.");
     } finally {
@@ -240,6 +247,13 @@ export default function InboxPage() {
           {error && (
             <div style={{ padding: 12, marginBottom: 14, borderRadius: 8, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", fontSize: 13, fontWeight: 700 }}>
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 12, marginBottom: 14, borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", fontSize: 13, fontWeight: 700 }}>
+              <Icon name="check" size={15} color="#15803d" />
+              {success}
             </div>
           )}
 

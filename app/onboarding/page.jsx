@@ -16,6 +16,22 @@ const STEPS = [
   { title: 'Review & launch', sub: "Everything looks right? Let's go.", ico: 'checkCircle' },
 ];
 
+const TONE_API_VALUE = {
+  'Consultative': 'consultative',
+  'Direct & concise': 'direct',
+  'Friendly & warm': 'friendly',
+  'Challenger': 'challenger',
+  'Formal': 'formal',
+};
+
+const HOOK_STYLE_API_VALUE = {
+  'Pain-based (problem-first)': 'pain_based',
+  'Insight-based (data/trend)': 'insight_based',
+  'Social proof (customer story)': 'social_proof',
+  'Personalized signal (news/hire)': 'personalized_signal',
+  'Question-led': 'question_led',
+};
+
 const DEFAULTS = {
   firstName: '',
   lastName: '',
@@ -164,8 +180,8 @@ export default function OnboardingPage() {
       role: cleanText(d.role, { max: 80 }),
       industry: cleanText(d.industry, { max: 120 }),
       painPoints: cleanText(d.painPoints, { max: 2000, multiline: true }),
-      tone: cleanText(d.tone, { max: 80 }),
-      hookStyle: cleanText(d.hookStyle, { max: 120 }),
+      tone: TONE_API_VALUE[d.tone] || 'consultative',
+      hookStyle: HOOK_STYLE_API_VALUE[d.hookStyle] || 'pain_based',
       followUpCadence: cleanText(d.followUpCadence, { max: 120 }),
       icpTitles: cleanList(d.titles),
       icpCompanySizes: cleanList(d.companySizes),

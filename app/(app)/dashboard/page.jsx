@@ -129,6 +129,7 @@ export default function DashboardPage() {
   const weeklyGoal = data?.weeklyGoal ?? { current: 0, target: 1, progress: 0, monthlyTarget: 0 };
   const nextMeeting = data?.nextMeeting ?? null;
   const firstName = data?.user?.firstName || "there";
+  const agentName = data?.agentName || "Nexo";
 
   const kpiItems = useMemo(() => ([
     { label: "Emails sent", value: kpis.emailsSent ?? 0, detail: "total sent", icon: "send" },
@@ -159,6 +160,9 @@ export default function DashboardPage() {
           </button>
           <button className="btn btn-primary btn-sm" onClick={() => router.push("/campaigns/new")}>
             <Icon name="plus" size={15} color="#06231a" /> New campaign
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => router.push("/agent")}>
+            <Icon name="spark" size={16} color="#06231a" /> Talk to {agentName}
           </button>
         </div>
       </div>

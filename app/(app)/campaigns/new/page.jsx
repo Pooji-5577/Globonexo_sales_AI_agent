@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
 import Avatar from "../../../../components/ui/Avatar";
-import { clampNumber, cleanText } from "../../../../lib/validation";
 
 const DEFAULT_FORM = {
   name: "",
@@ -43,12 +42,17 @@ const TIMEZONES = [
   "Asia/Kolkata",
 ];
 
-const CHANNELS = new Set(["email", "voice"]);
-const VOICE_MODES = new Set(["ai", "manual"]);
+const DRAFT_STORAGE_KEY = "globonexo:new-campaign-draft";
+
+function parseCadenceDelays(cadence) {
+  if (!cadence) return null;
+  const days = (cadence.match(/\d+/g) || []).map(Number);
+  return days.length === 3 ? days : null;
+}
 
 function Field({ label, children, hint }) {
   return (
-    <label className="field campaign-new-field">
+    <label className="field">
       <span>{label}</span>
       {children}
       {hint && <span style={{ fontSize: 12.5, color: "var(--faint)", lineHeight: 1.45 }}>{hint}</span>}
@@ -66,13 +70,14 @@ export default function NewCampaignPage() {
   const [steps, setSteps] = useState(DEFAULT_STEPS);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
 
   const [allLeads, setAllLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
   const [selectedLeadIds, setSelectedLeadIds] = useState(new Set());
   const [leadSearch, setLeadSearch] = useState("");
-  const setupReady = form.name.trim().length >= 3 && form.icpSource.trim().length >= 2;
+  const setupReady = form.name.trim().length >= 3;
 
   useEffect(() => {
     api.get("/leads")
@@ -80,6 +85,57 @@ export default function NewCampaignPage() {
       .catch(() => setAllLeads([]))
       .finally(() => setLeadsLoading(false));
   }, []);
+
+  // Restore any in-progress draft first. Only fall back to the onboarding
+  // cadence defaults when there's no draft to restore - otherwise the async
+  // onboarding fetch resolves after the restore and silently overwrites
+  // whatever delay values the user had already customized.
+  useEffect(() => {
+    let restoredFromDraft = false;
+    try {
+      const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved.form) setForm(current => ({ ...current, ...saved.form }));
+        if (saved.steps) {
+          setSteps(saved.steps);
+          restoredFromDraft = true;
+        }
+      }
+    } catch {
+      // ignore malformed/unavailable storage
+    }
+
+    if (!restoredFromDraft) {
+      api.get("/onboarding")
+        .then(({ data }) => {
+          const delays = parseCadenceDelays(data?.follow_up_cadence);
+          if (delays) {
+            setSteps(current => current.map((s, i) => ({ ...s, delayDays: delays[i] })));
+          }
+        })
+        .catch(() => {});
+    }
+
+    setDraftRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (!draftRestored) return;
+    try {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ form, steps }));
+    } catch {
+      // ignore storage write failures (e.g. private browsing quota)
+    }
+  }, [form, steps, draftRestored]);
+
+  const clearDraftStorage = () => {
+    try {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  };
 
   const filteredLeads = useMemo(() => {
     if (!leadSearch.trim()) return allLeads;
@@ -142,10 +198,6 @@ export default function NewCampaignPage() {
       errors.push("Campaign name must be at least 3 characters.");
     }
 
-    if (form.icpSource.trim().length < 2) {
-      errors.push("Select or enter an ICP source before creating the draft.");
-    }
-
     if (Number(form.maxLeads) < 1) {
       errors.push("Maximum leads must be at least 1.");
     }
@@ -162,14 +214,6 @@ export default function NewCampaignPage() {
       errors.push("Business hours end time must be after start time.");
     }
 
-    if (!CHANNELS.has(form.channel)) {
-      errors.push("Select a valid campaign channel.");
-    }
-
-    if (!TIMEZONES.includes(form.timezone)) {
-      errors.push("Select a valid timezone.");
-    }
-
     return errors;
   }, [form]);
 
@@ -181,9 +225,7 @@ export default function NewCampaignPage() {
     if (errors.length > 0) {
       setValidationErrors(errors);
       setError("");
-      const hasSetupError = errors.some(message =>
-        message.includes("Campaign name") || message.includes("ICP source")
-      );
+      const hasSetupError = errors.some(message => message.includes("Campaign name"));
       scrollToSection(hasSetupError ? setupRef : controlsRef);
       return;
     }
@@ -194,30 +236,16 @@ export default function NewCampaignPage() {
 
     try {
       const { data: campaign } = await api.post("/campaigns", {
-        name: cleanText(form.name, { max: 120 }),
-        channel: CHANNELS.has(form.channel) ? form.channel : "email",
-        icpSource: cleanText(form.icpSource, { max: 240 }),
-        promptNotes: cleanText(form.promptNotes, { max: 2000, multiline: true }),
-        maxLeads: clampNumber(form.maxLeads, { min: 1, max: 10000, fallback: 100 }),
-        dailySendCap: clampNumber(form.dailySendCap, { min: 1, max: 500, fallback: 75 }),
-        callCadencePerHour: clampNumber(form.callCadencePerHour, { min: 1, max: 60, fallback: 5 }),
-        voiceMode: VOICE_MODES.has(form.voiceMode) ? form.voiceMode : "ai",
-        businessHoursStart: form.businessHoursStart,
-        businessHoursEnd: form.businessHoursEnd,
-        timezone: TIMEZONES.includes(form.timezone) ? form.timezone : DEFAULT_FORM.timezone,
+        ...form,
+        maxLeads: Number(form.maxLeads),
+        dailySendCap: Number(form.dailySendCap),
+        callCadencePerHour: Number(form.callCadencePerHour),
       });
 
       const campaignId = campaign.id;
 
       if (form.channel === "email" && steps.some(s => s.subjectTemplate || s.bodyPromptContext)) {
-        await api.put(`/campaigns/${campaignId}/steps`, {
-          steps: steps.map(step => ({
-            stepNumber: clampNumber(step.stepNumber, { min: 1, max: 3, fallback: 1 }),
-            delayDays: clampNumber(step.delayDays, { min: 0, max: 90, fallback: 0 }),
-            subjectTemplate: cleanText(step.subjectTemplate, { max: 500 }),
-            bodyPromptContext: cleanText(step.bodyPromptContext, { max: 4000, multiline: true }),
-          })),
-        });
+        await api.put(`/campaigns/${campaignId}/steps`, { steps });
       }
 
       if (selectedLeadIds.size > 0) {
@@ -226,17 +254,26 @@ export default function NewCampaignPage() {
         });
       }
 
-      router.push("/campaigns");
+      clearDraftStorage();
+      router.push(`/campaigns/${campaignId}`);
     } catch (err) {
-      setError(err?.response?.data?.error || "Campaign could not be created. Please check the fields and try again.");
+      console.error("Campaign creation failed:", err?.response?.status, err?.response?.data, err);
+      const backendError = err?.response?.data?.error;
+      const backendDetails = err?.response?.data?.details;
+      const detailText = backendDetails ? ` (${JSON.stringify(backendDetails)})` : "";
+      setError(
+        backendError
+          ? `${backendError}${detailText}`
+          : err?.message || "Campaign could not be created. Please check the fields and try again."
+      );
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <form className="col campaign-new-form" onSubmit={submit} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-      <div className="row spread campaign-new-topbar" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff", gap: 16 }}>
+    <form className="col" onSubmit={submit} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div className="row spread" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff", gap: 16 }}>
         <div className="row" style={{ gap: 12, minWidth: 0 }}>
           <button type="button" className="btn btn-ghost btn-sm" style={{ width: 40, padding: 0 }} onClick={() => router.push("/campaigns")} aria-label="Back to campaigns">
             <Icon name="arrowLeft" size={17} />
@@ -247,7 +284,7 @@ export default function NewCampaignPage() {
           </div>
         </div>
         <div className="row" style={{ gap: 10 }}>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => router.push("/campaigns")}>Cancel</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { clearDraftStorage(); router.push("/campaigns"); }}>Cancel</button>
           <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>
             <Icon name="check" size={15} color="#06231a" /> {saving ? "Creating..." : "Create draft"}
           </button>
@@ -265,7 +302,7 @@ export default function NewCampaignPage() {
         </div>
       )}
 
-      <div className="scroll grow campaign-new-scroll" style={{ minHeight: 0, padding: 24, scrollBehavior: "smooth" }}>
+      <div className="scroll grow" style={{ minHeight: 0, padding: 24, scrollBehavior: "smooth" }}>
         <div
           className="row spread"
           style={{
@@ -299,7 +336,7 @@ export default function NewCampaignPage() {
             ))}
           </div>
         </div>
-        <div className="campaign-new-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) 340px", gap: 18, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) 340px", gap: 18, alignItems: "start" }}>
           <div className="col" style={{ gap: 14 }}>
             <section ref={setupRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
               <div className="row" style={{ gap: 10, marginBottom: 18 }}>
@@ -325,7 +362,7 @@ export default function NewCampaignPage() {
                 </Field>
 
                 <Field label="Channel">
-                  <div className="row campaign-new-channel-grid" style={{ gap: 10, flexWrap: "wrap" }}>
+                  <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
                     {[
                       { value: "email", label: "Email", icon: "mail", help: "Outbound sequence" },
                       { value: "voice", label: "Voice", icon: "phone", help: "AI or manual calling" },
@@ -336,7 +373,7 @@ export default function NewCampaignPage() {
                           key={option.value}
                           type="button"
                           onClick={() => set("channel", option.value)}
-                          className="card row campaign-new-channel-card"
+                          className="card row"
                           style={{
                             flex: "1 1 220px",
                             minHeight: 78,
@@ -362,9 +399,9 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="ICP source" hint="Where the initial target audience comes from. This is saved with the campaign for routing and later lead import work.">
-                  <div className="campaign-new-icp-grid" style={{ display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 10 }}>
-                    <select className="input" value={ICP_OPTIONS.includes(form.icpSource) ? form.icpSource : "custom"} onChange={event => set("icpSource", event.target.value === "custom" ? "" : event.target.value)} required>
+                <Field label="ICP source" hint="Where the initial target audience comes from. Optional at draft stage — you can add this before launch.">
+                  <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 10 }}>
+                    <select className="input" value={ICP_OPTIONS.includes(form.icpSource) ? form.icpSource : "custom"} onChange={event => set("icpSource", event.target.value === "custom" ? "" : event.target.value)}>
                       <option value="">Select source</option>
                       {ICP_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
                       <option value="custom">Custom</option>
@@ -375,7 +412,6 @@ export default function NewCampaignPage() {
                       value={form.icpSource}
                       onChange={event => set("icpSource", event.target.value)}
                       maxLength={240}
-                      required
                     />
                   </div>
                 </Field>
@@ -404,7 +440,7 @@ export default function NewCampaignPage() {
                 </div>
               </div>
 
-              <div className="campaign-new-controls-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
                 <Field label="Maximum leads">
                   <input className="input" type="number" min="1" max="10000" value={form.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
                 </Field>
@@ -445,8 +481,8 @@ export default function NewCampaignPage() {
             </section>
 
             {form.channel === "email" && (
-              <section ref={emailSequenceRef} className="card campaign-new-email-section" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
-                <div className="row campaign-new-section-head" style={{ gap: 10, marginBottom: 18 }}>
+              <section ref={emailSequenceRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
+                <div className="row" style={{ gap: 10, marginBottom: 18 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
                     <Icon name="mail" size={18} />
                   </span>
@@ -458,8 +494,8 @@ export default function NewCampaignPage() {
 
                 <div className="col" style={{ gap: 16 }}>
                   {steps.map((step, index) => (
-                    <div key={step.stepNumber} className="campaign-new-step-card" style={{ padding: 16, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--line)" }}>
-                      <div className="row spread campaign-new-step-head" style={{ marginBottom: 12 }}>
+                    <div key={step.stepNumber} style={{ padding: 16, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--line)" }}>
+                      <div className="row spread" style={{ marginBottom: 12 }}>
                         <div className="row" style={{ gap: 8 }}>
                           <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--g-100)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "var(--g-700)" }}>
                             {step.stepNumber}
@@ -468,7 +504,7 @@ export default function NewCampaignPage() {
                             {index === 0 ? "Initial email" : `Follow-up ${index}`}
                           </span>
                         </div>
-                        <div className="row campaign-new-delay" style={{ gap: 6 }}>
+                        <div className="row" style={{ gap: 6 }}>
                           <span className="faint" style={{ fontSize: 12.5, fontWeight: 700 }}>Delay:</span>
                           <input
                             className="input"
@@ -511,8 +547,8 @@ export default function NewCampaignPage() {
               </section>
             )}
 
-            <section ref={assignLeadsRef} className="card campaign-new-assign-section" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
-              <div className="row spread campaign-new-assign-head" style={{ marginBottom: 14 }}>
+            <section ref={assignLeadsRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
+              <div className="row spread" style={{ marginBottom: 14 }}>
                 <div className="row" style={{ gap: 10 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)" }}>
                     <Icon name="users" size={18} />
@@ -538,8 +574,8 @@ export default function NewCampaignPage() {
                 />
               </div>
 
-              <div className="campaign-new-leads-table-shell" style={{ border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
-                <table className="campaign-new-leads-table" style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div style={{ border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--bg)" }}>
                       <th style={{ padding: "8px 12px", width: 36 }}>
@@ -589,7 +625,7 @@ export default function NewCampaignPage() {
             </section>
           </div>
 
-          <aside className="card campaign-new-summary" style={{ padding: 18, borderRadius: 8, position: "sticky", top: 0 }}>
+          <aside className="card" style={{ padding: 18, borderRadius: 8, position: "sticky", top: 0 }}>
             <div className="row" style={{ gap: 10 }}>
               <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
                 <Icon name={form.channel === "voice" ? "phone" : "mail"} size={19} />
@@ -611,7 +647,7 @@ export default function NewCampaignPage() {
               ...(form.channel === "email" ? [["Sequence steps", `${steps.filter(s => s.subjectTemplate || s.bodyPromptContext).length} of ${steps.length} configured`]] : []),
               ["Leads selected", selectedLeadIds.size],
             ].map(([label, value]) => (
-              <div key={label} className="row spread campaign-new-summary-row" style={{ gap: 14, padding: "9px 0", borderBottom: "1px solid var(--line-2)" }}>
+              <div key={label} className="row spread" style={{ gap: 14, padding: "9px 0", borderBottom: "1px solid var(--line-2)" }}>
                 <span className="faint" style={{ fontSize: 12.5, fontWeight: 800 }}>{label}</span>
                 <span style={{ fontSize: 13, fontWeight: 800, textAlign: "right" }}>{value}</span>
               </div>
@@ -625,7 +661,7 @@ export default function NewCampaignPage() {
               <p style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.5, color: setupReady ? "var(--muted)" : "#9a3412" }}>
                 {setupReady
                   ? "Launch is available from the campaign list after the shell is created."
-                  : "Campaign name and ICP source are required before saving this draft."}
+                  : "Campaign name is required before saving this draft."}
               </p>
             </div>
           </aside>
