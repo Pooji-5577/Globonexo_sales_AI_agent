@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import Script from "next/script";
 import Icon from "../../../components/ui/Icon";
 import api from "../../../lib/api";
 
@@ -9,36 +10,78 @@ const PLAN_CONFIG = [
   { id: 'scale', name: 'Scale', priceAnnual: 399, priceMonthly: 479, desc: 'For high-velocity teams', feats: ['20 seats', 'Unlimited emails', 'Priority intent data', 'All channels incl. SMS', 'Custom AI training', 'Dedicated CSM'], emailCap: null, seats: 20 },
 ];
 
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 export default function BillingPage() {
   const [annual, setAnnual] = useState(true);
   const [usage, setUsage] = useState(null);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [upgrading, setUpgrading] = useState("");
 
-  useEffect(() => {
-    api.get('/billing/usage')
-      .then(res => setUsage(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const loadBillingData = useCallback(async () => {
+    const [usageRes, historyRes] = await Promise.allSettled([
+      api.get('/billing/usage'),
+      api.get('/billing/history'),
+    ]);
+    if (usageRes.status === 'fulfilled') setUsage(usageRes.value.data);
+    if (historyRes.status === 'fulfilled') setHistory(historyRes.value.data ?? []);
   }, []);
+
+  useEffect(() => {
+    loadBillingData().finally(() => setLoading(false));
+  }, [loadBillingData]);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
 
   const handleUpgrade = async (planId) => {
+    if (typeof window.Razorpay === 'undefined') {
+      showToast('Payment isn’t ready yet — please wait a moment and try again.');
+      return;
+    }
+
     setUpgrading(planId);
     try {
-      const { data } = await api.post('/billing/checkout', { planId });
-      showToast(data?.message ?? 'Billing is launching soon.');
+      const { data } = await api.post('/billing/checkout', { planId, billingPeriod: annual ? 'annual' : 'monthly' });
+
+      const razorpay = new window.Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        order_id: data.orderId,
+        name: 'Globonexo Sales AI',
+        handler: async (response) => {
+          try {
+            await api.post('/billing/checkout/verify', response);
+            showToast('Payment successful! Your plan has been updated.');
+            await loadBillingData();
+          } catch {
+            showToast('Payment received but verification failed — contact support.');
+          } finally {
+            setUpgrading("");
+          }
+        },
+        modal: { ondismiss: () => setUpgrading("") },
+        theme: { color: '#0f6e63' },
+      });
+      razorpay.on('payment.failed', () => {
+        showToast('Payment failed. Please try again.');
+        setUpgrading("");
+      });
+      razorpay.open();
     } catch (err) {
       showToast(err?.response?.data?.error ?? 'Something went wrong. Please try again.');
-    } finally {
       setUpgrading("");
     }
   };
 
   const currentPlanId = usage?.plan ?? 'starter';
   const currentPlanConfig = PLAN_CONFIG.find(p => p.id === currentPlanId) || PLAN_CONFIG[0];
+  const pastDue = usage?.subscriptionStatus === 'past_due';
+  const restricted = usage?.subscriptionStatus === 'restricted';
 
   if (loading) {
     return (
@@ -50,6 +93,7 @@ export default function BillingPage() {
 
   return (
     <div className="scroll grow" style={{ padding: '24px 32px', minHeight: 0 }}>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       {toast && (
         <div style={{ position: "fixed", bottom: 24, right: 24, background: "var(--fg)", color: "var(--bg)", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 9999, maxWidth: 360, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           {toast}
@@ -68,6 +112,16 @@ export default function BillingPage() {
           <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>Annual <span className="badge" style={{ background: 'var(--g-50)', color: 'var(--g-700)' }}>Save 20%</span></span>
         </div>
       </div>
+
+      {(pastDue || restricted) && (
+        <div className="card" style={{ padding: 16, marginBottom: 20, background: restricted ? 'var(--r-50, #fdecea)' : 'var(--y-50, #fff8e6)', border: '1px solid ' + (restricted ? 'var(--r-200, #f5b8b0)' : 'var(--y-200, #ffe3a3)') }}>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>
+            {restricted
+              ? 'Access is restricted because your billing period has lapsed. Renew below to restore full access.'
+              : 'Your billing period has ended and payment is overdue. Renew soon to avoid your account being restricted.'}
+          </span>
+        </div>
+      )}
 
       <div className="card" style={{ padding: 24, marginBottom: 28 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Current usage</div>
@@ -90,7 +144,7 @@ export default function BillingPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20, marginBottom: 28 }}>
         {PLAN_CONFIG.map(p => {
           const isCurrent = p.id === currentPlanId;
           const price = annual ? p.priceAnnual : p.priceMonthly;
@@ -112,16 +166,46 @@ export default function BillingPage() {
                 ))}
               </div>
               <button
-                className={'btn btn-block ' + (isCurrent ? 'btn-ghost' : 'btn-primary')}
+                className={'btn btn-block ' + (isCurrent && !pastDue && !restricted ? 'btn-ghost' : 'btn-primary')}
                 style={{ fontSize: 15, height: 48 }}
-                disabled={isCurrent || upgrading === p.id}
+                disabled={(isCurrent && !pastDue && !restricted) || upgrading === p.id}
                 onClick={() => handleUpgrade(p.id)}
               >
-                {isCurrent ? 'Current plan' : upgrading === p.id ? 'Please wait…' : 'Upgrade'}
+                {upgrading === p.id ? 'Please wait…' : isCurrent ? (pastDue || restricted ? 'Renew' : 'Current plan') : 'Upgrade'}
               </button>
             </div>
           );
         })}
+      </div>
+
+      <div className="card" style={{ padding: 24 }}>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Billing history</div>
+        {history.length === 0 ? (
+          <p className="muted" style={{ fontSize: 14 }}>No charges yet.</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+            <thead>
+              <tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
+                <th style={{ padding: '6px 8px', fontWeight: 700 }}>Date</th>
+                <th style={{ padding: '6px 8px', fontWeight: 700 }}>Plan</th>
+                <th style={{ padding: '6px 8px', fontWeight: 700 }}>Period</th>
+                <th style={{ padding: '6px 8px', fontWeight: 700 }}>Amount</th>
+                <th style={{ padding: '6px 8px', fontWeight: 700 }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map(h => (
+                <tr key={h.id} style={{ borderTop: '1px solid var(--line-2)' }}>
+                  <td style={{ padding: '8px' }}>{formatDate(h.created_at)}</td>
+                  <td style={{ padding: '8px', textTransform: 'capitalize' }}>{h.plan_id}</td>
+                  <td style={{ padding: '8px', textTransform: 'capitalize' }}>{h.billing_period}</td>
+                  <td style={{ padding: '8px' }}>${(h.amount / 100).toFixed(2)} {h.currency}</td>
+                  <td style={{ padding: '8px', textTransform: 'capitalize' }}>{h.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
