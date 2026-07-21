@@ -40,6 +40,7 @@ const NAV_GROUPS = [
     items: [
       { id: 'billing', label: 'Billing', ico: 'star' },
       { id: 'settings', label: 'Settings', ico: 'sliders' },
+      { id: 'support', label: 'Support', ico: 'chat' },
     ]
   },
 ];

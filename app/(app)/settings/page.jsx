@@ -1,10 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { Field } from '../../../components/ui/Input';
 import Icon from '../../../components/ui/Icon';
 import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
+
+const HELP_LINKS = [
+  { href: '/support', label: 'Support tickets', ico: 'inbox' },
+  { href: '/help',    label: 'Help Center',     ico: 'doc' },
+  { href: '/faq',     label: 'FAQs',            ico: 'chat' },
+  { href: '/contact', label: 'Contact support', ico: 'mail' },
+  { href: '/about',   label: 'About Globonexo', ico: 'building' },
+];
+
+const LEGAL_LINKS = [
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms',   label: 'Terms' },
+  { href: '/refund',  label: 'Refunds' },
+  { href: '/cookies', label: 'Cookies' },
+];
 
 const TONES = [
   { value: 'consultative', label: 'Consultative' },
@@ -417,6 +433,29 @@ export default function SettingsPage() {
               <p className="muted" style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.45 }}>
                 Redis must be running for delayed email sequence jobs and inbox polling.
               </p>
+            </section>
+
+            <section className="card" style={{ padding: 18, borderRadius: 8 }}>
+              <div className="row" style={{ gap: 8, fontWeight: 800, fontSize: 13 }}>
+                <Icon name="chat" size={16} color="var(--g-700)" />
+                Help and resources
+              </div>
+              <div className="col" style={{ gap: 2, marginTop: 12 }}>
+                {HELP_LINKS.map(link => (
+                  <Link key={link.href} href={link.href} className="settings-resource-link">
+                    <span className="row" style={{ gap: 9, minWidth: 0 }}>
+                      <Icon name={link.ico} size={15} color="var(--muted)" />
+                      {link.label}
+                    </span>
+                    <Icon name="arrow" size={14} color="var(--faint)" />
+                  </Link>
+                ))}
+              </div>
+              <div className="settings-legal-links">
+                {LEGAL_LINKS.map(link => (
+                  <Link key={link.href} href={link.href}>{link.label}</Link>
+                ))}
+              </div>
             </section>
           </aside>
         </div>

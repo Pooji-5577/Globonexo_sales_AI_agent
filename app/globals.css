@@ -2880,3 +2880,20 @@ canvas {
   .faq-item > p { padding: 0 20px 20px; }
   .content-card { padding: 22px; }
 }
+
+/* ---- Settings: help and resources card ---- */
+.settings-resource-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 10px; margin-inline: -10px;
+  border-radius: 8px;
+  color: var(--ink-2); font-size: 13px; font-weight: 700;
+}
+.settings-resource-link:hover { background: var(--bg-2); color: var(--g-700); }
+.settings-resource-link:hover svg { color: var(--g-700); }
+.settings-legal-links {
+  display: flex; flex-wrap: wrap; gap: 6px 14px;
+  margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.settings-legal-links a { color: var(--faint); font-size: 12px; font-weight: 700; }
+.settings-legal-links a:hover { color: var(--g-700); }
