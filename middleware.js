@@ -63,11 +63,14 @@ export function middleware(request) {
     return NextResponse.next();
   }
 
-  const alreadyPassedSiteAuth = request.cookies.get(SITE_AUTH_COOKIE)?.value === '1';
-
-  if (!alreadyPassedSiteAuth && !isAuthorized(request)) {
-    return unauthorizedResponse();
-  }
+  // TEMPORARILY DISABLED: site-wide Basic Auth gate. Re-enable by restoring
+  // the block below.
+  // const alreadyPassedSiteAuth = request.cookies.get(SITE_AUTH_COOKIE)?.value === '1';
+  //
+  // if (!alreadyPassedSiteAuth && !isAuthorized(request)) {
+  //   return unauthorizedResponse();
+  // }
+  const alreadyPassedSiteAuth = true;
 
   const hasSession = Boolean(request.cookies.get('refresh_token'));
 
