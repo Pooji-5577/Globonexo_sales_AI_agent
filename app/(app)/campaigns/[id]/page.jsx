@@ -17,7 +17,11 @@ const STATUS_STYLES = {
 const CHANNEL_STYLES = {
   email: { label: "Email", bg: "#e0f2fe", color: "#0369a1" },
   voice: { label: "Voice", bg: "#f0fdf4", color: "#15803d" },
+  both: { label: "Email + Voice", bg: "#ede9fe", color: "#6d28d9" },
 };
+
+const usesEmail = channel => channel === "email" || channel === "both";
+const usesVoice = channel => channel === "voice" || channel === "both";
 
 const LEAD_STATUS_LABELS = {
   new: "New",
@@ -46,7 +50,8 @@ function ChannelBadge({ channel }) {
   const c = CHANNEL_STYLES[channel] ?? CHANNEL_STYLES.email;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, background: c.bg, color: c.color, fontSize: 12, fontWeight: 600 }}>
-      <Icon name={channel === "voice" ? "phone" : "mail"} size={12} />
+      {usesEmail(channel) && <Icon name="mail" size={12} />}
+      {usesVoice(channel) && <Icon name="phone" size={12} />}
       {c.label}
     </span>
   );
@@ -79,29 +84,15 @@ function leadStatusStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
-function CampaignLeadRow({ lead, isVoice, isAiVoice, actionId, onActNow }) {
+function CampaignLeadRow({ lead, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
   const hasPhone = Boolean(lead.phone?.trim());
-  const canActNow = lead.campaignId && !STOPPED_STATUSES.has(status) && (
-    isVoice ? isAiVoice && hasPhone : hasEmail && status !== "contacted"
-  );
-  const acting = actionId === lead.id;
-  const disabledTitle = isVoice
-    ? !isAiVoice
-      ? "Immediate calls are available for AI voice campaigns"
-      : !hasPhone
-        ? "Lead needs a phone number"
-        : STOPPED_STATUSES.has(status)
-          ? "Calls are stopped for this lead"
-          : "Call this lead immediately"
-    : !hasEmail
-      ? "Lead needs an email"
-      : status === "contacted"
-        ? "Step 1 has already been sent"
-        : STOPPED_STATUSES.has(status)
-          ? "Sequence is stopped for this lead"
-          : "Email this lead immediately";
+  const stopped = STOPPED_STATUSES.has(status);
+  const canEmailNow = showEmail && hasEmail && lead.campaignId && status !== "contacted" && !stopped;
+  const canCallNow = showPhone && isAiVoice && hasPhone && lead.campaignId && !stopped;
+  const sending = actionKey === `email:${lead.id}`;
+  const calling = actionKey === `call:${lead.id}`;
 
   return (
     <tr className="data-row">
@@ -114,19 +105,36 @@ function CampaignLeadRow({ lead, isVoice, isAiVoice, actionId, onActNow }) {
           </div>
         </div>
       </td>
-      <td><span style={{ fontWeight: 700, fontSize: 13 }}>{isVoice ? lead.phone || "No phone" : lead.email || "Not revealed"}</span></td>
+      {showEmail && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.email || "Not revealed"}</span></td>}
+      {showPhone && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.phone || "No phone"}</span></td>}
       <td><span className="badge" style={leadStatusStyle(status)}>{LEAD_STATUS_LABELS[status] || status.replace(/_/g, " ")}</span></td>
       <td>
-        <button
-          className="btn btn-ghost btn-sm"
-          type="button"
-          disabled={!canActNow || acting}
-          title={disabledTitle}
-          style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
-          onClick={() => onActNow(lead.id)}
-        >
-          <Icon name={isVoice ? "phone" : "send"} size={13} /> {acting ? (isVoice ? "Calling..." : "Sending...") : (isVoice ? "Call immediately" : "Email immediately")}
-        </button>
+        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+          {showEmail && (
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              disabled={!canEmailNow || Boolean(actionKey)}
+              title={!hasEmail ? "Lead needs an email" : status === "contacted" ? "Step 1 has already been sent" : stopped ? "Sequence is stopped for this lead" : "Email this lead immediately"}
+              style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
+              onClick={() => onEmailNow(lead.id)}
+            >
+              <Icon name="send" size={13} /> {sending ? "Sending..." : "Email immediately"}
+            </button>
+          )}
+          {showPhone && (
+            <button
+              className="btn btn-ghost btn-sm"
+              type="button"
+              disabled={!canCallNow || Boolean(actionKey)}
+              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : !hasPhone ? "Lead needs a phone number" : stopped ? "Calls are stopped for this lead" : "Call this lead immediately"}
+              style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
+              onClick={() => onCallNow(lead.id)}
+            >
+              <Icon name="phone" size={13} /> {calling ? "Calling..." : "Call immediately"}
+            </button>
+          )}
+        </div>
       </td>
       <td><span className="faint" style={{ fontSize: 13 }}>{lead.location || "-"}</span></td>
     </tr>
@@ -146,7 +154,7 @@ export default function CampaignDetailPage() {
   const [toast, setToast] = useState("");
   const [launching, setLaunching] = useState(false);
   const [pausing, setPausing] = useState(false);
-  const [actionId, setActionId] = useState("");
+  const [actionKey, setActionKey] = useState("");
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -178,7 +186,9 @@ export default function CampaignDetailPage() {
     try {
       const { data } = await api.post(`/campaigns/${id}/launch`);
       setCampaign(prev => ({ ...prev, status: "active" }));
-      if (data.queued !== undefined) {
+      if (data.emailQueued !== undefined && data.voiceQueued !== undefined && usesEmail(data.channel) && usesVoice(data.channel)) {
+        showToast(`Campaign launched. ${data.emailQueued} email${data.emailQueued === 1 ? "" : "s"} and ${data.voiceQueued} call${data.voiceQueued === 1 ? "" : "s"} queued${data.skipped ? `, ${data.skipped} skipped` : ""}.`);
+      } else if (data.queued !== undefined) {
         showToast(`Campaign launched. ${data.queued} queued${data.skipped ? `, ${data.skipped} skipped` : ""}.`);
       } else {
         showToast("Campaign launched successfully.");
@@ -216,7 +226,7 @@ export default function CampaignDetailPage() {
   }, [id]);
 
   const sendLeadNow = useCallback(async leadId => {
-    setActionId(leadId);
+    setActionKey(`email:${leadId}`);
     setError("");
     try {
       const { data } = await api.post(`/leads/${leadId}/send-now`);
@@ -239,12 +249,12 @@ export default function CampaignDetailPage() {
         setError(message);
       }
     } finally {
-      setActionId("");
+      setActionKey("");
     }
   }, [load, reconnectGmailForLead, showToast]);
 
   const callLeadNow = useCallback(async leadId => {
-    setActionId(leadId);
+    setActionKey(`call:${leadId}`);
     setError("");
     try {
       await api.post(`/leads/${leadId}/call-now`);
@@ -253,7 +263,7 @@ export default function CampaignDetailPage() {
     } catch (err) {
       setError(err?.response?.data?.error || "Could not call this lead now.");
     } finally {
-      setActionId("");
+      setActionKey("");
     }
   }, [load, showToast]);
 
@@ -295,9 +305,21 @@ export default function CampaignDetailPage() {
 
   if (!campaign) return null;
 
-  const isVoice = campaign.channel === "voice";
-  const isAiVoice = isVoice && (campaign.voiceMode ?? "ai") === "ai";
-  const actOnLeadNow = isVoice ? callLeadNow : sendLeadNow;
+  const emailEnabled = usesEmail(campaign.channel);
+  const voiceEnabled = usesVoice(campaign.channel);
+  const dualChannel = emailEnabled && voiceEnabled;
+  const isAiVoice = voiceEnabled && (campaign.voiceMode ?? "ai") === "ai";
+
+  // A dual-channel campaign shows an Email and a Phone column, so the lead
+  // table columns are derived rather than picked from two fixed layouts.
+  const leadColumns = [
+    { header: "Lead", width: dualChannel ? "25%" : "34%" },
+    ...(emailEnabled ? [{ header: "Email", width: dualChannel ? "18%" : "22%" }] : []),
+    ...(voiceEnabled ? [{ header: "Phone", width: dualChannel ? "14%" : "22%" }] : []),
+    { header: "Status", width: dualChannel ? "11%" : "14%" },
+    { header: "Action", width: dualChannel ? "20%" : "16%" },
+    { header: "Location", width: dualChannel ? "12%" : "14%" },
+  ];
 
   return (
     <div className="col" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
@@ -353,18 +375,19 @@ export default function CampaignDetailPage() {
 
           <div className="card" style={{ padding: 20 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 14 }}>
-              {isVoice ? "Voice configuration" : "Email configuration"}
+              {dualChannel ? "Email + voice configuration" : voiceEnabled ? "Voice configuration" : "Email configuration"}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 16 }}>
-              {isVoice ? (
-                <>
-                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Voice mode</span><span style={{ fontSize: 14, fontWeight: 700, textTransform: "capitalize" }}>{campaign.voiceMode ?? "ai"}</span></div>
-                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Calls / hour</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.callCadencePerHour ?? 5}</span></div>
-                </>
-              ) : (
+              {emailEnabled && (
                 <>
                   <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Daily send cap</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.dailySendCap ?? 100} emails</span></div>
                   <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Max leads</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.maxLeads ?? 100}</span></div>
+                </>
+              )}
+              {voiceEnabled && (
+                <>
+                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Voice mode</span><span style={{ fontSize: 14, fontWeight: 700, textTransform: "capitalize" }}>{campaign.voiceMode ?? "ai"}</span></div>
+                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Calls / hour</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.callCadencePerHour ?? 5}</span></div>
                 </>
               )}
               <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Business hours</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.businessHoursStart} - {campaign.businessHoursEnd}</span></div>
@@ -380,22 +403,18 @@ export default function CampaignDetailPage() {
               </div>
             </div>
             <div className="table-scroll">
-              <table className="data-table" style={{ minWidth: 980, tableLayout: "fixed" }}>
+              <table className="data-table" style={{ minWidth: dualChannel ? 1300 : 980, tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: "34%" }} />
-                  <col style={{ width: "22%" }} />
-                  <col style={{ width: "14%" }} />
-                  <col style={{ width: "16%" }} />
-                  <col style={{ width: "14%" }} />
+                  {leadColumns.map(column => <col key={column.header} style={{ width: column.width }} />)}
                 </colgroup>
                 <thead>
-                  <tr>{["Lead", isVoice ? "Phone" : "Email", "Status", "Action", "Location"].map(header => <th key={header}>{header}</th>)}</tr>
+                  <tr>{leadColumns.map(column => <th key={column.header}>{column.header}</th>)}</tr>
                 </thead>
                 <tbody>
                   {leads.length === 0 ? (
-                    <tr><td colSpan={5} className="table-empty">No leads are attached to this campaign.</td></tr>
+                    <tr><td colSpan={leadColumns.length} className="table-empty">No leads are attached to this campaign.</td></tr>
                   ) : leads.map(lead => (
-                    <CampaignLeadRow key={lead.id} lead={lead} isVoice={isVoice} isAiVoice={isAiVoice} actionId={actionId} onActNow={actOnLeadNow} />
+                    <CampaignLeadRow key={lead.id} lead={lead} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
                   ))}
                 </tbody>
               </table>

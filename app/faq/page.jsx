@@ -158,22 +158,24 @@ export default function FaqPage() {
         </section>
 
         <section className="content-section public-section">
-          {groups.map((group) => (
-            <div key={group.title} className="faq-group">
-              <h2>{group.title}</h2>
-              <div className="faq-list">
-                {group.items.map((item) => (
-                  <details key={item.q} className="faq-item">
-                    <summary>
-                      <span>{item.q}</span>
-                      <Icon name="plus" size={18} color="var(--muted)" />
-                    </summary>
-                    <p>{item.a}</p>
-                  </details>
-                ))}
+          <div className="faq-groups-grid">
+            {groups.map((group) => (
+              <div key={group.title} className="faq-group">
+                <h2>{group.title}</h2>
+                <div className="faq-list">
+                  {group.items.map((item) => (
+                    <details key={item.q} className="faq-item">
+                      <summary>
+                        <span>{item.q}</span>
+                        <Icon name="plus" size={18} color="var(--muted)" />
+                      </summary>
+                      <p>{item.a}</p>
+                    </details>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </section>
 
         <section className="content-cta public-section">

@@ -197,7 +197,7 @@ export default function SettingsPage() {
 
   return (
     <div className="scroll grow settings-page" style={{ minHeight: 0 }}>
-      <div className="settings-inner" style={{ padding: '34px 40px 48px', maxWidth: 1180, width: '100%' }}>
+      <div className="settings-inner" style={{ padding: '34px 40px 48px', width: '100%' }}>
         <div className="row spread settings-head" style={{ gap: 18, alignItems: 'flex-start', marginBottom: 24 }}>
           <div>
             <h1 className="display" style={{ fontSize: 28, marginBottom: 8 }}>Settings</h1>
@@ -527,7 +527,7 @@ export default function SettingsPage() {
                 <Icon name="chat" size={16} color="var(--g-700)" />
                 Help and resources
               </div>
-              <div className="col" style={{ gap: 2, marginTop: 12 }}>
+              <div className="settings-resource-grid" style={{ marginTop: 12 }}>
                 {HELP_LINKS.map(link => (
                   <Link key={link.href} href={link.href} className="settings-resource-link">
                     <span className="row" style={{ gap: 9, minWidth: 0 }}>
