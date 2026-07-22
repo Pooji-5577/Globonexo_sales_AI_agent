@@ -1,18 +1,18 @@
 "use client";
 import React from "react";
 
-export default function Segmented({ options, value, onChange }) {
+export default function Segmented({ options, value, onChange, className = "" }) {
   return (
-    <div className="row" style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-pill)', padding: 4, gap: 2 }}>
+    <div className={`row segmented-control ${className}`.trim()} role="tablist">
       {options.map(o => (
-        <button key={o.value} onClick={() => onChange(o.value)} style={{
-          height: 34, padding: '0 16px', borderRadius: 'var(--r-pill)',
-          fontSize: 13.5, fontWeight: 700,
-          color: value === o.value ? '#06231a' : 'var(--muted)',
-          background: value === o.value ? '#fff' : 'transparent',
-          boxShadow: value === o.value ? 'var(--sh-xs)' : 'none',
-          transition: 'all .15s',
-        }}>{o.label}</button>
+        <button
+          key={o.value}
+          type="button"
+          role="tab"
+          aria-selected={value === o.value}
+          className={value === o.value ? "is-active" : ""}
+          onClick={() => onChange(o.value)}
+        >{o.label}</button>
       ))}
     </div>
   );
