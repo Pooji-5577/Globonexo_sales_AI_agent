@@ -4,16 +4,29 @@ export async function GET(request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const error = requestUrl.searchParams.get('error');
-  const settingsUrl = new URL('/settings', request.url);
+  const state = requestUrl.searchParams.get('state');
+  let redirectUrl = new URL('/settings', request.url);
+
+  if (state) {
+    try {
+      const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf-8'));
+      if (typeof parsed.returnTo === 'string' && parsed.returnTo.startsWith('/') && !parsed.returnTo.startsWith('//')) {
+        redirectUrl = new URL(parsed.returnTo, request.url);
+      }
+      if (typeof parsed.sendLeadId === 'string') {
+        redirectUrl.searchParams.set('sendLeadId', parsed.sendLeadId);
+      }
+    } catch {}
+  }
 
   if (error) {
-    settingsUrl.searchParams.set('gmail', 'denied');
-    return NextResponse.redirect(settingsUrl);
+    redirectUrl.searchParams.set('gmail', 'denied');
+    return NextResponse.redirect(redirectUrl);
   }
 
   if (!code) {
-    settingsUrl.searchParams.set('gmail', 'missing_code');
-    return NextResponse.redirect(settingsUrl);
+    redirectUrl.searchParams.set('gmail', 'missing_code');
+    return NextResponse.redirect(redirectUrl);
   }
 
   try {
@@ -27,10 +40,10 @@ export async function GET(request) {
       body: JSON.stringify({ code }),
     });
 
-    settingsUrl.searchParams.set('gmail', response.ok ? 'connected' : 'error');
+    redirectUrl.searchParams.set('gmail', response.ok ? 'connected' : 'error');
   } catch {
-    settingsUrl.searchParams.set('gmail', 'error');
+    redirectUrl.searchParams.set('gmail', 'error');
   }
 
-  return NextResponse.redirect(settingsUrl);
+  return NextResponse.redirect(redirectUrl);
 }

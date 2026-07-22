@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import { Icon } from '../ui/Icon';
 import { Field } from '../ui/Input';
+import { isStrongPassword } from '../../lib/validation';
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -25,6 +26,10 @@ export function ResetPasswordForm() {
 
     if (!accessToken) {
       setError('This reset link is invalid or has expired. Please request a new one.');
+      return;
+    }
+    if (!isStrongPassword(password)) {
+      setError('Use 8+ characters with a letter, number, and symbol.');
       return;
     }
 

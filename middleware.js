@@ -10,7 +10,20 @@ const PUBLIC_PATHS = [
   '/pricing',
   '/terms',
   '/privacy',
+  '/refund',
+  '/cookies',
+  '/about',
+  '/contact',
+  '/help',
+  '/faq',
   '/callback',
+];
+
+const SESSION_COOKIE_NAMES = [
+  'access_token',
+  'refresh_token',
+  'session',
+  'impersonation_token',
 ];
 
 const SITE_USERNAME = process.env.SITE_AUTH_USER;
@@ -29,22 +42,15 @@ function unauthorizedResponse() {
 
 function isAuthorized(request) {
   const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Basic ')) {
-    return false;
-  }
+  if (!authHeader || !authHeader.startsWith('Basic ')) return false;
 
   try {
-    const base64Credentials = authHeader.split(' ')[1];
-    const decoded = atob(base64Credentials);
+    const decoded = atob(authHeader.split(' ')[1]);
     const separatorIndex = decoded.indexOf(':');
-
-    if (separatorIndex === -1) {
-      return false;
-    }
+    if (separatorIndex === -1) return false;
 
     const username = decoded.slice(0, separatorIndex);
     const password = decoded.slice(separatorIndex + 1);
-
     return username === SITE_USERNAME && password === SITE_PASSWORD;
   } catch {
     return false;
@@ -54,7 +60,6 @@ function isAuthorized(request) {
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Skip basic auth for static files and Next.js internals.
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
@@ -64,7 +69,7 @@ export function middleware(request) {
   }
 
   // TEMPORARILY DISABLED: site-wide Basic Auth gate. Re-enable by restoring
-  // the block below.
+  // this block when SITE_AUTH_USER / SITE_AUTH_PASSWORD should protect the app.
   // const alreadyPassedSiteAuth = request.cookies.get(SITE_AUTH_COOKIE)?.value === '1';
   //
   // if (!alreadyPassedSiteAuth && !isAuthorized(request)) {
@@ -72,10 +77,13 @@ export function middleware(request) {
   // }
   const alreadyPassedSiteAuth = true;
 
-  const hasSession = Boolean(request.cookies.get('refresh_token'));
+  const isPublicPath = PUBLIC_PATHS.some(path => pathname === path || pathname.startsWith(`${path}/`));
+  const hasSession = SESSION_COOKIE_NAMES.some(name => Boolean(request.cookies.get(name)));
 
-  if (!hasSession && !PUBLIC_PATHS.includes(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  if (!hasSession && !isPublicPath) {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   const response = NextResponse.next();

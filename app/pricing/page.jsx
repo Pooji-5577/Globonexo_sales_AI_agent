@@ -5,7 +5,8 @@ export const metadata = {
 
 import Link from "next/link";
 import Icon from "../../components/ui/Icon";
-import Logo from "../../components/ui/Logo";
+import PublicNav from "../../components/layout/PublicNav";
+import PublicFooter from "../../components/layout/PublicFooter";
 
 const plans = [
   {
@@ -55,18 +56,7 @@ const plans = [
 export default function PricingPage() {
   return (
     <div className="public-page">
-      <header className="public-nav">
-        <Link href="/" aria-label="Globonexo home"><Logo size={34} /></Link>
-        <nav>
-          <Link href="/#product">Product</Link>
-          <Link href="/#how-it-works">How it works</Link>
-          <Link href="/pricing">Pricing</Link>
-        </nav>
-        <div>
-          <Link className="public-link" href="/login">Sign in</Link>
-          <Link className="btn btn-primary btn-sm" href="/signup">Start free trial</Link>
-        </div>
-      </header>
+      <PublicNav />
 
       <main>
         <section className="pricing-hero public-section">
@@ -102,6 +92,8 @@ export default function PricingPage() {
           <Link className="btn btn-dark" href="/signup">Create account</Link>
         </section>
       </main>
+
+      <PublicFooter />
     </div>
   );
 }

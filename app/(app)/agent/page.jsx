@@ -197,9 +197,9 @@ export default function AgentPage() {
   const activity = sidebarData?.activity ?? [];
 
   return (
-    <div className="row" style={{ flex: 1, minHeight: 0, alignItems: 'stretch', overflow: 'hidden' }}>
-      <div className="grow col" style={{ minWidth: 0 }}>
-        <div className="row spread" style={{ padding: '16px 24px 12px', flex: 'none', borderBottom: '1px solid var(--line)' }}>
+    <div className="row agent-page" style={{ flex: 1, minHeight: 0, alignItems: 'stretch', overflow: 'hidden' }}>
+      <div className="grow col agent-chat-pane" style={{ minWidth: 0 }}>
+        <div className="row spread agent-chat-head" style={{ padding: '16px 24px 12px', flex: 'none', borderBottom: '1px solid var(--line)' }}>
           <div className="row" style={{ gap: 12 }}>
             <span style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', boxShadow: 'var(--sh-green)', flex: 'none' }}>
               <Icon name="spark" size={22} color="#06231a" />
@@ -213,8 +213,8 @@ export default function AgentPage() {
             </div>
           </div>
         </div>
-        <div ref={scrollRef} className="scroll grow" style={{ padding: '16px 24px', minHeight: 0 }}>
-          <div className="col" style={{ gap: 14, maxWidth: 700, margin: '0 auto', paddingBottom: 8 }}>
+        <div ref={scrollRef} className="scroll grow agent-chat-scroll" style={{ padding: '16px 24px', minHeight: 0 }}>
+          <div className="col agent-message-list" style={{ gap: 14, maxWidth: 700, margin: '0 auto', paddingBottom: 8 }}>
             {!initialLoaded ? (
               <div style={{ padding: 20, textAlign: 'center' }}>
                 <p className="muted">Loading…</p>
@@ -230,15 +230,15 @@ export default function AgentPage() {
             )}
           </div>
         </div>
-        <div style={{ flex: 'none', padding: '10px 24px 18px', borderTop: '1px solid var(--line)', background: '#fff' }}>
-          <div className="row wrap" style={{ gap: 7, maxWidth: 700, margin: '0 auto 10px' }}>
+        <div className="agent-composer" style={{ flex: 'none', padding: '10px 24px 18px', borderTop: '1px solid var(--line)', background: '#fff' }}>
+          <div className="row wrap agent-quick-actions" style={{ gap: 7, maxWidth: 700, margin: '0 auto 10px' }}>
             {QUICK.map(q => (
               <button key={q} onClick={() => send(q)} className="chip" style={{ cursor: 'pointer', background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-2)', height: 30, fontSize: 12.5 }}>
                 <Icon name="bolt" size={12} color="var(--g-600)" /> {q}
               </button>
             ))}
           </div>
-          <div className="row" style={{ gap: 10, maxWidth: 700, margin: '0 auto' }}>
+          <div className="row agent-input-row" style={{ gap: 10, maxWidth: 700, margin: '0 auto' }}>
             <div className="input-wrap grow">
               <input className="input" style={{ height: 50 }} placeholder={`Ask ${name} to prospect, draft, or follow up…`} value={input}
                 onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} />
@@ -250,7 +250,7 @@ export default function AgentPage() {
         </div>
       </div>
 
-      <aside className="scroll" style={{ width: 300, flex: 'none', borderLeft: '1px solid var(--line)', background: '#fff', padding: 18 }}>
+      <aside className="scroll agent-overview-panel" style={{ width: 300, flex: 'none', borderLeft: '1px solid var(--line)', background: '#fff', padding: 18 }}>
         <span className="eyebrow">Overview</span>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
           {[
