@@ -31,7 +31,7 @@ function leadDisplayName(l) {
 async function respondPauseWeekendSending() {
   try {
     const { data } = await api.get('/campaigns');
-    const active = (data?.items || []).filter(c => c.channel === 'email' && c.status === 'active');
+    const active = (data?.items || []).filter(c => (c.channel === 'email' || c.channel === 'both') && c.status === 'active');
     if (active.length === 0) {
       return "You don't have any active email campaigns right now — nothing to pause.";
     }

@@ -9,7 +9,6 @@ import Avatar from "../../../../components/ui/Avatar";
 const DEFAULT_FORM = {
   name: "",
   channel: "email",
-  icpSource: "",
   promptNotes: "",
   maxLeads: 100,
   dailySendCap: 75,
@@ -20,11 +19,33 @@ const DEFAULT_FORM = {
   timezone: "America/New_York",
 };
 
-const DEFAULT_STEPS = [
-  { stepNumber: 1, delayDays: 0, subjectTemplate: "", bodyPromptContext: "" },
-  { stepNumber: 2, delayDays: 3, subjectTemplate: "", bodyPromptContext: "" },
-  { stepNumber: 3, delayDays: 5, subjectTemplate: "", bodyPromptContext: "" },
-];
+// The backend accepts 1-10 steps. Step numbers are derived from list position
+// at render and submit time rather than stored, so adding or removing a step
+// can't leave the sequence with gaps or duplicates.
+const MIN_STEPS = 1;
+const MAX_STEPS = 10;
+const DEFAULT_FOLLOW_UP_DELAY_DAYS = 3;
+
+// A deterministic counter (rather than a random id) keeps the server and
+// client renders identical during hydration.
+let stepUidCounter = 0;
+const nextStepUid = () => `step-${stepUidCounter++}`;
+
+function makeStep(delayDays) {
+  return { uid: nextStepUid(), delayDays, subjectTemplate: "", bodyPromptContext: "" };
+}
+
+function normalizeSteps(list) {
+  if (!Array.isArray(list) || list.length === 0) return null;
+  return list.slice(0, MAX_STEPS).map((step, index) => ({
+    uid: nextStepUid(),
+    delayDays: Number.isFinite(Number(step?.delayDays)) ? Number(step.delayDays) : index === 0 ? 0 : DEFAULT_FOLLOW_UP_DELAY_DAYS,
+    subjectTemplate: step?.subjectTemplate || "",
+    bodyPromptContext: step?.bodyPromptContext || "",
+  }));
+}
+
+const DEFAULT_STEPS = [makeStep(0), makeStep(3), makeStep(5)];
 
 const DEFAULT_MANUAL_LEAD = {
   firstName: "",
@@ -37,13 +58,6 @@ const DEFAULT_MANUAL_LEAD = {
   linkedinUrl: "",
 };
 
-const ICP_OPTIONS = [
-  "Apollo search",
-  "CSV import",
-  "Manual prospect list",
-  "Saved ICP from onboarding",
-];
-
 const TIMEZONES = [
   "America/New_York",
   "America/Chicago",
@@ -55,10 +69,34 @@ const TIMEZONES = [
 
 const DRAFT_STORAGE_KEY = "globonexo:new-campaign-draft";
 
+// The campaign stores one channel value, but the picker is a multi-select:
+// "both" means the email sequence and the calling cadence run side by side.
+const usesEmail = channel => channel === "email" || channel === "both";
+const usesVoice = channel => channel === "voice" || channel === "both";
+
+function channelFrom(email, voice) {
+  if (email && voice) return "both";
+  return voice ? "voice" : "email";
+}
+
 function parseCadenceDelays(cadence) {
   if (!cadence) return null;
   const days = (cadence.match(/\d+/g) || []).map(Number);
   return days.length === 3 ? days : null;
+}
+
+// Drafts saved before the ICP source field was removed still carry one. Fold
+// it into the prompt notes rather than posting a value with nowhere to see or
+// edit it, and drop the key so it doesn't linger in storage.
+function migrateIcpSource(savedForm) {
+  const icpSource = (savedForm.icpSource || "").trim();
+  if (!icpSource) return { icpSource: undefined };
+
+  const promptNotes = (savedForm.promptNotes || "").trim();
+  if (promptNotes.includes(icpSource)) return { icpSource: undefined };
+
+  const merged = promptNotes ? `Target audience: ${icpSource}\n\n${promptNotes}` : `Target audience: ${icpSource}`;
+  return { icpSource: undefined, promptNotes: merged.slice(0, 2000) };
 }
 
 function Field({ label, children, hint }) {
@@ -92,6 +130,8 @@ export default function NewCampaignPage() {
   const [addingManualLead, setAddingManualLead] = useState(false);
   const [manualLeadError, setManualLeadError] = useState("");
   const setupReady = form.name.trim().length >= 3;
+  const emailEnabled = usesEmail(form.channel);
+  const voiceEnabled = usesVoice(form.channel);
 
   useEffect(() => {
     api.get("/leads")
@@ -110,9 +150,10 @@ export default function NewCampaignPage() {
       const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        if (saved.form) setForm(current => ({ ...current, ...saved.form }));
-        if (saved.steps) {
-          setSteps(saved.steps);
+        if (saved.form) setForm(current => ({ ...current, ...saved.form, ...migrateIcpSource(saved.form) }));
+        const restored = normalizeSteps(saved.steps);
+        if (restored) {
+          setSteps(restored);
           restoredFromDraft = true;
         }
       }
@@ -125,7 +166,11 @@ export default function NewCampaignPage() {
         .then(({ data }) => {
           const delays = parseCadenceDelays(data?.follow_up_cadence);
           if (delays) {
-            setSteps(current => current.map((s, i) => ({ ...s, delayDays: delays[i] })));
+            // The onboarding cadence describes 3 steps; keep whatever delay a
+            // step already has if the sequence is longer or shorter than that.
+            setSteps(current => current.map((s, i) => (
+              delays[i] === undefined ? s : { ...s, delayDays: delays[i] }
+            )));
           }
         })
         .catch(() => {});
@@ -195,6 +240,22 @@ export default function NewCampaignPage() {
     setSteps(current => current.map((s, i) => i === index ? { ...s, [key]: value } : s));
   };
 
+  const addStep = () => {
+    setSteps(current => (
+      current.length >= MAX_STEPS ? current : [...current, makeStep(DEFAULT_FOLLOW_UP_DELAY_DAYS)]
+    ));
+  };
+
+  const removeStep = index => {
+    setSteps(current => {
+      if (current.length <= MIN_STEPS) return current;
+      const next = current.filter((_, i) => i !== index);
+      // Removing the opening email promotes the next one, which should go out
+      // immediately rather than inheriting the removed step's follow-up delay.
+      return index === 0 ? next.map((s, i) => (i === 0 ? { ...s, delayDays: 0 } : s)) : next;
+    });
+  };
+
   const setManualLeadField = (key, value) => {
     setManualLead(current => ({ ...current, [key]: value }));
     setManualLeadError("");
@@ -211,6 +272,13 @@ export default function NewCampaignPage() {
 
     if (!firstName && !lastName && !email && !company) {
       setManualLeadError("Add a name, email, or company before saving this lead.");
+      return;
+    }
+
+    // On a dual-channel campaign a lead only needs to be reachable on one of
+    // the two - the email sequence and the call list each skip what they can't use.
+    if (form.channel === "both" && !email && !phone) {
+      setManualLeadError("Add an email address or a phone number so this lead is reachable on at least one channel.");
       return;
     }
 
@@ -255,8 +323,11 @@ export default function NewCampaignPage() {
   };
 
   const scrollToSection = useCallback((ref, { forceEmail = false } = {}) => {
-    if (forceEmail && form.channel !== "email") {
-      setForm(current => ({ ...current, channel: "email" }));
+    // Jumping to the email sequence turns the email channel on rather than
+    // replacing the selection - a voice campaign stays a voice campaign, it
+    // just gains the sequence too.
+    if (forceEmail && !usesEmail(form.channel)) {
+      setForm(current => ({ ...current, channel: channelFrom(true, usesVoice(current.channel)) }));
       setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
       return;
     }
@@ -275,11 +346,11 @@ export default function NewCampaignPage() {
       errors.push("Maximum leads must be at least 1.");
     }
 
-    if (form.channel === "email" && Number(form.dailySendCap) < 1) {
+    if (usesEmail(form.channel) && Number(form.dailySendCap) < 1) {
       errors.push("Daily send cap must be at least 1.");
     }
 
-    if (form.channel === "voice" && Number(form.callCadencePerHour) < 1) {
+    if (usesVoice(form.channel) && Number(form.callCadencePerHour) < 1) {
       errors.push("Calls per hour must be at least 1.");
     }
 
@@ -317,8 +388,20 @@ export default function NewCampaignPage() {
 
       const campaignId = campaign.id;
 
-      if (form.channel === "email" && steps.some(s => s.subjectTemplate || s.bodyPromptContext)) {
-        await api.put(`/campaigns/${campaignId}/steps`, { steps });
+      // Steps with no subject and no body prompt have nothing for the AI to
+      // work from, so they're dropped rather than saved as empty sends. The
+      // remaining steps are renumbered to stay contiguous.
+      const sequenceSteps = steps
+        .filter(step => step.subjectTemplate.trim() || step.bodyPromptContext.trim())
+        .map((step, index) => ({
+          stepNumber: index + 1,
+          delayDays: step.delayDays,
+          subjectTemplate: step.subjectTemplate,
+          bodyPromptContext: step.bodyPromptContext,
+        }));
+
+      if (usesEmail(form.channel) && sequenceSteps.length > 0) {
+        await api.put(`/campaigns/${campaignId}/steps`, { steps: sequenceSteps });
       }
 
       if (selectedLeadIds.size > 0) {
@@ -434,18 +517,29 @@ export default function NewCampaignPage() {
                   />
                 </Field>
 
-                <Field label="Channel">
+                <Field label="Channel" hint="Pick one or both. Running both sends the email sequence and places calls from the same campaign.">
                   <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
                     {[
-                      { value: "email", label: "Email", icon: "mail", help: "Outbound sequence" },
-                      { value: "voice", label: "Voice", icon: "phone", help: "AI or manual calling" },
+                      { value: "email", label: "Email", icon: "mail", help: "Outbound sequence", active: emailEnabled },
+                      { value: "voice", label: "Voice", icon: "phone", help: "AI or manual calling", active: voiceEnabled },
                     ].map(option => {
-                      const active = form.channel === option.value;
+                      const { active } = option;
+                      // At least one channel has to stay on, so the last
+                      // selected card is not deselectable.
+                      const isOnlySelection = active && form.channel !== "both";
                       return (
                         <button
                           key={option.value}
                           type="button"
-                          onClick={() => set("channel", option.value)}
+                          role="checkbox"
+                          aria-checked={active}
+                          aria-label={`${option.label} channel`}
+                          onClick={() => {
+                            const next = option.value === "email"
+                              ? channelFrom(!emailEnabled, voiceEnabled)
+                              : channelFrom(emailEnabled, !voiceEnabled);
+                            if (!isOnlySelection) set("channel", next);
+                          }}
                           className="card row"
                           style={{
                             flex: "1 1 220px",
@@ -454,6 +548,7 @@ export default function NewCampaignPage() {
                             gap: 12,
                             borderRadius: 8,
                             textAlign: "left",
+                            cursor: isOnlySelection ? "default" : "pointer",
                             borderColor: active ? "var(--g-400)" : "var(--line)",
                             background: active ? "var(--g-50)" : "#fff",
                             boxShadow: active ? "0 0 0 4px var(--ring)" : "var(--sh-sm)",
@@ -462,38 +557,42 @@ export default function NewCampaignPage() {
                           <span style={{ width: 36, height: 36, borderRadius: 10, background: "#fff", display: "grid", placeItems: "center", color: "var(--g-700)", flex: "none" }}>
                             <Icon name={option.icon} size={18} />
                           </span>
-                          <span className="col" style={{ gap: 3 }}>
+                          <span className="col" style={{ gap: 3, minWidth: 0 }}>
                             <span style={{ fontWeight: 800 }}>{option.label}</span>
                             <span className="faint" style={{ fontSize: 12.5 }}>{option.help}</span>
+                          </span>
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              marginLeft: "auto",
+                              width: 20,
+                              height: 20,
+                              borderRadius: 6,
+                              flex: "none",
+                              display: "grid",
+                              placeItems: "center",
+                              border: `1px solid ${active ? "var(--g-400)" : "var(--line)"}`,
+                              background: active ? "var(--g-600)" : "#fff",
+                            }}
+                          >
+                            {active && <Icon name="check" size={13} color="#fff" />}
                           </span>
                         </button>
                       );
                     })}
                   </div>
+                  {form.channel === "both" && (
+                    <span className="faint" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
+                      Leads with an email get the sequence, leads with a phone number get called. Leads with both get both.
+                    </span>
+                  )}
                 </Field>
 
-                <Field label="ICP source" hint="Where the initial target audience comes from. Optional at draft stage — you can add this before launch.">
-                  <div style={{ display: "grid", gridTemplateColumns: "220px minmax(0,1fr)", gap: 10 }}>
-                    <select className="input" value={ICP_OPTIONS.includes(form.icpSource) ? form.icpSource : "custom"} onChange={event => set("icpSource", event.target.value === "custom" ? "" : event.target.value)}>
-                      <option value="">Select source</option>
-                      {ICP_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
-                      <option value="custom">Custom</option>
-                    </select>
-                    <input
-                      className="input"
-                      placeholder="Example: Apollo - US SaaS, 51-500 employees, VP Sales"
-                      value={form.icpSource}
-                      onChange={event => set("icpSource", event.target.value)}
-                      maxLength={240}
-                    />
-                  </div>
-                </Field>
-
-                <Field label="Prompt notes">
+                <Field label="Prompt notes" hint="Everything the sales agent should know about this campaign, including who you're targeting. Optional at draft stage — you can add this before launch.">
                   <textarea
                     className="input"
                     style={{ minHeight: 118, paddingTop: 14, resize: "vertical", lineHeight: 1.5 }}
-                    placeholder="Add positioning, qualifying rules, exclusions, pain points, or list notes for the sales agent."
+                    placeholder="Who you're targeting (example: US SaaS, 51-500 employees, VP Sales), plus positioning, qualifying rules, exclusions, and pain points."
                     value={form.promptNotes}
                     onChange={event => set("promptNotes", event.target.value)}
                     maxLength={2000}
@@ -518,17 +617,19 @@ export default function NewCampaignPage() {
                   <input className="input" type="number" min="1" max="10000" value={form.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
                 </Field>
 
-                {form.channel === "email" ? (
+                {emailEnabled && (
                   <Field label="Daily send cap" hint="Default is intentionally conservative for new outbound campaigns.">
                     <input className="input" type="number" min="1" max="500" value={form.dailySendCap} onChange={event => set("dailySendCap", event.target.value)} />
                   </Field>
-                ) : (
+                )}
+
+                {voiceEnabled && (
                   <Field label="Calls per hour">
                     <input className="input" type="number" min="1" max="60" value={form.callCadencePerHour} onChange={event => set("callCadencePerHour", event.target.value)} />
                   </Field>
                 )}
 
-                {form.channel === "voice" && (
+                {voiceEnabled && (
                   <Field label="Voice mode">
                     <select className="input" value={form.voiceMode} onChange={event => set("voiceMode", event.target.value)}>
                       <option value="ai">AI caller</option>
@@ -553,7 +654,7 @@ export default function NewCampaignPage() {
               </div>
             </section>
 
-            {form.channel === "email" && (
+            {emailEnabled && (
               <section ref={emailSequenceRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
                 <div className="row" style={{ gap: 10, marginBottom: 18 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
@@ -561,17 +662,20 @@ export default function NewCampaignPage() {
                   </span>
                   <div>
                     <h2 style={{ fontSize: 15, fontWeight: 800 }}>Email sequence</h2>
-                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Define up to 3 steps with delays between each. Subjects and body prompts are templates for AI generation.</p>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Add between {MIN_STEPS} and {MAX_STEPS} steps with delays between each. Subjects and body prompts are templates for AI generation.</p>
                   </div>
+                  <span className="chip" style={{ marginLeft: "auto", fontSize: 12, flex: "none" }}>
+                    {steps.length} step{steps.length === 1 ? "" : "s"}
+                  </span>
                 </div>
 
                 <div className="col" style={{ gap: 16 }}>
                   {steps.map((step, index) => (
-                    <div key={step.stepNumber} style={{ padding: 16, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--line)" }}>
-                      <div className="row spread" style={{ marginBottom: 12 }}>
+                    <div key={step.uid} style={{ padding: 16, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--line)" }}>
+                      <div className="row spread" style={{ marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
                         <div className="row" style={{ gap: 8 }}>
-                          <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--g-100)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "var(--g-700)" }}>
-                            {step.stepNumber}
+                          <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--g-100)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "var(--g-700)", flex: "none" }}>
+                            {index + 1}
                           </span>
                           <span style={{ fontWeight: 800, fontSize: 14 }}>
                             {index === 0 ? "Initial email" : `Follow-up ${index}`}
@@ -589,6 +693,17 @@ export default function NewCampaignPage() {
                             style={{ width: 64, height: 32, padding: "0 8px", fontSize: 13, textAlign: "center" }}
                           />
                           <span className="faint" style={{ fontSize: 12.5, fontWeight: 700 }}>days</span>
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => removeStep(index)}
+                            disabled={steps.length <= MIN_STEPS}
+                            aria-label={`Remove ${index === 0 ? "initial email" : `follow-up ${index}`}`}
+                            title={steps.length <= MIN_STEPS ? "A sequence needs at least one step" : "Remove this step"}
+                            style={{ width: 32, padding: 0, height: 32, flex: "none" }}
+                          >
+                            <Icon name="close" size={14} />
+                          </button>
                         </div>
                       </div>
 
@@ -616,6 +731,22 @@ export default function NewCampaignPage() {
                       </div>
                     </div>
                   ))}
+
+                  <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={addStep}
+                      disabled={steps.length >= MAX_STEPS}
+                    >
+                      <Icon name="plus" size={14} /> Add follow-up
+                    </button>
+                    <span className="faint" style={{ fontSize: 12.5 }}>
+                      {steps.length >= MAX_STEPS
+                        ? `Maximum of ${MAX_STEPS} steps reached.`
+                        : "Leave a step blank to skip it, or remove it entirely."}
+                    </span>
+                  </div>
                 </div>
               </section>
             )}
@@ -652,7 +783,7 @@ export default function NewCampaignPage() {
                   <input className="input" placeholder="First name" value={manualLead.firstName} onChange={e => setManualLeadField("firstName", e.target.value)} maxLength={120} style={{ height: 40 }} />
                   <input className="input" placeholder="Last name" value={manualLead.lastName} onChange={e => setManualLeadField("lastName", e.target.value)} maxLength={120} style={{ height: 40 }} />
                   <input className="input" placeholder={form.channel === "voice" ? "Email (optional)" : "Email"} value={manualLead.email} onChange={e => setManualLeadField("email", e.target.value)} maxLength={240} style={{ height: 40 }} />
-                  <input className="input" placeholder={form.channel === "voice" ? "Phone" : "Phone (optional)"} value={manualLead.phone} onChange={e => setManualLeadField("phone", e.target.value)} maxLength={80} style={{ height: 40 }} />
+                  <input className="input" placeholder={emailEnabled && form.channel !== "both" ? "Phone (optional)" : "Phone"} value={manualLead.phone} onChange={e => setManualLeadField("phone", e.target.value)} maxLength={80} style={{ height: 40 }} />
                   <input className="input" placeholder="Company" value={manualLead.company} onChange={e => setManualLeadField("company", e.target.value)} maxLength={160} style={{ height: 40 }} />
                   <input className="input" placeholder="Title" value={manualLead.title} onChange={e => setManualLeadField("title", e.target.value)} maxLength={160} style={{ height: 40 }} />
                   <input className="input" placeholder="Location (optional)" value={manualLead.location} onChange={e => setManualLeadField("location", e.target.value)} maxLength={160} style={{ height: 40 }} />
@@ -661,7 +792,11 @@ export default function NewCampaignPage() {
 
                 <div className="row spread" style={{ marginTop: 12, gap: 12, flexWrap: "wrap" }}>
                   <span className="faint" style={{ fontSize: 12.5 }}>
-                    {form.channel === "voice" ? "Phone is required for voice campaigns." : "Email is required for email campaigns."}
+                    {form.channel === "both"
+                      ? "Add an email, a phone number, or both - each channel skips leads it can't reach."
+                      : form.channel === "voice"
+                        ? "Phone is required for voice campaigns."
+                        : "Email is required for email campaigns."}
                   </span>
                   <button type="button" className="btn btn-primary btn-sm" onClick={addManualLead} disabled={addingManualLead}>
                     <Icon name="plus" size={14} color="#06231a" /> {addingManualLead ? "Adding..." : "Add lead"}
@@ -735,24 +870,27 @@ export default function NewCampaignPage() {
 
           <aside className="card" style={{ padding: 18, borderRadius: 8, position: "sticky", top: 0 }}>
             <div className="row" style={{ gap: 10 }}>
-              <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
-                <Icon name={form.channel === "voice" ? "phone" : "mail"} size={19} />
+              <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--g-700)", gap: 2, flex: "none" }}>
+                {emailEnabled && <Icon name="mail" size={form.channel === "both" ? 14 : 19} />}
+                {voiceEnabled && <Icon name="phone" size={form.channel === "both" ? 14 : 19} />}
               </span>
               <div className="col" style={{ minWidth: 0 }}>
                 <span style={{ fontWeight: 800, fontSize: 14 }} className="ellip">{form.name || "Untitled campaign"}</span>
-                <span className="faint" style={{ fontSize: 12.5 }}>{form.channel === "voice" ? "Voice campaign" : "Email campaign"} draft</span>
+                <span className="faint" style={{ fontSize: 12.5 }}>
+                  {form.channel === "both" ? "Email + Voice campaign" : form.channel === "voice" ? "Voice campaign" : "Email campaign"} draft
+                </span>
               </div>
             </div>
 
             <hr className="divider" style={{ margin: "16px 0" }} />
 
             {[
-              ["ICP source", form.icpSource || "Not selected"],
               ["Max leads", form.maxLeads],
-              [form.channel === "email" ? "Daily cap" : "Call cadence", form.channel === "email" ? form.dailySendCap : `${form.callCadencePerHour}/hr`],
+              ...(emailEnabled ? [["Daily cap", form.dailySendCap]] : []),
+              ...(voiceEnabled ? [["Call cadence", `${form.callCadencePerHour}/hr`]] : []),
               ["Business hours", `${form.businessHoursStart} - ${form.businessHoursEnd}`],
               ["Timezone", form.timezone],
-              ...(form.channel === "email" ? [["Sequence steps", `${steps.filter(s => s.subjectTemplate || s.bodyPromptContext).length} of ${steps.length} configured`]] : []),
+              ...(emailEnabled ? [["Sequence steps", `${steps.filter(s => s.subjectTemplate || s.bodyPromptContext).length} of ${steps.length} configured`]] : []),
               ["Leads selected", selectedLeadIds.size],
             ].map(([label, value]) => (
               <div key={label} className="row spread" style={{ gap: 14, padding: "9px 0", borderBottom: "1px solid var(--line-2)" }}>

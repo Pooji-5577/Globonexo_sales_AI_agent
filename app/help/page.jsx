@@ -121,7 +121,7 @@ export default function HelpPage() {
         </section>
 
         <section className="content-section public-section">
-          <div className="card-grid">
+          <div className="card-grid help-card-grid">
             {categories.map((category) => (
               <article key={category.title} className="content-card">
                 <span className="content-card-icon"><Icon name={category.icon} size={20} color="var(--g-700)" /></span>

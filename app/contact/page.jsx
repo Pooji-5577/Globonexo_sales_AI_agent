@@ -62,7 +62,7 @@ const speedTips = [
 
 export default function ContactPage() {
   return (
-    <div className="public-page">
+    <div className="public-page contact-page">
       <PublicNav />
 
       <main>
@@ -80,7 +80,7 @@ export default function ContactPage() {
         </section>
 
         <section className="content-section public-section">
-          <div className="card-grid">
+          <div className="card-grid contact-card-grid">
             {channels.map((channel) => (
               <article key={channel.title} className="content-card">
                 <span className="content-card-icon"><Icon name={channel.icon} size={20} color="var(--g-700)" /></span>

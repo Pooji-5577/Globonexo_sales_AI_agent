@@ -17,7 +17,11 @@ const STATUS_STYLES = {
 const CHANNEL_STYLES = {
   email: { label: "Email", bg: "#e0f2fe", color: "#0369a1" },
   voice: { label: "Voice", bg: "#f0fdf4", color: "#15803d" },
+  both: { label: "Email + Voice", bg: "#ede9fe", color: "#6d28d9" },
 };
+
+const usesEmail = channel => channel === "email" || channel === "both";
+const usesVoice = channel => channel === "voice" || channel === "both";
 
 const LEAD_STATUS_LABELS = {
   new: "New",
@@ -46,7 +50,8 @@ function ChannelBadge({ channel }) {
   const c = CHANNEL_STYLES[channel] ?? CHANNEL_STYLES.email;
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 99, background: c.bg, color: c.color, fontSize: 12, fontWeight: 600 }}>
-      <Icon name={channel === "voice" ? "phone" : "mail"} size={12} />
+      {usesEmail(channel) && <Icon name="mail" size={12} />}
+      {usesVoice(channel) && <Icon name="phone" size={12} />}
       {c.label}
     </span>
   );
@@ -79,10 +84,10 @@ function leadStatusStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
-function CampaignLeadRow({ lead, isVoice, sendingId, onSendNow }) {
+function CampaignLeadRow({ lead, showEmail, showPhone, sendingId, onSendNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
-  const canSendNow = !isVoice && hasEmail && lead.campaignId && status !== "contacted" && !STOPPED_STATUSES.has(status);
+  const canSendNow = showEmail && hasEmail && lead.campaignId && status !== "contacted" && !STOPPED_STATUSES.has(status);
   const sending = sendingId === lead.id;
 
   return (
@@ -96,9 +101,10 @@ function CampaignLeadRow({ lead, isVoice, sendingId, onSendNow }) {
           </div>
         </div>
       </td>
-      <td><span style={{ fontWeight: 700, fontSize: 13 }}>{isVoice ? lead.phone || "No phone" : lead.email || "Not revealed"}</span></td>
+      {showEmail && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.email || "Not revealed"}</span></td>}
+      {showPhone && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.phone || "No phone"}</span></td>}
       <td><span className="badge" style={leadStatusStyle(status)}>{LEAD_STATUS_LABELS[status] || status.replace(/_/g, " ")}</span></td>
-      {!isVoice && (
+      {showEmail && (
         <td>
           <button
             className="btn btn-ghost btn-sm"
@@ -162,7 +168,9 @@ export default function CampaignDetailPage() {
     try {
       const { data } = await api.post(`/campaigns/${id}/launch`);
       setCampaign(prev => ({ ...prev, status: "active" }));
-      if (data.queued !== undefined) {
+      if (data.emailQueued !== undefined && data.voiceQueued !== undefined && usesEmail(data.channel) && usesVoice(data.channel)) {
+        showToast(`Campaign launched. ${data.emailQueued} email${data.emailQueued === 1 ? "" : "s"} and ${data.voiceQueued} call${data.voiceQueued === 1 ? "" : "s"} queued${data.skipped ? `, ${data.skipped} skipped` : ""}.`);
+      } else if (data.queued !== undefined) {
         showToast(`Campaign launched. ${data.queued} queued${data.skipped ? `, ${data.skipped} skipped` : ""}.`);
       } else {
         showToast("Campaign launched successfully.");
@@ -265,7 +273,20 @@ export default function CampaignDetailPage() {
 
   if (!campaign) return null;
 
-  const isVoice = campaign.channel === "voice";
+  const emailEnabled = usesEmail(campaign.channel);
+  const voiceEnabled = usesVoice(campaign.channel);
+  const dualChannel = emailEnabled && voiceEnabled;
+
+  // A dual-channel campaign shows an Email and a Phone column, so the lead
+  // table columns are derived rather than picked from two fixed layouts.
+  const leadColumns = [
+    { header: "Lead", width: dualChannel ? "30%" : "36%" },
+    ...(emailEnabled ? [{ header: "Email", width: dualChannel ? "20%" : "22%" }] : []),
+    ...(voiceEnabled ? [{ header: "Phone", width: dualChannel ? "15%" : "22%" }] : []),
+    { header: "Status", width: dualChannel ? "12%" : "14%" },
+    ...(emailEnabled ? [{ header: "Send", width: dualChannel ? "10%" : "12%" }] : []),
+    { header: "Location", width: dualChannel ? "13%" : voiceEnabled ? "28%" : "16%" },
+  ];
 
   return (
     <div className="col" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
@@ -321,18 +342,19 @@ export default function CampaignDetailPage() {
 
           <div className="card" style={{ padding: 20 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 14 }}>
-              {isVoice ? "Voice configuration" : "Email configuration"}
+              {dualChannel ? "Email + voice configuration" : voiceEnabled ? "Voice configuration" : "Email configuration"}
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 16 }}>
-              {isVoice ? (
-                <>
-                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Voice mode</span><span style={{ fontSize: 14, fontWeight: 700, textTransform: "capitalize" }}>{campaign.voiceMode ?? "ai"}</span></div>
-                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Calls / hour</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.callCadencePerHour ?? 5}</span></div>
-                </>
-              ) : (
+              {emailEnabled && (
                 <>
                   <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Daily send cap</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.dailySendCap ?? 100} emails</span></div>
                   <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Max leads</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.maxLeads ?? 100}</span></div>
+                </>
+              )}
+              {voiceEnabled && (
+                <>
+                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Voice mode</span><span style={{ fontSize: 14, fontWeight: 700, textTransform: "capitalize" }}>{campaign.voiceMode ?? "ai"}</span></div>
+                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Calls / hour</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.callCadencePerHour ?? 5}</span></div>
                 </>
               )}
               <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Business hours</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.businessHoursStart} - {campaign.businessHoursEnd}</span></div>
@@ -348,22 +370,18 @@ export default function CampaignDetailPage() {
               </div>
             </div>
             <div className="table-scroll">
-              <table className="data-table" style={{ minWidth: isVoice ? 760 : 980, tableLayout: "fixed" }}>
+              <table className="data-table" style={{ minWidth: dualChannel ? 1120 : emailEnabled ? 980 : 760, tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: "36%" }} />
-                  <col style={{ width: "22%" }} />
-                  <col style={{ width: "14%" }} />
-                  {!isVoice && <col style={{ width: "12%" }} />}
-                  <col style={{ width: isVoice ? "28%" : "16%" }} />
+                  {leadColumns.map(column => <col key={column.header} style={{ width: column.width }} />)}
                 </colgroup>
                 <thead>
-                  <tr>{["Lead", isVoice ? "Phone" : "Email", "Status", ...(!isVoice ? ["Send"] : []), "Location"].map(header => <th key={header}>{header}</th>)}</tr>
+                  <tr>{leadColumns.map(column => <th key={column.header}>{column.header}</th>)}</tr>
                 </thead>
                 <tbody>
                   {leads.length === 0 ? (
-                    <tr><td colSpan={isVoice ? 4 : 5} className="table-empty">No leads are attached to this campaign.</td></tr>
+                    <tr><td colSpan={leadColumns.length} className="table-empty">No leads are attached to this campaign.</td></tr>
                   ) : leads.map(lead => (
-                    <CampaignLeadRow key={lead.id} lead={lead} isVoice={isVoice} sendingId={sendingId} onSendNow={sendLeadNow} />
+                    <CampaignLeadRow key={lead.id} lead={lead} showEmail={emailEnabled} showPhone={voiceEnabled} sendingId={sendingId} onSendNow={sendLeadNow} />
                   ))}
                 </tbody>
               </table>
