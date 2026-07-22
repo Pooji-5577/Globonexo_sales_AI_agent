@@ -26,6 +26,17 @@ const DEFAULT_STEPS = [
   { stepNumber: 3, delayDays: 5, subjectTemplate: "", bodyPromptContext: "" },
 ];
 
+const DEFAULT_MANUAL_LEAD = {
+  firstName: "",
+  lastName: "",
+  title: "",
+  company: "",
+  email: "",
+  phone: "",
+  location: "",
+  linkedinUrl: "",
+};
+
 const ICP_OPTIONS = [
   "Apollo search",
   "CSV import",
@@ -77,6 +88,9 @@ export default function NewCampaignPage() {
   const [leadsLoading, setLeadsLoading] = useState(true);
   const [selectedLeadIds, setSelectedLeadIds] = useState(new Set());
   const [leadSearch, setLeadSearch] = useState("");
+  const [manualLead, setManualLead] = useState(DEFAULT_MANUAL_LEAD);
+  const [addingManualLead, setAddingManualLead] = useState(false);
+  const [manualLeadError, setManualLeadError] = useState("");
   const setupReady = form.name.trim().length >= 3;
 
   useEffect(() => {
@@ -179,6 +193,65 @@ export default function NewCampaignPage() {
 
   const updateStep = (index, key, value) => {
     setSteps(current => current.map((s, i) => i === index ? { ...s, [key]: value } : s));
+  };
+
+  const setManualLeadField = (key, value) => {
+    setManualLead(current => ({ ...current, [key]: value }));
+    setManualLeadError("");
+  };
+
+  const addManualLead = async () => {
+    if (addingManualLead) return;
+
+    const firstName = manualLead.firstName.trim();
+    const lastName = manualLead.lastName.trim();
+    const company = manualLead.company.trim();
+    const email = manualLead.email.trim();
+    const phone = manualLead.phone.trim();
+
+    if (!firstName && !lastName && !email && !company) {
+      setManualLeadError("Add a name, email, or company before saving this lead.");
+      return;
+    }
+
+    if (form.channel === "email" && !email) {
+      setManualLeadError("Email campaigns need an email address for manual leads.");
+      return;
+    }
+
+    if (form.channel === "voice" && !phone) {
+      setManualLeadError("Voice campaigns need a phone number for manual leads.");
+      return;
+    }
+
+    setAddingManualLead(true);
+    setManualLeadError("");
+    try {
+      const { data: lead } = await api.post("/leads", {
+        source: "manual",
+        firstName,
+        lastName,
+        name: [firstName, lastName].filter(Boolean).join(" ") || undefined,
+        title: manualLead.title.trim(),
+        company,
+        email,
+        phone,
+        location: manualLead.location.trim(),
+        linkedinUrl: manualLead.linkedinUrl.trim(),
+      });
+
+      setAllLeads(current => [lead, ...current.filter(item => item.id !== lead.id)]);
+      setSelectedLeadIds(current => {
+        const next = new Set(current);
+        next.add(lead.id);
+        return next;
+      });
+      setManualLead(DEFAULT_MANUAL_LEAD);
+    } catch (err) {
+      setManualLeadError(err?.response?.data?.error || "Manual lead could not be added.");
+    } finally {
+      setAddingManualLead(false);
+    }
   };
 
   const scrollToSection = useCallback((ref, { forceEmail = false } = {}) => {
@@ -555,10 +628,45 @@ export default function NewCampaignPage() {
                   </span>
                   <div>
                     <h2 style={{ fontSize: 15, fontWeight: 800 }}>Assign leads</h2>
-                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Select existing leads to enroll in this campaign.</p>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Select existing leads or add a lead manually.</p>
                   </div>
                 </div>
                 <span className="chip" style={{ fontSize: 12 }}>{selectedLeadIds.size} selected</span>
+              </div>
+
+              <div style={{ padding: 14, border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)", marginBottom: 14 }}>
+                <div className="row spread" style={{ gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
+                  <div className="row" style={{ gap: 9 }}>
+                    <span style={{ width: 28, height: 28, borderRadius: 8, background: "#fff", display: "grid", placeItems: "center", color: "var(--g-700)", border: "1px solid var(--g-100)" }}>
+                      <Icon name="plus" size={15} />
+                    </span>
+                    <div>
+                      <strong style={{ fontSize: 13.5 }}>Add manually</strong>
+                      <p className="faint" style={{ fontSize: 12, marginTop: 1 }}>Saved to leads and selected for this draft.</p>
+                    </div>
+                  </div>
+                  {manualLeadError ? <span style={{ color: "#9a3412", fontSize: 12.5, fontWeight: 800 }}>{manualLeadError}</span> : null}
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
+                  <input className="input" placeholder="First name" value={manualLead.firstName} onChange={e => setManualLeadField("firstName", e.target.value)} maxLength={120} style={{ height: 40 }} />
+                  <input className="input" placeholder="Last name" value={manualLead.lastName} onChange={e => setManualLeadField("lastName", e.target.value)} maxLength={120} style={{ height: 40 }} />
+                  <input className="input" placeholder={form.channel === "voice" ? "Email (optional)" : "Email"} value={manualLead.email} onChange={e => setManualLeadField("email", e.target.value)} maxLength={240} style={{ height: 40 }} />
+                  <input className="input" placeholder={form.channel === "voice" ? "Phone" : "Phone (optional)"} value={manualLead.phone} onChange={e => setManualLeadField("phone", e.target.value)} maxLength={80} style={{ height: 40 }} />
+                  <input className="input" placeholder="Company" value={manualLead.company} onChange={e => setManualLeadField("company", e.target.value)} maxLength={160} style={{ height: 40 }} />
+                  <input className="input" placeholder="Title" value={manualLead.title} onChange={e => setManualLeadField("title", e.target.value)} maxLength={160} style={{ height: 40 }} />
+                  <input className="input" placeholder="Location (optional)" value={manualLead.location} onChange={e => setManualLeadField("location", e.target.value)} maxLength={160} style={{ height: 40 }} />
+                  <input className="input" placeholder="LinkedIn URL (optional)" value={manualLead.linkedinUrl} onChange={e => setManualLeadField("linkedinUrl", e.target.value)} maxLength={500} style={{ height: 40 }} />
+                </div>
+
+                <div className="row spread" style={{ marginTop: 12, gap: 12, flexWrap: "wrap" }}>
+                  <span className="faint" style={{ fontSize: 12.5 }}>
+                    {form.channel === "voice" ? "Phone is required for voice campaigns." : "Email is required for email campaigns."}
+                  </span>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={addManualLead} disabled={addingManualLead}>
+                    <Icon name="plus" size={14} color="#06231a" /> {addingManualLead ? "Adding..." : "Add lead"}
+                  </button>
+                </div>
               </div>
 
               <div style={{ position: "relative", marginBottom: 12 }}>
