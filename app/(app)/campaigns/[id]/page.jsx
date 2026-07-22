@@ -79,11 +79,29 @@ function leadStatusStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
-function CampaignLeadRow({ lead, isVoice, sendingId, onSendNow }) {
+function CampaignLeadRow({ lead, isVoice, isAiVoice, actionId, onActNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
-  const canSendNow = !isVoice && hasEmail && lead.campaignId && status !== "contacted" && !STOPPED_STATUSES.has(status);
-  const sending = sendingId === lead.id;
+  const hasPhone = Boolean(lead.phone?.trim());
+  const canActNow = lead.campaignId && !STOPPED_STATUSES.has(status) && (
+    isVoice ? isAiVoice && hasPhone : hasEmail && status !== "contacted"
+  );
+  const acting = actionId === lead.id;
+  const disabledTitle = isVoice
+    ? !isAiVoice
+      ? "Immediate calls are available for AI voice campaigns"
+      : !hasPhone
+        ? "Lead needs a phone number"
+        : STOPPED_STATUSES.has(status)
+          ? "Calls are stopped for this lead"
+          : "Call this lead immediately"
+    : !hasEmail
+      ? "Lead needs an email"
+      : status === "contacted"
+        ? "Step 1 has already been sent"
+        : STOPPED_STATUSES.has(status)
+          ? "Sequence is stopped for this lead"
+          : "Email this lead immediately";
 
   return (
     <tr className="data-row">
@@ -98,20 +116,18 @@ function CampaignLeadRow({ lead, isVoice, sendingId, onSendNow }) {
       </td>
       <td><span style={{ fontWeight: 700, fontSize: 13 }}>{isVoice ? lead.phone || "No phone" : lead.email || "Not revealed"}</span></td>
       <td><span className="badge" style={leadStatusStyle(status)}>{LEAD_STATUS_LABELS[status] || status.replace(/_/g, " ")}</span></td>
-      {!isVoice && (
-        <td>
-          <button
-            className="btn btn-ghost btn-sm"
-            type="button"
-            disabled={!canSendNow || sending}
-            title={!hasEmail ? "Lead needs an email" : status === "contacted" ? "Step 1 has already been sent" : STOPPED_STATUSES.has(status) ? "Sequence is stopped for this lead" : "Send campaign email now"}
-            style={{ height: 32, padding: "0 10px", fontSize: 12 }}
-            onClick={() => onSendNow(lead.id)}
-          >
-            <Icon name="send" size={13} /> {sending ? "Sending..." : "Send now"}
-          </button>
-        </td>
-      )}
+      <td>
+        <button
+          className="btn btn-ghost btn-sm"
+          type="button"
+          disabled={!canActNow || acting}
+          title={disabledTitle}
+          style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
+          onClick={() => onActNow(lead.id)}
+        >
+          <Icon name={isVoice ? "phone" : "send"} size={13} /> {acting ? (isVoice ? "Calling..." : "Sending...") : (isVoice ? "Call immediately" : "Email immediately")}
+        </button>
+      </td>
       <td><span className="faint" style={{ fontSize: 13 }}>{lead.location || "-"}</span></td>
     </tr>
   );
@@ -130,7 +146,7 @@ export default function CampaignDetailPage() {
   const [toast, setToast] = useState("");
   const [launching, setLaunching] = useState(false);
   const [pausing, setPausing] = useState(false);
-  const [sendingId, setSendingId] = useState("");
+  const [actionId, setActionId] = useState("");
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -200,7 +216,7 @@ export default function CampaignDetailPage() {
   }, [id]);
 
   const sendLeadNow = useCallback(async leadId => {
-    setSendingId(leadId);
+    setActionId(leadId);
     setError("");
     try {
       const { data } = await api.post(`/leads/${leadId}/send-now`);
@@ -223,9 +239,23 @@ export default function CampaignDetailPage() {
         setError(message);
       }
     } finally {
-      setSendingId("");
+      setActionId("");
     }
   }, [load, reconnectGmailForLead, showToast]);
+
+  const callLeadNow = useCallback(async leadId => {
+    setActionId(leadId);
+    setError("");
+    try {
+      await api.post(`/leads/${leadId}/call-now`);
+      showToast("Calling this lead now.");
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.error || "Could not call this lead now.");
+    } finally {
+      setActionId("");
+    }
+  }, [load, showToast]);
 
   useEffect(() => {
     const sendLeadId = searchParams.get("sendLeadId");
@@ -266,6 +296,8 @@ export default function CampaignDetailPage() {
   if (!campaign) return null;
 
   const isVoice = campaign.channel === "voice";
+  const isAiVoice = isVoice && (campaign.voiceMode ?? "ai") === "ai";
+  const actOnLeadNow = isVoice ? callLeadNow : sendLeadNow;
 
   return (
     <div className="col" style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
@@ -348,22 +380,22 @@ export default function CampaignDetailPage() {
               </div>
             </div>
             <div className="table-scroll">
-              <table className="data-table" style={{ minWidth: isVoice ? 760 : 980, tableLayout: "fixed" }}>
+              <table className="data-table" style={{ minWidth: 980, tableLayout: "fixed" }}>
                 <colgroup>
-                  <col style={{ width: "36%" }} />
+                  <col style={{ width: "34%" }} />
                   <col style={{ width: "22%" }} />
                   <col style={{ width: "14%" }} />
-                  {!isVoice && <col style={{ width: "12%" }} />}
-                  <col style={{ width: isVoice ? "28%" : "16%" }} />
+                  <col style={{ width: "16%" }} />
+                  <col style={{ width: "14%" }} />
                 </colgroup>
                 <thead>
-                  <tr>{["Lead", isVoice ? "Phone" : "Email", "Status", ...(!isVoice ? ["Send"] : []), "Location"].map(header => <th key={header}>{header}</th>)}</tr>
+                  <tr>{["Lead", isVoice ? "Phone" : "Email", "Status", "Action", "Location"].map(header => <th key={header}>{header}</th>)}</tr>
                 </thead>
                 <tbody>
                   {leads.length === 0 ? (
-                    <tr><td colSpan={isVoice ? 4 : 5} className="table-empty">No leads are attached to this campaign.</td></tr>
+                    <tr><td colSpan={5} className="table-empty">No leads are attached to this campaign.</td></tr>
                   ) : leads.map(lead => (
-                    <CampaignLeadRow key={lead.id} lead={lead} isVoice={isVoice} sendingId={sendingId} onSendNow={sendLeadNow} />
+                    <CampaignLeadRow key={lead.id} lead={lead} isVoice={isVoice} isAiVoice={isAiVoice} actionId={actionId} onActNow={actOnLeadNow} />
                   ))}
                 </tbody>
               </table>
