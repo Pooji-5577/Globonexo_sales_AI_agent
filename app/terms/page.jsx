@@ -24,7 +24,7 @@ const sections = [
   },
   {
     title: "5. Payments",
-    body: "Paid plans are billed through Stripe. Fees are non-refundable except where required by law or stated in a written agreement. Plan limits may include users, agents, emails, calls, lead enrichment, and support level.",
+    body: "Paid plans are billed through Razorpay. Fees are non-refundable except where required by law or stated in a written agreement. Plan limits may include users, agents, emails, calls, lead enrichment, and support level.",
   },
   {
     title: "6. Suspension and Termination",
