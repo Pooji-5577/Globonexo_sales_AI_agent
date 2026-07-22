@@ -29,6 +29,14 @@ function buildFallbackAnalytics(campaignsPayload, callsPayload) {
       meetingsBooked,
       closed: 0,
     },
+    calls: {
+      total: callSummary.totalCalls ?? 0,
+      answered: callSummary.answered ?? 0,
+      answerRate: callSummary.answerRate ?? '0',
+      meetingsBooked: callSummary.meetingsBooked ?? 0,
+      voicemail: callSummary.voicemail ?? 0,
+      failed: callSummary.failed ?? 0,
+    },
   };
 }
 
@@ -118,6 +126,7 @@ export default function AnalyticsPage() {
 
   const summary = data.summary ?? {};
   const funnel = data.funnel ?? { prospects: 0, emailed: 0, replied: 0, meetingsBooked: 0, closed: 0 };
+  const calls = data.calls ?? null;
 
   return (
     <div className="scroll grow" style={{ padding: '18px 24px', minHeight: 0 }}>
@@ -142,6 +151,25 @@ export default function AnalyticsPage() {
         <BarChart title="Meetings booked (last 7 days)" data={(data.dailyMeetings?.length ? data.dailyMeetings : [summary.meetings ?? 0])} labels={(data.dayLabels?.length ? data.dayLabels : ['Total'])} color="var(--g-500)" />
       </div>
       <FunnelChart funnel={funnel} />
+      {calls && (
+        <div className="card" style={{ padding: 18, marginTop: 16 }}>
+          <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Call performance</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
+            {[
+              { k: 'Total calls', v: calls.total ?? 0 },
+              { k: 'Answer rate', v: `${calls.answerRate ?? 0}%` },
+              { k: 'Meetings booked', v: calls.meetingsBooked ?? 0 },
+              { k: 'Voicemail', v: calls.voicemail ?? 0 },
+              { k: 'Failed', v: calls.failed ?? 0 },
+            ].map(s => (
+              <div key={s.k} className="col">
+                <span className="faint" style={{ fontSize: 11.5, fontWeight: 700 }}>{s.k}</span>
+                <span style={{ fontWeight: 800, fontSize: 20, marginTop: 4 }}>{s.v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
