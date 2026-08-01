@@ -15,6 +15,7 @@ const STATUS_STYLES = {
 const CHANNEL_LABELS = {
   email: "Email",
   voice: "Voice",
+  both: "Email + Voice",
 };
 
 function formatDate(value) {
@@ -82,7 +83,6 @@ export default function CampaignsPage() {
       const textMatch =
         !needle ||
         campaign.name?.toLowerCase().includes(needle) ||
-        campaign.icpSource?.toLowerCase().includes(needle) ||
         CHANNEL_LABELS[campaign.channel]?.toLowerCase().includes(needle);
       return statusMatch && textMatch;
     });
@@ -235,8 +235,15 @@ export default function CampaignsPage() {
                 >
                   <div className="row spread campaigns-card-head" style={{ gap: 16, alignItems: "flex-start" }}>
                     <div className="row" style={{ gap: 12, minWidth: 0 }}>
-                      <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "grid", placeItems: "center", flex: "none" }}>
-                        <Icon name={campaign.channel === "voice" ? "phone" : "send"} size={20} color="var(--g-600)" />
+                      <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "flex", alignItems: "center", justifyContent: "center", gap: 2, flex: "none" }}>
+                        {campaign.channel === "both" ? (
+                          <>
+                            <Icon name="send" size={15} color="var(--g-600)" />
+                            <Icon name="phone" size={15} color="var(--g-600)" />
+                          </>
+                        ) : (
+                          <Icon name={campaign.channel === "voice" ? "phone" : "send"} size={20} color="var(--g-600)" />
+                        )}
                       </span>
                       <div className="col" style={{ minWidth: 0 }}>
                         <span style={{ fontWeight: 800, fontSize: 15 }} className="ellip">{campaign.name}</span>
@@ -279,17 +286,14 @@ export default function CampaignsPage() {
                     </div>
                   </div>
 
-                  <div className="campaigns-stat-grid" style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(5,minmax(0,1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-2)" }}>
-                    <div className="col" style={{ minWidth: 0 }}>
-                      <span className="faint" style={{ fontSize: 11.5, fontWeight: 800 }}>ICP source</span>
-                      <span className="ellip" style={{ fontWeight: 800, fontSize: 14, marginTop: 4 }}>{campaign.icpSource || "Not set"}</span>
-                    </div>
+                  <div className="campaigns-stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(6,minmax(0,1fr))", gap: 12, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--line-2)" }}>
                     {[
                       ["Enrolled", campaign.stats?.enrolled ?? 0],
                       ["Ready", campaign.stats?.ready ?? 0],
                       ["Missing email", campaign.stats?.missingEmail ?? 0],
                       ["Queued", campaign.stats?.queued ?? 0],
                       ["Sent", campaign.stats?.sent ?? 0],
+                      ["Meetings", campaign.stats?.meetings ?? 0],
                     ].map(([key, value]) => (
                       <div key={key} className="col">
                         <span className="faint" style={{ fontSize: 11.5, fontWeight: 800 }}>{key}</span>

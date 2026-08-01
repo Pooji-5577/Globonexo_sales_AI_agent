@@ -78,7 +78,7 @@ export default function AboutPage() {
             <h2>What we believe</h2>
             <p>The principles that decide what we build and what we refuse to ship.</p>
           </div>
-          <div className="card-grid">
+          <div className="card-grid about-values-grid">
             {values.map((value) => (
               <article key={value.title} className="content-card">
                 <span className="content-card-icon"><Icon name={value.icon} size={20} color="var(--g-700)" /></span>

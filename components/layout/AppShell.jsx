@@ -55,17 +55,32 @@ export default function AppShell({ children }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    const next = encodeURIComponent(pathname || '/dashboard');
+    const redirectToLogin = () => {
+      if (!active) return;
+      active = false;
+      window.location.assign(`/login?next=${next}`);
+    };
+    const timeoutId = window.setTimeout(redirectToLogin, 8000);
+
     api.get('/auth/me')
       .then(res => {
+        if (!active) return;
         setUser(res.data.user);
         setOrg(res.data.organization);
       })
-      .catch(() => {
-        const next = encodeURIComponent(pathname || '/dashboard');
-        router.replace(`/login?next=${next}`);
-      })
-      .finally(() => setAuthChecked(true));
-  }, []);
+      .catch(redirectToLogin)
+      .finally(() => {
+        window.clearTimeout(timeoutId);
+        if (active) setAuthChecked(true);
+      });
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     setMobileNavOpen(false);
