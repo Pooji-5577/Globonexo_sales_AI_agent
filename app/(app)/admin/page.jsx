@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import api from "../../../lib/api";
@@ -42,6 +43,7 @@ function appendMessageOnce(messages = [], message) {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("orgs");
   const [supportTickets, setSupportTickets] = useState([]);
@@ -64,7 +66,11 @@ export default function AdminPage() {
           setError("Admin API timed out. Confirm the backend is running on port 5001, then refresh.");
           return;
         }
-        setError(err?.response?.status === 403 ? "Admin access required." : "Admin data could not be loaded.");
+        if (err?.response?.status === 403) {
+          router.replace("/dashboard");
+          return;
+        }
+        setError("Admin data could not be loaded.");
       })
       .finally(() => setLoading(false));
   };
