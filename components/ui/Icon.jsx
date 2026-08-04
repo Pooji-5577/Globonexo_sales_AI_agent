@@ -41,6 +41,7 @@ export function Icon({ name, size = 22, stroke = 1.8, color = 'currentColor', fi
     inbox: <><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6l2-7Z"/></>,
     flame: <path d="M12 3s5 4 5 9a5 5 0 0 1-10 0c0-1.5.6-2.7 1.3-3.6.4 1 1.2 1.6 1.7 1.6 0-2 .5-5 2-7Z"/>,
     globe: <><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z"/></>,
+    person: <><circle cx="12" cy="8" r="4" fill="currentColor" stroke="none"/><path d="M4 20.5c0-4.4 3.6-7.2 8-7.2s8 2.8 8 7.2" fill="currentColor" stroke="none"/></>,
   };
   return <svg {...p}>{paths[name] || null}</svg>;
 }

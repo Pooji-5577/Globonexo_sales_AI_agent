@@ -5,7 +5,7 @@ import { Icon } from '../ui/Icon';
 export function AuthAside({ kicker, headline, sub, bullets }) {
   return (
     <div className="auth-aside" style={{
-      position: 'relative', width: 420, flex: 'none', overflow: 'hidden',
+      position: 'relative', flex: 'none', overflow: 'hidden',
       background: 'linear-gradient(160deg, #06311f, #064d33 55%, #066b4a)',
       color: '#fff', padding: '42px 40px', display: 'flex', flexDirection: 'column',
     }}>
@@ -30,13 +30,7 @@ export function AuthAside({ kicker, headline, sub, bullets }) {
           </div>
         </div>
         <div className="row" style={{ gap: 10, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.14)' }}>
-          <div className="row">
-            {['A', 'B', 'C'].map((letter, i) => (
-              <div key={letter} style={{ marginLeft: i ? -9 : 0, borderRadius: '50%', boxShadow: '0 0 0 2px #064d33' }}>
-                <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'grid', placeItems: 'center', fontSize: 11, fontWeight: 700, color: '#fff' }}>{letter}</span>
-              </div>
-            ))}
-          </div>
+          <Icon name="globe" size={18} color="rgba(255,255,255,.7)" stroke={1.8} />
           <span className="nw" style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', fontWeight: 600 }}>Trusted by revenue teams</span>
         </div>
       </div>

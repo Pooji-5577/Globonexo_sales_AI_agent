@@ -3,8 +3,8 @@ import { AuthProvider } from "../providers/AuthProvider";
 import PostHogProvider from "../providers/PostHogProvider";
 
 export const metadata = {
-  title: "Globonexo Sales AI",
-  description: "Globonexo Sales AI frontend migrated to Next.js",
+  title: "GNX sales",
+  description: "GNX sales frontend",
 };
 
 export default function RootLayout({ children }) {

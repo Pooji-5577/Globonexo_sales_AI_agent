@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 
 const ICON_MAP = {
@@ -115,6 +117,7 @@ export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
     api.get("/dashboard")
@@ -129,7 +132,7 @@ export default function DashboardPage() {
   const weeklyGoal = data?.weeklyGoal ?? { current: 0, target: 1, progress: 0, monthlyTarget: 0 };
   const nextMeeting = data?.nextMeeting ?? null;
   const firstName = data?.user?.firstName || "there";
-  const agentName = data?.agentName || "Nexo";
+  const agentName = data?.agentName || "GNX sales";
 
   const kpiItems = useMemo(() => ([
     { label: "Emails sent", value: kpis.emailsSent ?? 0, detail: "total sent", icon: "send" },
@@ -139,13 +142,7 @@ export default function DashboardPage() {
     { label: "Saved leads", value: kpis.savedLeads ?? 0, detail: `${kpis.activeCampaigns ?? 0} active campaigns`, icon: "users" },
   ]), [kpis]);
 
-  if (loading) {
-    return (
-      <div style={{ padding: 40 }}>
-        <p className="muted">Loading dashboard...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   return (
     <div className="scroll grow" style={{ padding: "22px 24px", minHeight: 0 }}>

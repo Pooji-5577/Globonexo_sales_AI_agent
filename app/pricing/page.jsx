@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Pricing — Globonexo Sales AI",
-  description: "Choose a Globonexo Sales AI plan for AI outbound, replies, voice calls, and booked meetings.",
+  title: "Pricing — GNX sales",
+  description: "Choose a GNX sales plan for AI outbound, replies, voice calls, and booked meetings.",
 };
 
 import Link from "next/link";
@@ -58,7 +58,7 @@ const plans = [
 
 export default function PricingPage() {
   return (
-    <div className="public-page">
+    <div className="public-page public-page--tinted">
       <PublicNav />
 
       <main>
@@ -93,7 +93,9 @@ export default function PricingPage() {
             <h2>Every plan includes the core sales loop.</h2>
             <p>Gmail sending, Apollo and CSV lead sourcing, AI-generated email sequences, reply drafting, inbox review, dashboard metrics, and support access are included.</p>
           </div>
-          <Link className="btn btn-dark" href="/signup">Create account</Link>
+          <Link className="btn btn-primary btn-lg" href="/signup">
+            Create account <Icon name="arrow" size={16} color="#06231a" />
+          </Link>
         </section>
       </main>
 

@@ -1,17 +1,31 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import Spinner from "../../../components/ui/Spinner";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
-import { assertSafeExternalUrl, cleanText } from "../../../lib/validation";
+import { cleanText } from "../../../lib/validation";
 
 const STATUS_LABELS = {
   pending: "Draft pending",
   approved: "Approved",
   rejected: "Rejected",
   sent: "Auto-sent",
+  sent_email: "Sent email",
+  queued: "Queued",
+  failed: "Failed",
+  bounced: "Bounced",
 };
+
+const EMAIL_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "replies", label: "Replies" },
+  { id: "sent", label: "Sent" },
+  { id: "drafts", label: "Drafts" },
+];
 
 function formatBody(body) {
   return (body || "").split("\n").map((line, index) => (
@@ -22,39 +36,84 @@ function formatBody(body) {
   ));
 }
 
+function leadName(lead = {}, fallback = "Lead") {
+  return [lead.first_name, lead.last_name].filter(Boolean).join(" ") || lead.name || fallback;
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function filterThreads(items, filter) {
+  if (filter === "replies") return items.filter(item => item.kind === "reply");
+  if (filter === "sent") return items.filter(item => item.kind === "sent" || ["approved", "sent", "sent_email"].includes(item.aiDraftStatus));
+  if (filter === "drafts") return items.filter(item => item.kind === "reply" && item.aiDraftStatus === "pending");
+  return items;
+}
+
+function buildFallbackDraft(detail, thread, displayName) {
+  if (detail?.ai_draft_reply) return detail.ai_draft_reply;
+  const firstName = displayName.split(" ")[0] || "there";
+  const company = detail?.leads?.company || thread?.company || "your team";
+  return `Hi ${firstName},\n\nThanks for taking a look. Based on what ${company} is working on, GNX sales can help keep outreach and follow-up moving without adding more manual work for your team.\n\nWould it be useful if I shared a short walkthrough and a few example workflows for your pipeline?`;
+}
+
+function MessageBubble({ side, label, meta, children }) {
+  const isOutbound = side === "outbound";
+  return (
+    <div className={`email-chat-message ${isOutbound ? "is-outbound" : "is-inbound"}`}>
+      <div className="email-chat-meta">
+        <span>{label}</span>
+        {meta ? <span>{meta}</span> : null}
+      </div>
+      <div className="email-chat-bubble">
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export default function InboxPage() {
+  const composerRef = useRef(null);
   const [threads, setThreads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null });
-  const [actionBusy, setActionBusy] = useState("");
+  const [sending, setSending] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [draftBody, setDraftBody] = useState("");
+  const [composerBody, setComposerBody] = useState("");
+  const [sentMessages, setSentMessages] = useState({});
+  const [activeFilter, setActiveFilter] = useState("all");
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
-    Promise.allSettled([
-      api.get("/inbox"),
-      api.get("/gmail/status"),
-    ])
-      .then(([inboxResult, gmailResult]) => {
-        if (inboxResult.status === "rejected") {
-          setError("Inbox could not be loaded.");
-          return;
-        }
-
-        const res = inboxResult.value;
-        const items = res.data.threads || [];
+    let cancelled = false;
+    api.get("/inbox")
+      .then(res => {
+        if (cancelled) return;
+        const items = (res.data?.threads || []).map(item => ({ ...item, kind: "reply" }));
         setThreads(items);
         setSelectedId(items[0]?.id || null);
-
-        if (gmailResult.status === "fulfilled") {
-          setGmailStatus(gmailResult.value.data);
-        }
       })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!cancelled) setError("Real inbox could not be loaded. Check backend, login session, and Gmail connection.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -66,385 +125,288 @@ export default function InboxPage() {
     setDetailLoading(true);
     setError("");
     setSuccess("");
+    setComposerBody("");
     api.get(`/inbox/${selectedId}`)
       .then(res => {
-        setDetail(res.data);
+        setDetail({ ...res.data, kind: "reply" });
         setDraftBody(res.data?.ai_draft_reply || "");
       })
       .catch(() => setError("Thread details could not be loaded."))
       .finally(() => setDetailLoading(false));
   }, [selectedId]);
 
-  const runDraftAction = async action => {
-    if (!selectedId) return;
+  const sendManualMessage = async event => {
+    event.preventDefault();
+    if (!selectedId || !composerBody.trim() || sending) return;
 
-    setActionBusy(action);
+    const body = cleanText(composerBody, { max: 4000, multiline: true });
+    if (!body) return;
+
+    setSending(true);
     setError("");
     setSuccess("");
     try {
-      const payload = action === "approve" ? { body: cleanText(draftBody, { max: 8000, multiline: true }) } : undefined;
-      if (action === "approve" && !payload.body) {
-        setError("Draft reply cannot be empty.");
-        setActionBusy("");
-        return;
-      }
-      const { data } = await api.post(`/emails/${selectedId}/${action}`, payload);
-      if (action === "approve") {
-        setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: "approved" } : item));
-        setDetail(current => current ? { ...current, ...data } : current);
-        setDraftBody(data.ai_draft_reply || "");
-        setSuccess("Reply approved — it's queued to send to the prospect.");
-      } else {
-        setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: data.ai_draft_status } : item));
-        setDetail(current => current ? { ...current, ...data } : current);
-        setDraftBody(data.ai_draft_reply || "");
-        setSuccess(action === "regenerate" ? "New draft generated." : "Reply rejected.");
-      }
-    } catch (err) {
-      setError(action === "approve" ? "AI draft could not be approved." : "AI draft action could not be completed.");
+      const { data } = await api.post(`/emails/${selectedId}/approve`, { body });
+      const message = {
+        id: data?.queuedEmailMessageId || `${selectedId}-${Date.now()}`,
+        body,
+        sentAt: new Date().toISOString(),
+      };
+
+      setSentMessages(current => ({
+        ...current,
+        [selectedId]: [...(current[selectedId] || []), message],
+      }));
+      setComposerBody("");
+      setThreads(current => current.map(item => item.id === selectedId ? {
+        ...item,
+        preview: body.slice(0, 120),
+        time: "queued",
+        aiDraftStatus: data?.ai_draft_status || "approved",
+      } : item));
+      setDetail(current => current ? {
+        ...current,
+        ai_draft_reply: body,
+        ai_draft_status: data?.ai_draft_status || "approved",
+      } : current);
+      setSuccess("Reply queued. The send-email worker will send it through connected Gmail.");
+    } catch {
+      setError("Reply could not be queued. Check Gmail connection, Redis worker, and backend logs.");
     } finally {
-      setActionBusy("");
+      setSending(false);
     }
   };
 
-  const saveDraftEdit = async () => {
-    if (!selectedId) return;
-
-    setActionBusy("edit");
+  const fillComposerWithDraft = async () => {
+    if (!selectedId || drafting) return;
+    setDrafting(true);
     setError("");
     setSuccess("");
     try {
-      const body = cleanText(draftBody, { max: 8000, multiline: true });
+      let body = detail?.ai_draft_reply || draftBody;
       if (!body) {
-        setError("Draft reply cannot be empty.");
-        setActionBusy("");
-        return;
+        const { data } = await api.post(`/emails/${selectedId}/regenerate`);
+        body = data?.ai_draft_reply || "";
+        setDetail(current => current ? { ...current, ...data } : current);
       }
-      const { data } = await api.patch(`/emails/${selectedId}/draft`, { body });
-      setThreads(current => current.map(item => item.id === selectedId ? { ...item, aiDraftStatus: data.ai_draft_status } : item));
-      setDetail(current => current ? { ...current, ...data } : current);
-      setDraftBody(data.ai_draft_reply || "");
-      setSuccess("Draft edit saved.");
-    } catch (err) {
-      setError("AI draft edit could not be saved.");
+
+      body = cleanText(body || buildFallbackDraft(detail, thread, displayName), { max: 8000, multiline: true });
+      if (!body) return;
+      setDraftBody(body);
+      setComposerBody(body);
+      window.requestAnimationFrame(() => {
+        if (!composerRef.current) return;
+        composerRef.current.focus();
+        composerRef.current.scrollTop = composerRef.current.scrollHeight;
+      });
+    } catch {
+      setError("Draft could not be generated. Check AI configuration and backend logs.");
     } finally {
-      setActionBusy("");
+      setDrafting(false);
     }
   };
 
-  const connectGmail = async () => {
-    setActionBusy("gmail");
-    setError("");
-    try {
-      const { data } = await api.get("/gmail/auth-url");
-      window.location.href = assertSafeExternalUrl(data.url);
-    } catch (err) {
-      setError("Gmail connection could not be started.");
-      setActionBusy("");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="scroll grow" style={{ padding: 40, minHeight: 0 }}>
-        <p className="muted">Loading inbox...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   const hasThreads = threads.length > 0;
   const thread = threads.find(item => item.id === selectedId) || threads[0] || null;
   const lead = detail?.leads || {};
   const originalMessage = detail?.email_messages || {};
+  const displayName = leadName(lead, thread?.name || "Lead");
   const draftStatus = detail?.ai_draft_status || thread?.aiDraftStatus || "pending";
+  const hasReply = detail?.kind === "reply";
+  const manualMessages = selectedId ? sentMessages[selectedId] || [] : [];
+  const filteredThreads = filterThreads(threads, activeFilter);
+  const filterCounts = {
+    all: threads.length,
+    replies: filterThreads(threads, "replies").length,
+    sent: filterThreads(threads, "sent").length,
+    drafts: filterThreads(threads, "drafts").length,
+  };
+
+  const changeFilter = filter => {
+    const nextThreads = filterThreads(threads, filter);
+    setActiveFilter(filter);
+    if (nextThreads.length > 0 && !nextThreads.some(item => item.id === selectedId)) {
+      setSelectedId(nextThreads[0].id);
+    }
+  };
 
   return (
-    <div className="row inbox-page" style={{ flex: 1, minHeight: 0, alignItems: "stretch", overflow: "hidden" }}>
-      <div className="scroll inbox-thread-list" style={{ width: 340, flex: "none", borderRight: "1px solid var(--line)", background: "#fff" }}>
-        <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid var(--line)" }}>
+    <div className="email-inbox-shell">
+      <aside className="email-list-panel">
+        <div className="email-list-head">
           <div className="row spread" style={{ gap: 12 }}>
-            <h1 className="display" style={{ fontSize: 20 }}>Inbox</h1>
-            <span className="faint" style={{ fontSize: 13, fontWeight: 700 }}>{threads.length} threads</span>
+            <div>
+              <h1 className="display">Emails</h1>
+              <p>{threads.length} lead conversations</p>
+            </div>
+            <span className="email-count-chip">{threads.length}</span>
           </div>
-          <p className="muted" style={{ fontSize: 12.5, marginTop: 5 }}>Prospect replies and AI draft responses.</p>
+          <div className="input-wrap email-list-search">
+            <span className="lead-ico"><Icon name="search" size={15} /></span>
+            <input className="input has-ico" placeholder="Search emails..." readOnly />
+          </div>
+          <div className="email-filter-tabs" aria-label="Email filters">
+            {EMAIL_FILTERS.map(filter => (
+              <button
+                key={filter.id}
+                type="button"
+                className={activeFilter === filter.id ? "is-active" : ""}
+                onClick={() => changeFilter(filter.id)}
+              >
+                {filter.label}
+                <span>{filterCounts[filter.id]}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {hasThreads ? (
-          threads.map(item => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setSelectedId(item.id)}
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                padding: "13px 18px",
-                borderBottom: "1px solid var(--line-2)",
-                borderLeft: `3px solid ${selectedId === item.id ? "var(--g-500)" : "transparent"}`,
-                background: selectedId === item.id ? "var(--g-50)" : "#fff",
-                transition: "all .12s",
-              }}
-            >
-              <div className="row spread">
-                <div className="row" style={{ gap: 9, minWidth: 0 }}>
-                  <Avatar name={item.name} size={34} />
-                  <div className="col" style={{ minWidth: 0 }}>
-                    <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{item.name}</span>
-                    <span className="faint nw" style={{ fontSize: 11.5 }}>{item.company}</span>
+        <div className="scroll email-thread-scroll">
+          {filteredThreads.length > 0 ? (
+            filteredThreads.map(item => (
+              <button
+                key={item.id}
+                type="button"
+                className={`email-thread-item ${selectedId === item.id ? "is-active" : ""}`}
+                onClick={() => setSelectedId(item.id)}
+              >
+                <Avatar name={item.name} size={42} />
+                <div className="email-thread-copy">
+                  <div className="row spread" style={{ gap: 8 }}>
+                    <strong className="ellip">{item.name}</strong>
+                    <span>{item.time}</span>
                   </div>
+                  <p className="ellip">{item.company || item.email || "Lead"}</p>
+                  <div className="email-thread-subject ellip">{item.subject}</div>
+                  <div className="email-thread-preview ellip">{item.preview}</div>
                 </div>
-                <span className="faint nw" style={{ fontSize: 11.5, fontWeight: 700 }}>{item.time}</span>
-              </div>
-              <div style={{ fontWeight: 700, fontSize: 13, marginTop: 7, color: "var(--ink-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.subject}</div>
-              <div className="muted" style={{ fontSize: 12.5, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.preview}</div>
-              <span className="chip" style={{ marginTop: 8, fontSize: 11.5 }}>{STATUS_LABELS[item.aiDraftStatus] || item.aiDraftStatus || "Draft pending"}</span>
-            </button>
-          ))
-        ) : (
-          <div style={{ padding: 18 }}>
-            <div className="card col center" style={{ padding: 22, minHeight: 180, textAlign: "center", borderRadius: 8, boxShadow: "none" }}>
-              <Icon name="inbox" size={32} color="var(--faint)" />
-              <p style={{ fontWeight: 800, fontSize: 14, marginTop: 12 }}>No reply threads yet</p>
-              <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.5, marginTop: 5 }}>
-                Threads will appear after Gmail is connected and inbox polling finds prospect replies.
-              </p>
+                <div className="email-thread-footer">
+                  <span className={`email-thread-status ${item.kind === "reply" ? "has-reply" : ""}`}>
+                    {item.kind === "reply" ? "Reply" : "Sent"}
+                  </span>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="email-empty-list">
+              <Icon name="mail" size={34} color="var(--faint)" />
+              <strong>No {activeFilter === "all" ? "emails" : activeFilter} yet</strong>
+              <span>Try another category or send a mock message in the open conversation.</span>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </aside>
 
-      <div className="grow col inbox-detail-pane" style={{ minWidth: 0, background: "var(--bg)" }}>
-        <div className="row spread inbox-detail-head" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", background: "#fff", flex: "none" }}>
-          {hasThreads ? (
+      <section className="email-chat-panel">
+        <header className="email-chat-head">
+          {thread ? (
             <>
-              <div className="row" style={{ gap: 11, minWidth: 0 }}>
-                <Avatar name={thread.name} size={40} />
+              <div className="row" style={{ gap: 12, minWidth: 0 }}>
+                <Avatar name={displayName} size={42} />
                 <div className="col" style={{ minWidth: 0 }}>
-                  <span style={{ fontWeight: 800, fontSize: 14.5 }} className="ellip">{thread.name} · {thread.company}</span>
-                  <span className="faint ellip" style={{ fontSize: 12.5 }}>{thread.subject}</span>
+                  <strong className="ellip">{displayName}</strong>
+                  <span className="ellip">{lead.email || thread.email || thread.company || "Lead email"}</span>
                 </div>
               </div>
-              <span className="chip" style={{ fontSize: 12 }}>{STATUS_LABELS[draftStatus] || draftStatus}</span>
+              <span className="chip">{STATUS_LABELS[draftStatus] || draftStatus}</span>
             </>
           ) : (
             <>
-              <div className="row" style={{ gap: 11, minWidth: 0 }}>
-                <span style={{ width: 40, height: 40, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
-                  <Icon name="inbox" size={20} />
-                </span>
-                <div className="col" style={{ minWidth: 0 }}>
-                  <span style={{ fontWeight: 800, fontSize: 14.5 }}>Inbox + AI draft replies</span>
-                  <span className="faint" style={{ fontSize: 12.5 }}>Waiting for the first prospect reply</span>
+              <div className="row" style={{ gap: 12 }}>
+                <span className="email-chat-icon"><Icon name="mail" size={20} /></span>
+                <div>
+                  <strong>Emails</strong>
+                  <span>No conversation selected</span>
                 </div>
               </div>
-              <span className="chip" style={{ fontSize: 12 }}>Ready</span>
             </>
           )}
-        </div>
+        </header>
 
-        <div className="scroll grow inbox-detail-scroll" style={{ padding: "20px 24px" }}>
-          {error && (
-            <div style={{ padding: 12, marginBottom: 14, borderRadius: 8, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", fontSize: 13, fontWeight: 700 }}>
-              {error}
-            </div>
-          )}
+        <div className="scroll email-chat-scroll">
+          {error ? <div className="notice-warn">{error}</div> : null}
+          {success ? <div className="notice-good">{success}</div> : null}
 
-          {success && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 12, marginBottom: 14, borderRadius: 8, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", fontSize: 13, fontWeight: 700 }}>
-              <Icon name="check" size={15} color="#15803d" />
-              {success}
-            </div>
-          )}
-
-          {!hasThreads ? (
-            <div className="inbox-empty-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 16, alignItems: "start" }}>
-              <div className="col inbox-empty-main" style={{ gap: 14, maxWidth: 760 }}>
-                <section className="card" style={{ padding: 20, borderRadius: 8 }}>
-                  <div className="row" style={{ gap: 10, marginBottom: 12 }}>
-                    <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)" }}>
-                      <Icon name="chat" size={18} />
-                    </span>
-                    <div>
-                      <h2 style={{ fontSize: 15, fontWeight: 800 }}>Reply details</h2>
-                      <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Select a thread to inspect the prospect reply.</p>
-                    </div>
-                  </div>
-                  <div style={{ padding: 18, border: "1px dashed var(--line)", borderRadius: 8, background: "#fff" }}>
-                    <p className="muted" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-                      No replies are available yet. Once polling imports a reply, this panel will show the sender, subject, received time, and message body.
-                    </p>
-                  </div>
-                </section>
-
-                <section className="card" style={{ padding: 20, borderRadius: 8 }}>
-                  <div className="row spread" style={{ marginBottom: 12 }}>
-                    <div className="row" style={{ gap: 10, minWidth: 0 }}>
-                      <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)", flex: "none" }}>
-                        <Icon name="spark" size={18} />
-                      </span>
-                      <div className="col" style={{ minWidth: 0 }}>
-                        <h2 style={{ fontSize: 15, fontWeight: 800 }}>AI draft reply</h2>
-                        <span className="faint" style={{ fontSize: 12.5 }}>Draft status and body will appear here.</span>
-                      </div>
-                    </div>
-                    <span className="chip" style={{ fontSize: 12 }}>Pending reply</span>
-                  </div>
-                  <div style={{ padding: 18, border: "1px dashed var(--g-100)", borderRadius: 8, background: "var(--g-50)" }}>
-                    <p className="muted" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
-                      The AI draft body is generated after an inbound reply is matched to a sent email message.
-                    </p>
-                  </div>
-                </section>
-              </div>
-
-              <aside className="card inbox-requirements" style={{ padding: 18, borderRadius: 8 }}>
-                <h2 style={{ fontSize: 14, fontWeight: 800 }}>Inbox requirements</h2>
-                <div className="col" style={{ gap: 11, marginTop: 14 }}>
-                  {[
-                    [gmailStatus.connected ? "Gmail connected" : "Connect Gmail", gmailStatus.connected],
-                    ["Redis worker running", true],
-                    ["Inbox polling scheduled", gmailStatus.connected],
-                    ["Replies saved with AI draft status", hasThreads],
-                  ].map(([item, done]) => (
-                    <div key={item} className="row" style={{ gap: 9 }}>
-                      <Icon name={done ? "checkCircle" : "clock"} size={16} color={done ? "var(--g-600)" : "var(--faint)"} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: done ? "var(--ink-2)" : "var(--muted)" }}>{item}</span>
-                    </div>
-                  ))}
-                </div>
-                {gmailStatus.connected ? (
-                  <div style={{ marginTop: 16, padding: 12, borderRadius: 8, background: "var(--g-50)", border: "1px solid var(--g-100)" }}>
-                    <div style={{ fontWeight: 800, fontSize: 13 }}>Polling {gmailStatus.email}</div>
-                    <p className="muted" style={{ marginTop: 5, fontSize: 12.5, lineHeight: 1.45 }}>Replies will appear after a sent campaign email receives a response.</p>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={connectGmail}
-                    disabled={actionBusy === "gmail"}
-                    style={{ marginTop: 16, width: "100%" }}
-                  >
-                    <Icon name="mail" size={15} color="#06231a" />
-                    {actionBusy === "gmail" ? "Opening Gmail..." : "Connect Gmail"}
-                  </button>
-                )}
-              </aside>
+          {!thread ? (
+            <div className="email-empty-chat">
+              <Icon name="mail" size={44} color="var(--faint)" />
+              <strong>Select an email</strong>
+              <span>Choose a lead on the left to open the email conversation.</span>
             </div>
           ) : detailLoading ? (
-            <div className="card" style={{ padding: 18, maxWidth: 720 }}>
-              <p className="muted">Loading thread...</p>
+            <div className="card" style={{ padding: 18, maxWidth: 720, display: "grid", placeItems: "center", minHeight: 120 }}>
+              <Spinner size={20} />
             </div>
           ) : (
-            <>
-              <div className="col" style={{ gap: 12, maxWidth: 760 }}>
-                <div className="card" style={{ padding: 18, borderRadius: 8 }}>
-                  <div className="row" style={{ gap: 10, marginBottom: 12 }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)", flex: "none" }}>
-                      <Icon name="send" size={16} />
-                    </span>
-                    <div className="col" style={{ minWidth: 0 }}>
-                      <span style={{ fontWeight: 800, fontSize: 13.5 }} className="ellip">Original email</span>
-                      <span className="faint ellip" style={{ fontSize: 12 }}>{originalMessage.subject || thread.subject}</span>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--ink-2)" }}>{formatBody(originalMessage.body || "")}</p>
-                </div>
+            <div className="email-chat-stack">
+              <div className="email-chat-date">{formatDateTime(originalMessage.sent_at) || thread.time}</div>
 
-                <div className="card" style={{ padding: 18, borderRadius: 8 }}>
-                  <div className="row" style={{ gap: 10, marginBottom: 12 }}>
-                    <Avatar name={thread.name} size={32} />
-                    <div className="col" style={{ minWidth: 0 }}>
-                      <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{thread.name}</span>
-                      <span className="faint ellip" style={{ fontSize: 12 }}>{lead.email || "Prospect"} · received {thread.time}</span>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: 14.5, lineHeight: 1.65, color: "var(--ink-2)" }}>{formatBody(detail?.body || thread.preview)}</p>
-                </div>
-              </div>
+              <MessageBubble side="outbound" label="You sent" meta={formatDateTime(originalMessage.sent_at)}>
+                <h2>{originalMessage.subject || thread.subject}</h2>
+                <p>{formatBody(originalMessage.body || thread.preview)}</p>
+              </MessageBubble>
 
-              <div className="card" style={{ padding: 18, maxWidth: 760, marginTop: 14, borderRadius: 8 }}>
-                <div className="row spread" style={{ marginBottom: 12 }}>
-                  <div className="row" style={{ gap: 10, minWidth: 0 }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)", flex: "none" }}>
-                      <Icon name="spark" size={17} />
-                    </span>
-                    <div className="col" style={{ minWidth: 0 }}>
-                      <span style={{ fontWeight: 800, fontSize: 13.5 }}>AI draft reply</span>
-                      <span className="faint ellip" style={{ fontSize: 12 }}>{originalMessage.subject || thread.subject}</span>
-                    </div>
-                  </div>
-                  <span className="chip" style={{ fontSize: 12 }}>{STATUS_LABELS[draftStatus] || draftStatus}</span>
+              {hasReply ? (
+                <MessageBubble side="inbound" label={`${displayName} replied`} meta={formatDateTime(detail.received_at)}>
+                  <p>{formatBody(detail.body || thread.preview)}</p>
+                </MessageBubble>
+              ) : (
+                <div className="email-waiting-card">
+                  <Icon name="clock" size={16} />
+                  <span>Waiting for this lead to reply.</span>
                 </div>
+              )}
 
-                {detail?.ai_draft_reply ? (
-                  <textarea
-                    value={draftBody}
-                    onChange={event => setDraftBody(event.target.value)}
-                    disabled={actionBusy === "approve" || draftStatus === "approved" || draftStatus === "sent"}
-                    style={{
-                      width: "100%",
-                      minHeight: 180,
-                      resize: "vertical",
-                      border: "1px solid var(--line)",
-                      borderRadius: 8,
-                      padding: "12px 13px",
-                      font: "inherit",
-                      fontSize: 14.5,
-                      lineHeight: 1.65,
-                      color: "var(--ink-2)",
-                      background: draftStatus === "approved" || draftStatus === "sent" ? "var(--bg-2)" : "#fff",
-                      outline: "none",
-                    }}
-                  />
-                ) : (
-                  <p className="muted" style={{ fontSize: 13.5 }}>No AI draft is available for this reply yet.</p>
-                )}
-
-                <div className="row" style={{ gap: 10, marginTop: 16, flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    disabled={!draftBody.trim() || actionBusy === "approve" || draftStatus === "approved" || draftStatus === "sent"}
-                    onClick={() => runDraftAction("approve")}
-                  >
-                    <Icon name="check" size={15} color="#06231a" />
-                    {actionBusy === "approve" ? "Approving..." : "Approve draft"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={!draftBody.trim() || actionBusy === "edit" || draftBody === (detail?.ai_draft_reply || "") || draftStatus === "approved" || draftStatus === "sent"}
-                    onClick={saveDraftEdit}
-                  >
-                    <Icon name="doc" size={15} />
-                    {actionBusy === "edit" ? "Saving..." : "Save edit"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={actionBusy === "regenerate" || draftStatus === "approved" || draftStatus === "sent"}
-                    onClick={() => runDraftAction("regenerate")}
-                  >
-                    <Icon name="spark" size={15} />
-                    {actionBusy === "regenerate" ? "Regenerating..." : "Regenerate"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    disabled={actionBusy === "reject" || draftStatus === "approved" || draftStatus === "sent" || draftStatus === "rejected"}
-                    onClick={() => runDraftAction("reject")}
-                  >
-                    <Icon name="pause" size={15} />
-                    {actionBusy === "reject" ? "Rejecting..." : "Reject"}
-                  </button>
-                </div>
-              </div>
-            </>
+              {manualMessages.map(message => (
+                <MessageBubble key={message.id} side="outbound" label="You sent" meta={formatDateTime(message.sentAt)}>
+                  <p>{formatBody(message.body)}</p>
+                </MessageBubble>
+              ))}
+            </div>
           )}
         </div>
-      </div>
+
+        {thread ? (
+          <div className="email-composer-wrap">
+            <div className="email-nexo-row">
+              <button
+                type="button"
+                className="email-nexo-draft-btn"
+                disabled={detailLoading || drafting || !selectedId}
+                onClick={fillComposerWithDraft}
+              >
+                <Icon name="spark" size={15} />
+                {drafting ? "Drafting..." : "Ask GNX sales to draft"}
+              </button>
+            </div>
+
+            <form className="email-message-composer" onSubmit={sendManualMessage}>
+              <button type="button" className="email-composer-icon-btn" aria-label="Add attachment">
+                <Icon name="plus" size={22} />
+              </button>
+              <div className="email-composer-input">
+                <textarea
+                  ref={composerRef}
+                  value={composerBody}
+                  onChange={event => setComposerBody(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault();
+                      sendManualMessage(event);
+                    }
+                  }}
+                  rows={1}
+                  placeholder={`Message ${displayName}`}
+                />
+              </div>
+              <button type="submit" className="email-composer-send" disabled={!composerBody.trim() || sending} aria-label="Send message">
+                <Icon name="send" size={18} color="#06231a" />
+              </button>
+            </form>
+          </div>
+        ) : null}
+      </section>
     </div>
   );
 }

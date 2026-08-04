@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "FAQs — Globonexo Sales AI",
-  description: "Answers to common questions about Globonexo Sales AI pricing, subscriptions, AI replies, deliverability, integrations, and data handling.",
+  title: "FAQs — GNX sales",
+  description: "Answers to common questions about GNX sales pricing, subscriptions, AI replies, deliverability, integrations, and data handling.",
 };
 
 import Link from "next/link";
@@ -13,7 +13,7 @@ const groups = [
     title: "Getting started",
     items: [
       {
-        q: "What exactly does Globonexo Sales AI do?",
+        q: "What exactly does GNX sales do?",
         a: "It runs the outbound loop for you. The agent sources and qualifies leads, writes personalized emails, sends and follows up on a schedule, drafts replies to responses, and books qualified meetings on your calendar.",
       },
       {

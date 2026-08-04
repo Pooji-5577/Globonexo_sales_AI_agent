@@ -87,14 +87,14 @@ export default function AITestPage() {
   ];
 
   return (
-    <div style={{ maxWidth: 800, margin: "40px auto", padding: "0 24px", fontFamily: "system-ui, sans-serif" }}>
+    <div className="ai-test-page" style={{ fontFamily: "system-ui, sans-serif" }}>
       <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>AI Engine Test Page</h1>
       <p style={{ color: "#666", marginBottom: 24, fontSize: 14 }}>
         Select a campaign and lead, then click a button to test the AI endpoints.
       </p>
 
-      <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-        <div style={{ flex: 1 }}>
+      <div className="ai-test-form-row">
+        <div style={{ flex: 1, minWidth: 0 }}>
           <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>CAMPAIGN</label>
           <select value={selectedCampaign} onChange={e => setSelectedCampaign(e.target.value)}
             style={{ width: "100%", padding: "10px 12px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14 }}>
@@ -102,7 +102,7 @@ export default function AITestPage() {
             {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>LEAD</label>
           <select value={selectedLead} onChange={e => setSelectedLead(e.target.value)}
             style={{ width: "100%", padding: "10px 12px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14 }}>
@@ -112,8 +112,8 @@ export default function AITestPage() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 16, marginBottom: 32 }}>
-        <div style={{ flex: 1 }}>
+      <div className="ai-test-form-row">
+        <div style={{ flex: 1, minWidth: 0 }}>
           <label style={{ fontSize: 12, fontWeight: 700, color: "#888", display: "block", marginBottom: 6 }}>REPLY (for Generate Reply)</label>
           <select value={selectedReply} onChange={e => setSelectedReply(e.target.value)}
             style={{ width: "100%", padding: "10px 12px", border: "1px solid #e0e0e0", borderRadius: 8, fontSize: 14 }}>

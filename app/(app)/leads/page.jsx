@@ -5,6 +5,7 @@ import api from "../../../lib/api";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import Segmented from "../../../components/ui/Segmented";
+import Spinner from "../../../components/ui/Spinner";
 
 const STATUS_OPTIONS = [
   { label: "All", value: "" },
@@ -259,9 +260,9 @@ function CsvUploadModal({ onClose, onImportComplete }) {
   const pct = progress && progress.total > 0 ? Math.round((progress.processed / progress.total) * 100) : 0;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="csv-modal-backdrop" style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.45)", backdropFilter: "blur(4px)" }} onClick={step === "importing" ? undefined : onClose} />
-      <div style={{ position: "relative", background: "#fff", borderRadius: 16, width: 640, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,.2)" }}>
+      <div className="csv-modal" style={{ position: "relative", background: "#fff", borderRadius: 16, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,.2)" }}>
         {/* Header */}
         <div className="row spread" style={{ padding: "18px 24px", borderBottom: "1px solid var(--line)", flex: "none" }}>
           <div className="row" style={{ gap: 12 }}>
@@ -666,8 +667,13 @@ export default function LeadsPage() {
 
       {/* Table */}
       <div className="scroll grow" style={{ minHeight: 0 }}>
-        <div className="card" style={{ margin: 24, borderRadius: 8, overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div className="card" style={{ margin: 24, borderRadius: 8, overflow: "hidden", position: "relative" }}>
+          {loading && (
+            <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,.6)", display: "grid", placeItems: "center", zIndex: 1 }}>
+              <Spinner size={22} />
+            </div>
+          )}
+          <table style={{ width: "100%", borderCollapse: "collapse", opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto", transition: "opacity .15s" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--bg)" }}>
                 {["Lead", "Email", "Phone", "Location", "Source", "Status", ""].map((header) => (
@@ -676,11 +682,7 @@ export default function LeadsPage() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} style={{ padding: 40, textAlign: "center", color: "var(--muted)", fontWeight: 700 }}>Loading leads...</td>
-                </tr>
-              ) : leads.length === 0 ? (
+              {loading && leads.length === 0 ? null : leads.length === 0 ? (
                 <tr>
                   <td colSpan={7} style={{ padding: 40, textAlign: "center", color: "var(--muted)", fontWeight: 700 }}>
                     {search || statusFilter || sourceFilter ? "No leads match your filters." : "No leads yet. Import leads from the Prospects page."}
