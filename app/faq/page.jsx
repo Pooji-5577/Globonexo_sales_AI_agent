@@ -1,6 +1,6 @@
 export const metadata = {
   title: "FAQs — Globonexo Sales AI",
-  description: "Answers to common questions about Globonexo Sales AI pricing, trials, AI replies, deliverability, integrations, and data handling.",
+  description: "Answers to common questions about Globonexo Sales AI pricing, subscriptions, AI replies, deliverability, integrations, and data handling.",
 };
 
 import Link from "next/link";
@@ -77,7 +77,7 @@ const groups = [
       },
       {
         q: "What does the product integrate with?",
-        a: "Gmail for email, Apollo for lead sourcing and enrichment, Retell for AI voice calls, Stripe for billing, Supabase for authentication and data, and PostHog for product analytics.",
+        a: "Gmail for email, Apollo for lead sourcing and enrichment, Retell for AI voice calls, Razorpay for billing, Supabase for authentication and data, and PostHog for product analytics.",
       },
       {
         q: "Do voice campaigns come with every plan?",
@@ -89,8 +89,8 @@ const groups = [
     title: "Plans and billing",
     items: [
       {
-        q: "Is there a free trial?",
-        a: "Yes, paid plans start with a free trial and you are not charged until it ends. Cancel before the trial ends and no charge is made.",
+        q: "Do you offer a free trial?",
+        a: "No. All accounts start with a paid monthly or annual subscription. You select a plan in Billing before onboarding, and cancellation stops the next renewal while the current paid period remains available.",
       },
       {
         q: "Can I change or cancel my plan?",
@@ -151,7 +151,7 @@ export default function FaqPage() {
           </p>
           <div className="content-hero-actions">
             <Link className="btn btn-primary btn-lg" href="/signup">
-              Start free trial <Icon name="arrow" size={18} color="#06231a" />
+              View plans <Icon name="arrow" size={18} color="#06231a" />
             </Link>
             <Link className="btn btn-ghost btn-lg" href="/help">Browse the Help Center</Link>
           </div>

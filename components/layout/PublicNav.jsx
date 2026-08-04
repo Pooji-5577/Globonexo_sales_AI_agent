@@ -13,7 +13,7 @@ export default function PublicNav() {
       </nav>
       <div>
         <Link className="public-link" href="/login">Sign in</Link>
-        <Link className="btn btn-primary btn-sm" href="/signup">Start free trial</Link>
+        <Link className="btn btn-primary btn-sm" href="/signup">Choose a plan</Link>
       </div>
     </header>
   );

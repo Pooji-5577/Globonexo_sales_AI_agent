@@ -11,7 +11,8 @@ import PublicFooter from "../../components/layout/PublicFooter";
 const plans = [
   {
     name: "Starter",
-    price: "$99",
+    price: "$59",
+    annual: "$588/year",
     description: "For founders validating outbound with one AI sales agent.",
     cta: "Start Starter",
     featured: false,
@@ -25,7 +26,8 @@ const plans = [
   },
   {
     name: "Growth",
-    price: "$299",
+    price: "$179",
+    annual: "$1,788/year",
     description: "For small sales teams ready to run email and voice campaigns.",
     cta: "Start Growth",
     featured: true,
@@ -39,7 +41,8 @@ const plans = [
   },
   {
     name: "Scale",
-    price: "$799",
+    price: "$479",
+    annual: "$4,788/year",
     description: "For teams that need higher volume, tighter controls, and admin visibility.",
     cta: "Talk to sales",
     featured: false,
@@ -62,7 +65,7 @@ export default function PricingPage() {
         <section className="pricing-hero public-section">
           <span className="eyebrow">Pricing</span>
           <h1 className="display">Hire your AI sales rep without adding headcount.</h1>
-          <p>Start with email outbound, add voice when you are ready, and keep every AI reply under human control for v0.1.</p>
+          <p>Choose a monthly or annual paid plan, start with email outbound, and keep every AI reply under human control.</p>
         </section>
 
         <section className="pricing-grid public-section" aria-label="Pricing plans">
@@ -72,6 +75,7 @@ export default function PricingPage() {
               <h2>{plan.name}</h2>
               <p>{plan.description}</p>
               <div className="pricing-price"><strong>{plan.price}</strong><span>/month</span></div>
+              <p className="muted" style={{ marginTop: 6 }}>or {plan.annual}</p>
               <Link className={plan.featured ? "btn btn-primary btn-block" : "btn btn-ghost btn-block"} href="/signup">
                 {plan.cta} <Icon name="arrow" size={16} color="currentColor" />
               </Link>

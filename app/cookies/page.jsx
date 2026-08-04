@@ -24,7 +24,7 @@ const sections = [
   },
   {
     title: "5. Third-Party Cookies",
-    body: "Providers we rely on may set their own cookies when you use their flows. This includes Stripe for checkout and fraud prevention, Google for Gmail authorization, and Supabase for authentication.",
+    body: "Providers we rely on may set their own cookies when you use their flows. This includes Razorpay for checkout and fraud prevention, Google for Gmail authorization, and Supabase for authentication.",
   },
   {
     title: "6. Advertising",

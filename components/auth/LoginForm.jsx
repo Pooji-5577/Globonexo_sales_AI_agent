@@ -29,9 +29,10 @@ export function LoginForm() {
     }
     setSubmitting(true);
     try {
-      await login(normalizedEmail, password);
+      const data = await login(normalizedEmail, password);
       localStorage.setItem('returning_user', '1');
-      router.push('/dashboard');
+      const status = data.organization?.subscription_status;
+      router.push(['active', 'past_due'].includes(status) ? '/dashboard' : '/billing?required=1');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid email or password.');
     } finally {

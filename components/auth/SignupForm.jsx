@@ -47,7 +47,7 @@ export function SignupForm() {
     try {
       await signup(payload);
       localStorage.setItem('returning_user', '1');
-      router.push('/onboarding');
+      router.push('/billing?required=1');
     } catch (err) {
       const data = err.response?.data;
       if (data?.details) {

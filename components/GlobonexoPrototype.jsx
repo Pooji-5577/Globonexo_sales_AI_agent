@@ -279,7 +279,7 @@ function Splash({ go }) {
             <div className="landing-nav-actions">
               <button className="landing-signin" onClick={() => go('login')}>Sign in</button>
               <button className="btn btn-primary btn-sm" onClick={() => go('signup')}>
-                Start free trial <Icon name="arrow" size={16} color="#06231a" />
+                Choose a plan <Icon name="arrow" size={16} color="#06231a" />
               </button>
             </div>
           </nav>
@@ -294,12 +294,12 @@ function Splash({ go }) {
               <p>Finds buyers, writes outreach, handles replies, and books meetings while your team focuses on closing.</p>
               <div className="landing-hero-actions">
                 <button className="btn btn-primary btn-lg" onClick={() => go('signup')}>
-                  Start free trial <Icon name="arrow" size={18} color="#06231a" />
+                  Start with a paid plan <Icon name="arrow" size={18} color="#06231a" />
                 </button>
                 <button className="landing-outline-btn" onClick={() => go('login')}>Sign in</button>
               </div>
               <div className="landing-assurances">
-                <span><Icon name="check" size={15} color="var(--g-300)" /> No credit card required</span>
+                <span><Icon name="check" size={15} color="var(--g-300)" /> Monthly or annual billing</span>
                 <span><Icon name="check" size={15} color="var(--g-300)" /> Live in 5 minutes</span>
               </div>
             </div>
@@ -389,11 +389,11 @@ function Splash({ go }) {
 
         <section id="pricing" className="landing-cta landing-section">
           <div>
-            <h2 className="display">Start your free trial</h2>
-            <p>Hire your AI sales rep in five minutes. No credit card required.</p>
+            <h2 className="display">Put your AI sales rep to work.</h2>
+            <p>Choose a paid plan, connect your inbox, and get your outbound workflow moving.</p>
           </div>
           <button className="btn btn-primary btn-lg" onClick={() => go('signup')}>
-            Start free trial <Icon name="arrow" size={18} color="#06231a" />
+            Choose a plan <Icon name="arrow" size={18} color="#06231a" />
           </button>
         </section>
 
@@ -461,10 +461,10 @@ function Signup({ go }) {
   return (
     <div className="screen" style={{ flexDirection: 'row' }}>
       <AuthAside
-        kicker="Start free"
+        kicker="Choose your plan"
         headline="Hire your AI sales rep in 5 minutes."
-        sub="No credit card. Connect your inbox and the agent starts prospecting the same day."
-        bullets={['14-day free trial, full access', '2-minute inbox & CRM connect', 'Cancel anytime']}
+        sub="Create your account, complete billing, and connect your inbox to get started."
+        bullets={['Monthly and annual plans', '2-minute inbox & CRM connect', 'Cancel whenever you want']}
       />
       <div className="grow scroll" style={{ display: 'grid', placeItems: 'center', padding: 40, background: '#fff' }}>
         <div style={{ width: 400, maxWidth: '100%' }}>
