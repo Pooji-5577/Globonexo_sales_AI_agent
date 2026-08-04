@@ -2,13 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Icon from "../../../components/ui/Icon";
-import Avatar from "../../../components/ui/Avatar";
-import RouteSkeleton from "../../../components/ui/RouteSkeleton";
-import Spinner from "../../../components/ui/Spinner";
-import { useFirstLoad } from "../../../hooks/useFirstLoad";
-import api from "../../../lib/api";
-import { cleanText } from "../../../lib/validation";
+import Icon from "../../components/ui/Icon";
+import Avatar from "../../components/ui/Avatar";
+import RouteSkeleton from "../../components/ui/RouteSkeleton";
+import Spinner from "../../components/ui/Spinner";
+import { useFirstLoad } from "../../hooks/useFirstLoad";
+import api from "../../lib/api";
+import { cleanText } from "../../lib/validation";
 
 const SUPPORT_STATUSES = new Set(["open", "resolved", "closed"]);
 
@@ -181,12 +181,9 @@ export default function AdminPage() {
 
   return (
     <div className="admin-screen">
-      <div className="row spread page-head">
-        <div>
-          <h1 className="display page-title">Admin Console</h1>
-          <p className="muted page-subtitle">Platform-wide organizations, users, campaigns, and support signals.</p>
-        </div>
-        <a className="btn btn-ghost btn-sm" href="/dashboard"><Icon name="arrowLeft" size={15} /> Back to app</a>
+      <div className="page-head">
+        <h1 className="display page-title">Admin Console</h1>
+        <p className="muted page-subtitle">Platform-wide organizations, users, campaigns, and support signals.</p>
       </div>
 
       {(error || notice) ? <div className={error ? "notice-warn" : "notice-good"}>{error || notice}</div> : null}
