@@ -4,101 +4,184 @@ import Icon from "../../../components/ui/Icon";
 import Typing from "../../../components/ui/Typing";
 import api from "../../../lib/api";
 
-const QUICK = ['Draft follow-ups for no-replies', 'Find 50 new ICP accounts', 'Summarize hottest leads', 'Pause weekend sending'];
+const QUICK = ['Draft follow-ups for no-replies', 'Give me 50 ICP leads', 'Summarize hottest leads', 'Pause weekend sending'];
 
-const CHAT_STORAGE_KEY = 'globonexo_agent_chat';
-
-function loadSavedMessages() {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(CHAT_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : null;
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
-  } catch {
-    return null;
-  }
+function apiMessageToMsg(m) {
+  return {
+    id: m.id,
+    who: m.role === 'user' ? 'user' : 'agent',
+    kind: m.kind || 'text',
+    text: m.content,
+    stats: m.metadata?.stats,
+    drafts: m.metadata?.drafts,
+  };
 }
 
-const MOCK_RESPONSES = {
-  'Draft follow-ups for no-replies': "I've queued personalized follow-up drafts for every lead who hasn't replied yet. Review and approve them from your Inbox before they go out.",
-  'Find 50 new ICP accounts': "Searching Apollo for accounts matching your ideal customer profile — I'll add the best 50 matches to your Prospects list and flag them for review.",
-};
+const bubbleStyle = (isUser) => ({
+  maxWidth: 480, padding: '12px 16px', fontSize: 14.5, lineHeight: 1.55,
+  borderRadius: 18, fontWeight: isUser ? 600 : 500, whiteSpace: 'pre-line',
+  background: isUser ? 'linear-gradient(180deg,var(--g-400),var(--g-500))' : '#fff',
+  color: isUser ? '#06231a' : 'var(--ink)',
+  border: isUser ? 'none' : '1px solid var(--line)',
+  borderTopRightRadius: isUser ? 4 : 18, borderTopLeftRadius: isUser ? 18 : 4,
+  boxShadow: isUser ? 'var(--sh-green)' : 'var(--sh-xs)',
+});
 
-function leadDisplayName(l) {
-  return l.name || [l.firstName, l.lastName].filter(Boolean).join(' ') || 'Unknown';
-}
-
-async function respondPauseWeekendSending() {
-  try {
-    const { data } = await api.get('/campaigns');
-    const active = (data?.items || []).filter(c => (c.channel === 'email' || c.channel === 'both') && c.status === 'active');
-    if (active.length === 0) {
-      return "You don't have any active email campaigns right now — nothing to pause.";
-    }
-    await Promise.all(active.map(c => api.post(`/campaigns/${c.id}/pause`)));
-    const names = active.map(c => c.name).join(', ');
-    return `Paused sending for ${active.length} active campaign${active.length > 1 ? 's' : ''}: ${names}. They'll resume when you're ready.`;
-  } catch {
-    return 'Something went wrong pausing your campaigns — check the Campaigns page.';
-  }
-}
-
-async function respondSummarizeHotLeads() {
-  try {
-    const { data } = await api.get('/leads');
-    const hot = (data?.items || [])
-      .filter(l => (l.score ?? 0) > 0)
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, 5);
-    if (hot.length === 0) {
-      return "No hot leads right now — I'll flag them here as soon as they come in.";
-    }
-    const lines = hot.map(l => `• ${leadDisplayName(l)}${l.company ? ` (${l.company})` : ''} — score ${l.score}`);
-    return `Here are your hottest leads:\n${lines.join('\n')}`;
-  } catch {
-    return 'Something went wrong pulling your leads — check the Prospects page.';
-  }
-}
-
-function Bubble({ m, name }) {
-  const isUser = m.who === 'user';
-  const AgentAvatar = () => (
+function AgentAvatar() {
+  return (
     <span style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', flex: 'none' }}>
       <Icon name="spark" size={17} color="#06231a" />
     </span>
   );
-  if (m.kind === 'text') {
-    return (
-      <div className="row" style={{ gap: 9, justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
-        {!isUser && <AgentAvatar />}
-        <div style={{
-          maxWidth: 480, padding: '12px 16px', fontSize: 14.5, lineHeight: 1.55,
-          borderRadius: 18, fontWeight: isUser ? 600 : 500, whiteSpace: 'pre-line',
-          background: isUser ? 'linear-gradient(180deg,var(--g-400),var(--g-500))' : '#fff',
-          color: isUser ? '#06231a' : 'var(--ink)',
-          border: isUser ? 'none' : '1px solid var(--line)',
-          borderTopRightRadius: isUser ? 4 : 18, borderTopLeftRadius: isUser ? 18 : 4,
-          boxShadow: isUser ? 'var(--sh-green)' : 'var(--sh-xs)',
-        }}>{m.text}</div>
+}
+
+function TextRow({ text, isUser }) {
+  return (
+    <div className="row" style={{ gap: 9, justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+      {!isUser && <AgentAvatar />}
+      <div style={bubbleStyle(isUser)}>{text}</div>
+    </div>
+  );
+}
+
+function DraftCard({ draft }) {
+  const [status, setStatus] = useState('pending');
+  const [editing, setEditing] = useState(false);
+  const [subject, setSubject] = useState(draft.subject || '');
+  const [body, setBody] = useState(draft.body || '');
+  const [busy, setBusy] = useState(false);
+  const [errorText, setErrorText] = useState('');
+
+  const approve = async () => {
+    setBusy(true);
+    setErrorText('');
+    try {
+      await api.post(`/emails/drafts/${draft.id}/approve`);
+      setStatus('approved');
+    } catch (err) {
+      setErrorText(err?.response?.data?.message || 'Failed to approve this draft.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reject = async () => {
+    setBusy(true);
+    setErrorText('');
+    try {
+      await api.post(`/emails/drafts/${draft.id}/reject`);
+      setStatus('rejected');
+    } catch (err) {
+      setErrorText(err?.response?.data?.message || 'Failed to reject this draft.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveEdit = async () => {
+    setBusy(true);
+    setErrorText('');
+    try {
+      await api.patch(`/emails/drafts/${draft.id}`, { subject, body });
+      setEditing(false);
+    } catch (err) {
+      setErrorText(err?.response?.data?.message || 'Failed to save changes.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="card" style={{ padding: 14, maxWidth: 480 }}>
+      <div className="row spread" style={{ marginBottom: 8 }}>
+        <span style={{ fontWeight: 700, fontSize: 13.5 }}>
+          {draft.leadName}{draft.company ? ` · ${draft.company}` : ''}
+        </span>
+        {status !== 'pending' && (
+          <span className="chip" style={{ fontSize: 11 }}>
+            {status === 'approved' ? 'Approved · queued to send' : 'Rejected'}
+          </span>
+        )}
       </div>
-    );
-  }
+
+      {editing ? (
+        <div className="col" style={{ gap: 6 }}>
+          <input className="input" value={subject} onChange={e => setSubject(e.target.value)} disabled={busy} />
+          <textarea
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            disabled={busy}
+            style={{
+              width: '100%', minHeight: 120, resize: 'vertical', border: '1px solid var(--line)',
+              borderRadius: 8, padding: '10px 12px', font: 'inherit', fontSize: 13.5, lineHeight: 1.55,
+              color: 'var(--ink-2)', background: '#fff', outline: 'none',
+            }}
+          />
+        </div>
+      ) : (
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 4 }}>{subject}</div>
+          <div className="faint" style={{ fontSize: 12.5, whiteSpace: 'pre-line' }}>{body}</div>
+        </div>
+      )}
+
+      {errorText && <p style={{ color: 'var(--red-600, #c0392b)', fontSize: 12, marginTop: 8 }}>{errorText}</p>}
+
+      {status === 'pending' && (
+        <div className="row" style={{ gap: 8, marginTop: 10 }}>
+          {editing ? (
+            <>
+              <button className="btn btn-primary btn-sm" disabled={busy || !subject.trim() || !body.trim()} onClick={saveEdit}>Save</button>
+              <button className="btn btn-sm" disabled={busy} onClick={() => setEditing(false)}>Cancel</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-primary btn-sm" disabled={busy} onClick={approve}>Approve</button>
+              <button className="btn btn-sm" disabled={busy} onClick={() => setEditing(true)}>Edit</button>
+              <button className="btn btn-sm" disabled={busy} onClick={reject}>Reject</button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Bubble({ m }) {
+  const isUser = m.who === 'user';
+
   if (m.kind === 'stats') {
     return (
-      <div className="row" style={{ gap: 9 }}>
-        <AgentAvatar />
-        <div className="row" style={{ gap: 9 }}>
-          {(m.stats || []).map(([v, k]) => (
-            <div key={k} className="card" style={{ padding: '11px 14px', textAlign: 'center' }}>
-              <div className="display" style={{ fontSize: 22, color: 'var(--g-700)' }}>{v}</div>
-              <div className="faint" style={{ fontSize: 11, fontWeight: 700 }}>{k}</div>
-            </div>
-          ))}
-        </div>
+      <div className="col" style={{ gap: 10 }}>
+        {m.text && <TextRow text={m.text} isUser={false} />}
+        {(m.stats || []).length > 0 && (
+          <div className="row" style={{ gap: 9, marginLeft: 41 }}>
+            {m.stats.map(([v, k]) => (
+              <div key={k} className="card" style={{ padding: '11px 14px', textAlign: 'center' }}>
+                <div className="display" style={{ fontSize: 22, color: 'var(--g-700)' }}>{v}</div>
+                <div className="faint" style={{ fontSize: 11, fontWeight: 700 }}>{k}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
-  return null;
+
+  if (m.kind === 'draft_review') {
+    return (
+      <div className="col" style={{ gap: 10 }}>
+        {m.text && <TextRow text={m.text} isUser={false} />}
+        {(m.drafts || []).length > 0 && (
+          <div className="col" style={{ gap: 10, marginLeft: 41 }}>
+            {m.drafts.map(d => <DraftCard key={d.id} draft={d} />)}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return <TextRow text={m.text} isUser={isUser} />;
 }
 
 export default function AgentPage() {
@@ -111,22 +194,23 @@ export default function AgentPage() {
   const scrollRef = useRef(null);
 
   useEffect(() => {
-    const saved = loadSavedMessages();
-
-    api.get('/dashboard')
-      .then(res => {
-        const d = res.data;
+    Promise.all([
+      api.get('/dashboard').catch(() => null),
+      api.get('/agent/messages').catch(() => null),
+    ]).then(([dashboardRes, messagesRes]) => {
+      const d = dashboardRes?.data;
+      if (d) {
         setSidebarData(d);
         if (d.agentName) setName(d.agentName);
+      }
 
-        // Restore a prior conversation instead of overwriting it with a fresh
-        // greeting - otherwise navigating away and back (or refreshing) always
-        // wiped the chat, since messages only ever lived in React state.
-        if (saved) {
-          setMsgs(saved);
-          return;
-        }
+      const items = messagesRes?.data?.items || [];
+      if (items.length > 0) {
+        setMsgs(items.map(apiMessageToMsg));
+        return;
+      }
 
+      if (d) {
         const kpis = d.kpis || {};
         const firstName = d.user?.firstName || 'there';
         setMsgs([
@@ -141,28 +225,14 @@ export default function AgentPage() {
             : 'Everything looks good. What would you like me to work on?'
           },
         ]);
-      })
-      .catch(() => {
-        if (saved) {
-          setMsgs(saved);
-          return;
-        }
+      } else {
         setMsgs([
           { who: 'agent', kind: 'text', text: `Hi 👋 I'm ${name}, your AI sales agent. How can I help?` },
         ]);
-      })
-      .finally(() => setInitialLoaded(true));
+      }
+    }).finally(() => setInitialLoaded(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!initialLoaded || typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(msgs));
-    } catch {
-      // localStorage can throw in private browsing/quota-exceeded cases - chat
-      // still works for the session, it just won't persist across reloads.
-    }
-  }, [msgs, initialLoaded]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -175,22 +245,22 @@ export default function AgentPage() {
     setInput('');
     setTyping(true);
 
-    const minDelay = new Promise(resolve => setTimeout(resolve, 1400));
-    let replyText;
-    if (t === 'Pause weekend sending') {
-      [replyText] = await Promise.all([respondPauseWeekendSending(), minDelay]);
-    } else if (t === 'Summarize hottest leads') {
-      [replyText] = await Promise.all([respondSummarizeHotLeads(), minDelay]);
-    } else if (MOCK_RESPONSES[t]) {
-      await minDelay;
-      replyText = MOCK_RESPONSES[t];
-    } else {
-      await minDelay;
-      replyText = "On it — I'll handle that and report back. Anything worth your attention will land in your Inbox with a summary.";
+    try {
+      // Search/draft tools can chase Apollo results across several calls plus
+      // an extra LLM round-trip, so this needs real headroom past the 10s
+      // default set on the shared api client.
+      const { data } = await api.post('/agent/chat', { message: t }, { timeout: 60000 });
+      setMsgs(m => [...m, apiMessageToMsg(data)]);
+    } catch (err) {
+      const isTimeout = err?.code === 'ECONNABORTED';
+      const reason = err?.response?.data?.message
+        || (isTimeout
+          ? "That took too long to finish. It may still be running - check the relevant page, or try again."
+          : "Something went wrong reaching the agent. Please try again.");
+      setMsgs(m => [...m, { who: 'agent', kind: 'text', text: reason }]);
+    } finally {
+      setTyping(false);
     }
-
-    setTyping(false);
-    setMsgs(m => [...m, { who: 'agent', kind: 'text', text: replyText }]);
   };
 
   const kpis = sidebarData?.kpis ?? {};
@@ -220,7 +290,7 @@ export default function AgentPage() {
                 <p className="muted">Loading…</p>
               </div>
             ) : (
-              msgs.map((m, i) => <Bubble key={i} m={m} name={name} />)
+              msgs.map((m, i) => <Bubble key={m.id ?? i} m={m} />)
             )}
             {typing && (
               <div className="row" style={{ gap: 10 }}>
@@ -233,7 +303,7 @@ export default function AgentPage() {
         <div className="agent-composer" style={{ flex: 'none', padding: '10px 24px 18px', borderTop: '1px solid var(--line)', background: '#fff' }}>
           <div className="row wrap agent-quick-actions" style={{ gap: 7, maxWidth: 700, margin: '0 auto 10px' }}>
             {QUICK.map(q => (
-              <button key={q} onClick={() => send(q)} className="chip" style={{ cursor: 'pointer', background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-2)', height: 30, fontSize: 12.5 }}>
+              <button key={q} onClick={() => send(q)} className="chip" style={{ cursor: 'pointer', background: '#fff', border: '1px solid var(--line)', color: 'var(--ink-2)', height: 30, fontSize: 12.5 }} disabled={typing}>
                 <Icon name="bolt" size={12} color="var(--g-600)" /> {q}
               </button>
             ))}
@@ -241,9 +311,9 @@ export default function AgentPage() {
           <div className="row agent-input-row" style={{ gap: 10, maxWidth: 700, margin: '0 auto' }}>
             <div className="input-wrap grow">
               <input className="input" style={{ height: 50 }} placeholder={`Ask ${name} to prospect, draft, or follow up…`} value={input}
-                onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} />
+                onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} disabled={typing} />
             </div>
-            <button className="btn btn-primary" style={{ width: 50, height: 50, padding: 0, borderRadius: 14, flex: 'none' }} onClick={() => send()}>
+            <button className="btn btn-primary" style={{ width: 50, height: 50, padding: 0, borderRadius: 14, flex: 'none' }} onClick={() => send()} disabled={typing}>
               <Icon name="send" size={19} color="#06231a" />
             </button>
           </div>
