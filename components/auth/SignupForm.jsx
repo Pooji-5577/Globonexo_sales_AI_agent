@@ -63,7 +63,7 @@ export function SignupForm() {
     try {
       await verifySignup(form.email, otp);
       localStorage.setItem('returning_user', '1');
-      router.push('/onboarding');
+      router.push('/billing?required=1');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid or expired code.');
     } finally {
@@ -125,7 +125,7 @@ export function SignupForm() {
   }
 
   return (
-    <div style={{ width: 560, maxWidth: '100%' }}>
+    <div className="auth-form-wide">
       <h2 className="display" style={{ fontSize: 30 }}>Create your account</h2>
       <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Let&apos;s build your autonomous pipeline.</p>
       <button
@@ -141,7 +141,7 @@ export function SignupForm() {
       </div>
       <form onSubmit={handleDetailsSubmit}>
         <div className="col" style={{ gap: 14 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(240px,1fr))', gap: 20 }}>
+          <div className="auth-name-grid">
             <Field label="First name" icon="user" placeholder="Jane" value={form.firstName} onChange={update('firstName')} required autoComplete="given-name" />
             <Field label="Last name" placeholder="Smith" value={form.lastName} onChange={update('lastName')} required autoComplete="family-name" />
           </div>

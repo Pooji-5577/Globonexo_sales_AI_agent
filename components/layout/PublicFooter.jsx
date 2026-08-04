@@ -11,6 +11,15 @@ const groups = [
     ],
   },
   {
+    title: "Solutions",
+    links: [
+      { label: "Overview", href: "/solutions" },
+      { label: "SDR teams", href: "/solutions#sdr-teams" },
+      { label: "Founders & small teams", href: "/solutions#founders" },
+      { label: "Agencies", href: "/solutions#agencies" },
+    ],
+  },
+  {
     title: "Company",
     links: [
       { label: "About Us", href: "/about" },

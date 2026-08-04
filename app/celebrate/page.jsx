@@ -32,7 +32,7 @@ export default function CelebratePage() {
           </div>
           <h1 id="celebrate-title" className="display">Your agent is ready.</h1>
           <p>
-            Nexo is fully configured and queueing your first outreach. Your prospect list,
+            GNX sales is fully configured and queueing your first outreach. Your prospect list,
             templates, cadence, and connected tools are ready to start booking meetings.
           </p>
           <div className="celebrate-actions">

@@ -260,9 +260,9 @@ function CsvUploadModal({ onClose, onImportComplete }) {
   const pct = progress && progress.total > 0 ? Math.round((progress.processed / progress.total) * 100) : 0;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <div className="csv-modal-backdrop" style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.45)", backdropFilter: "blur(4px)" }} onClick={step === "importing" ? undefined : onClose} />
-      <div style={{ position: "relative", background: "#fff", borderRadius: 16, width: 640, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,.2)" }}>
+      <div className="csv-modal" style={{ position: "relative", background: "#fff", borderRadius: 16, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 24px 60px rgba(0,0,0,.2)" }}>
         {/* Header */}
         <div className="row spread" style={{ padding: "18px 24px", borderBottom: "1px solid var(--line)", flex: "none" }}>
           <div className="row" style={{ gap: 12 }}>

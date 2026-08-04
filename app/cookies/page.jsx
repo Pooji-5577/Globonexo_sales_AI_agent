@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Cookie Policy — Globonexo Sales AI",
-  description: "How Globonexo Sales AI uses cookies and similar technologies.",
+  title: "Cookie Policy — GNX sales",
+  description: "How GNX sales uses cookies and similar technologies.",
 };
 
 import LegalPage from "../../components/layout/LegalPage";
@@ -24,7 +24,7 @@ const sections = [
   },
   {
     title: "5. Third-Party Cookies",
-    body: "Providers we rely on may set their own cookies when you use their flows. This includes Stripe for checkout and fraud prevention, Google for Gmail authorization, and Supabase for authentication.",
+    body: "Providers we rely on may set their own cookies when you use their flows. This includes Razorpay for checkout and fraud prevention, Google for Gmail authorization, and Supabase for authentication.",
   },
   {
     title: "6. Advertising",

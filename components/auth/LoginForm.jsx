@@ -45,9 +45,10 @@ export function LoginForm() {
     }
     setSubmitting(true);
     try {
-      await verifyLogin(email, otp);
+      const data = await verifyLogin(email, otp);
       localStorage.setItem('returning_user', '1');
-      router.push('/dashboard');
+      const status = data.organization?.subscription_status;
+      router.push(['active', 'past_due'].includes(status) ? '/dashboard' : '/billing?required=1');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid or expired code.');
     } finally {
@@ -109,7 +110,7 @@ export function LoginForm() {
   }
 
   return (
-    <div style={{ width: 380, maxWidth: '100%' }}>
+    <div className="auth-form">
       <h2 className="display" style={{ fontSize: 30 }}>Sign in</h2>
       <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Welcome back. Let&apos;s get to work.</p>
       <button

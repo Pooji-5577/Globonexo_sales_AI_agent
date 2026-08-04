@@ -45,6 +45,9 @@ const NAV_GROUPS = [
   },
 ];
 
+const ACCESS_STATUSES = new Set(['active', 'past_due']);
+const BILLING_ALLOWED_PATHS = ['/billing', '/support'];
+
 export default function AppShell({ children }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -56,6 +59,7 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     let active = true;
+    setAuthChecked(false);
     const next = encodeURIComponent(pathname || '/dashboard');
     const redirectToLogin = () => {
       if (!active) return;
@@ -86,6 +90,21 @@ export default function AppShell({ children }) {
     setMobileNavOpen(false);
   }, [pathname]);
 
+  const paymentRequired = Boolean(
+    authChecked
+      && user
+      && org
+      && user.role !== 'admin'
+      && !ACCESS_STATUSES.has(org.subscription_status),
+  );
+  const billingRouteAllowed = BILLING_ALLOWED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+
+  useEffect(() => {
+    if (paymentRequired && !billingRouteAllowed) {
+      router.replace('/billing?required=1');
+    }
+  }, [paymentRequired, billingRouteAllowed, router]);
+
   const userName = user
     ? [user.first_name, user.last_name].filter(Boolean).join(' ') || 'User'
     : '';
@@ -111,9 +130,25 @@ export default function AppShell({ children }) {
     );
   }
 
+  if (paymentRequired && !billingRouteAllowed) {
+    return (
+      <div className="screen app-shell-screen" style={{ display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
+        <div className="card" style={{ maxWidth: 460, padding: 32, textAlign: 'center' }}>
+          <h1 className="display" style={{ fontSize: 24 }}>Complete billing to continue</h1>
+          <p className="muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
+            Your account is ready. Choose a monthly or annual plan in Billing to unlock onboarding and the sales workspace.
+          </p>
+          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => router.replace('/billing?required=1')}>
+            Go to Billing
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="screen app-shell-screen" style={{ flexDirection: 'row', background: 'var(--bg)' }}>
-      <aside className="app-shell-sidebar" style={{ width: 248, flex: 'none', background: '#fff', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: '18px 14px' }}>
+    <div className="screen app-shell-screen" style={{ background: 'var(--bg)' }}>
+      <aside className="app-shell-sidebar" style={{ background: '#fff', borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: '18px 14px' }}>
         <div className="app-shell-brand" style={{ padding: '4px 6px 16px' }}><Logo size={28} /></div>
         <button className="btn btn-primary btn-sm app-shell-new" style={{ marginBottom: 14, fontSize: 13.5 }} onClick={() => goTo('/campaigns/new')}>
           <Icon name="plus" size={15} color="#06231a" /> New campaign
@@ -188,7 +223,7 @@ export default function AppShell({ children }) {
 
       <div className="grow col" style={{ minWidth: 0 }}>
         <header className="row spread app-shell-header" style={{ height: 62, flex: 'none', padding: '0 24px', borderBottom: '1px solid var(--line)', background: 'rgba(255,255,255,.9)', backdropFilter: 'blur(8px)' }}>
-          <div className="input-wrap app-shell-search" style={{ width: 320 }}>
+          <div className="input-wrap app-shell-search">
             <span className="lead-ico"><Icon name="search" size={17} /></span>
             <input className="input has-ico" style={{ height: 40, background: 'var(--bg)', fontSize: 14 }} placeholder="Search leads, accounts, replies…" />
           </div>

@@ -21,7 +21,11 @@ export default function AuthCallbackPage() {
 
     api
       .post('/auth/google/callback', { accessToken, refreshToken, expiresIn })
-      .then(() => { localStorage.setItem('returning_user', '1'); router.replace('/dashboard'); })
+      .then((res) => {
+        localStorage.setItem('returning_user', '1');
+        const status = res.data.organization?.subscription_status;
+        router.replace(['active', 'past_due'].includes(status) ? '/dashboard' : '/billing?required=1');
+      })
       .catch(() => router.replace('/login?error=oauth_failed'));
   }, [router]);
 

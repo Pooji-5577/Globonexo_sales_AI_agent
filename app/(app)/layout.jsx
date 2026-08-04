@@ -1,7 +1,7 @@
 import AppShell from "../../components/layout/AppShell";
 
 export const metadata = {
-  title: "Globonexo Sales AI",
+  title: "GNX sales",
 };
 
 export default function AppLayout({ children }) {

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "About Us — Globonexo Sales AI",
+  title: "About Us — GNX sales",
   description: "Globonexo builds AI sales agents that find buyers, start conversations, and book meetings for small sales teams.",
 };
 
@@ -47,13 +47,13 @@ export default function AboutPage() {
           <span className="eyebrow">About us</span>
           <h1 className="display">We are building the sales rep that never drops a follow-up.</h1>
           <p>
-            Globonexo Sales AI gives small teams the outbound capacity of a much larger one. Our agents find the right
+            GNX sales gives small teams the outbound capacity of a much larger one. Our agents find the right
             buyers, write messages worth replying to, handle the back and forth, and book the meeting, while your team
             stays focused on the conversations that close.
           </p>
           <div className="content-hero-actions">
             <Link className="btn btn-primary btn-lg" href="/signup">
-              Start free trial <Icon name="arrow" size={18} color="#06231a" />
+              Choose a plan <Icon name="arrow" size={18} color="#06231a" />
             </Link>
             <Link className="btn btn-ghost btn-lg" href="/contact">Talk to us</Link>
           </div>
@@ -110,7 +110,7 @@ export default function AboutPage() {
         <section className="content-cta public-section">
           <div>
             <h2>See it run on your pipeline.</h2>
-            <p>Start a free trial, or reach out and we will walk through your outbound motion with you.</p>
+            <p>Choose a paid plan, or reach out and we will walk through your outbound motion with you.</p>
           </div>
           <div className="content-cta-actions">
             <Link className="btn btn-dark" href="/signup">Create account</Link>

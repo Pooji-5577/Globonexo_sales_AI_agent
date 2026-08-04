@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Help Center — Globonexo Sales AI",
-  description: "Guides for setting up agents, sourcing leads, running campaigns, handling replies, and managing billing in Globonexo Sales AI.",
+  title: "Help Center — GNX sales",
+  description: "Guides for setting up agents, sourcing leads, running campaigns, handling replies, and managing billing in GNX sales.",
 };
 
 import Link from "next/link";

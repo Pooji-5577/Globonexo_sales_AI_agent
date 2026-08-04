@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Globonexo Sales AI — Auth",
+  title: "GNX sales — Auth",
 };
 
 export default function AuthLayout({ children }) {
