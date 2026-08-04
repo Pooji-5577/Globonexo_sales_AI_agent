@@ -59,7 +59,7 @@ function DraftCard({ draft }) {
       await api.post(`/emails/drafts/${draft.id}/approve`);
       setStatus('approved');
     } catch (err) {
-      setErrorText(err?.response?.data?.message || 'Failed to approve this draft.');
+      setErrorText(err?.response?.data?.error || 'Failed to approve this draft.');
     } finally {
       setBusy(false);
     }
@@ -72,7 +72,7 @@ function DraftCard({ draft }) {
       await api.post(`/emails/drafts/${draft.id}/reject`);
       setStatus('rejected');
     } catch (err) {
-      setErrorText(err?.response?.data?.message || 'Failed to reject this draft.');
+      setErrorText(err?.response?.data?.error || 'Failed to reject this draft.');
     } finally {
       setBusy(false);
     }
@@ -85,7 +85,7 @@ function DraftCard({ draft }) {
       await api.patch(`/emails/drafts/${draft.id}`, { subject, body });
       setEditing(false);
     } catch (err) {
-      setErrorText(err?.response?.data?.message || 'Failed to save changes.');
+      setErrorText(err?.response?.data?.error || 'Failed to save changes.');
     } finally {
       setBusy(false);
     }
@@ -253,7 +253,7 @@ export default function AgentPage() {
       setMsgs(m => [...m, apiMessageToMsg(data)]);
     } catch (err) {
       const isTimeout = err?.code === 'ECONNABORTED';
-      const reason = err?.response?.data?.message
+      const reason = err?.response?.data?.error
         || (isTimeout
           ? "That took too long to finish. It may still be running - check the relevant page, or try again."
           : "Something went wrong reaching the agent. Please try again.");
