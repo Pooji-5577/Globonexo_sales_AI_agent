@@ -27,6 +27,8 @@ const EMAIL_FILTERS = [
   { id: "drafts", label: "Drafts" },
 ];
 
+const CONTACTED_STATUSES = new Set(["contacted", "engaged", "meeting_booked"]);
+
 function formatBody(body) {
   return (body || "").split("\n").map((line, index) => (
     <React.Fragment key={index}>
@@ -37,7 +39,10 @@ function formatBody(body) {
 }
 
 function leadName(lead = {}, fallback = "Lead") {
-  return [lead.first_name, lead.last_name].filter(Boolean).join(" ") || lead.name || fallback;
+  return [lead.first_name, lead.last_name].filter(Boolean).join(" ") ||
+    [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+    lead.name ||
+    fallback;
 }
 
 function formatDateTime(value) {
@@ -52,9 +57,34 @@ function formatDateTime(value) {
 
 function filterThreads(items, filter) {
   if (filter === "replies") return items.filter(item => item.kind === "reply");
-  if (filter === "sent") return items.filter(item => item.kind === "sent" || ["approved", "sent", "sent_email"].includes(item.aiDraftStatus));
+  if (filter === "sent") return items.filter(item =>
+    item.kind === "sent" ||
+    (item.kind === "lead" && CONTACTED_STATUSES.has(item.status)) ||
+    ["approved", "sent", "sent_email"].includes(item.aiDraftStatus)
+  );
   if (filter === "drafts") return items.filter(item => item.kind === "reply" && item.aiDraftStatus === "pending");
   return items;
+}
+
+function leadToThread(lead) {
+  const name = leadName(lead);
+  const titleLine = [lead.title, lead.company].filter(Boolean).join(" · ");
+  return {
+    id: `lead:${lead.id}`,
+    leadId: lead.id,
+    kind: "lead",
+    name,
+    company: lead.company || "",
+    email: lead.email || "",
+    title: lead.title || "",
+    status: lead.status || "new",
+    score: lead.score ?? 0,
+    source: lead.source || "manual",
+    subject: CONTACTED_STATUSES.has(lead.status) ? "Outbound conversation" : "Pipeline lead",
+    preview: titleLine || lead.email || "Saved lead",
+    time: CONTACTED_STATUSES.has(lead.status) ? "contacted" : "new",
+    createdAt: lead.createdAt,
+  };
 }
 
 function buildFallbackDraft(detail, thread, displayName) {
@@ -98,15 +128,32 @@ export default function InboxPage() {
 
   useEffect(() => {
     let cancelled = false;
-    api.get("/inbox")
-      .then(res => {
+
+    Promise.allSettled([
+      api.get("/inbox"),
+      api.get("/leads", { params: { perPage: 500 } }),
+    ])
+      .then(([inboxResult, leadsResult]) => {
         if (cancelled) return;
-        const items = (res.data?.threads || []).map(item => ({ ...item, kind: "reply" }));
+
+        if (inboxResult.status === "rejected" && leadsResult.status === "rejected") {
+          setError("Inbox could not be loaded. Check backend, login session, and Gmail connection.");
+          return;
+        }
+
+        const replyThreads = inboxResult.status === "fulfilled"
+          ? (inboxResult.value.data?.threads || []).map(item => ({ ...item, kind: "reply" }))
+          : [];
+        const repliedLeadIds = new Set(replyThreads.map(item => item.leadId).filter(Boolean));
+        const leadThreads = leadsResult.status === "fulfilled"
+          ? (leadsResult.value.data?.items || [])
+            .filter(lead => !repliedLeadIds.has(lead.id))
+            .map(leadToThread)
+          : [];
+        const items = [...replyThreads, ...leadThreads];
+
         setThreads(items);
         setSelectedId(items[0]?.id || null);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Real inbox could not be loaded. Check backend, login session, and Gmail connection.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -126,6 +173,24 @@ export default function InboxPage() {
     setError("");
     setSuccess("");
     setComposerBody("");
+
+    if (selectedId.startsWith("lead:")) {
+      const leadThread = threads.find(item => item.id === selectedId);
+      setDetail(leadThread ? {
+        kind: "lead",
+        leads: {
+          id: leadThread.leadId,
+          name: leadThread.name,
+          company: leadThread.company,
+          email: leadThread.email,
+          title: leadThread.title,
+        },
+      } : null);
+      setDraftBody("");
+      setDetailLoading(false);
+      return;
+    }
+
     api.get(`/inbox/${selectedId}`)
       .then(res => {
         setDetail({ ...res.data, kind: "reply" });
@@ -133,7 +198,7 @@ export default function InboxPage() {
       })
       .catch(() => setError("Thread details could not be loaded."))
       .finally(() => setDetailLoading(false));
-  }, [selectedId]);
+  }, [selectedId, threads]);
 
   const sendManualMessage = async event => {
     event.preventDefault();
@@ -215,6 +280,7 @@ export default function InboxPage() {
   const displayName = leadName(lead, thread?.name || "Lead");
   const draftStatus = detail?.ai_draft_status || thread?.aiDraftStatus || "pending";
   const hasReply = detail?.kind === "reply";
+  const isLeadOnly = thread?.kind === "lead";
   const manualMessages = selectedId ? sentMessages[selectedId] || [] : [];
   const filteredThreads = filterThreads(threads, activeFilter);
   const filterCounts = {
@@ -283,7 +349,7 @@ export default function InboxPage() {
                 </div>
                 <div className="email-thread-footer">
                   <span className={`email-thread-status ${item.kind === "reply" ? "has-reply" : ""}`}>
-                    {item.kind === "reply" ? "Reply" : "Sent"}
+                    {item.kind === "reply" ? "Reply" : item.status === "new" ? "Lead" : "Sent"}
                   </span>
                 </div>
               </button>
@@ -342,9 +408,9 @@ export default function InboxPage() {
             <div className="email-chat-stack">
               <div className="email-chat-date">{formatDateTime(originalMessage.sent_at) || thread.time}</div>
 
-              <MessageBubble side="outbound" label="You sent" meta={formatDateTime(originalMessage.sent_at)}>
+              <MessageBubble side="outbound" label={isLeadOnly ? "Pipeline lead" : "You sent"} meta={formatDateTime(originalMessage.sent_at) || (isLeadOnly ? thread.source : "")}>
                 <h2>{originalMessage.subject || thread.subject}</h2>
-                <p>{formatBody(originalMessage.body || thread.preview)}</p>
+                <p>{formatBody(originalMessage.body || thread.preview || lead.email)}</p>
               </MessageBubble>
 
               {hasReply ? (
@@ -367,7 +433,7 @@ export default function InboxPage() {
           )}
         </div>
 
-        {thread ? (
+        {thread && !isLeadOnly ? (
           <div className="email-composer-wrap">
             <div className="email-nexo-row">
               <button
