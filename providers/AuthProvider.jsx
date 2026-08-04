@@ -24,15 +24,23 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
+  const startLogin = async (email) => {
+    await api.post('/auth/login/start', { email });
+  };
+
+  const verifyLogin = async (email, otp) => {
+    const res = await api.post('/auth/login/verify', { email, otp });
     setUser(res.data.user);
     setOrganization(res.data.organization);
     return res.data;
   };
 
-  const signup = async (payload) => {
-    const res = await api.post('/auth/signup', payload);
+  const startSignup = async (payload) => {
+    await api.post('/auth/signup/start', payload);
+  };
+
+  const verifySignup = async (email, otp) => {
+    const res = await api.post('/auth/signup/verify', { email, otp });
     setUser(res.data.user);
     setOrganization(res.data.organization);
     return res.data;
@@ -45,7 +53,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, organization, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, organization, loading, startLogin, verifyLogin, startSignup, verifySignup, logout }}>
       {children}
     </AuthContext.Provider>
   );
