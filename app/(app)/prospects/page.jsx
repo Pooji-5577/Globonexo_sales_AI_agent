@@ -5,6 +5,7 @@ import api from "../../../lib/api";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import Segmented from "../../../components/ui/Segmented";
+import Spinner from "../../../components/ui/Spinner";
 import { cleanText, isValidEmail, normalizeUrl } from "../../../lib/validation";
 
 const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
@@ -587,7 +588,12 @@ export default function ProspectsPage() {
               <StatCard label="emails revealed" value={metrics.revealed} icon="mail" />
             </div>
 
-            <div className="card table-shell prospects-table-shell">
+            <div className="card table-shell prospects-table-shell" style={{ position: "relative" }}>
+              {leadLoading && filteredLeads.length > 0 && (
+                <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,.6)", display: "grid", placeItems: "center", zIndex: 1 }}>
+                  <Spinner size={22} />
+                </div>
+              )}
               <div className="filter-bar">
                 <div className="input-wrap filter-search">
                   <span className="lead-ico"><Icon name="search" size={16} /></span>
@@ -610,7 +616,7 @@ export default function ProspectsPage() {
                 </button>
               </div>
 
-              <div className="table-scroll">
+              <div className="table-scroll" style={{ opacity: leadLoading ? 0.5 : 1, pointerEvents: leadLoading ? "none" : "auto", transition: "opacity .15s" }}>
                 <table className="data-table prospects-table">
                   <colgroup>
                     <col className="prospect-col" />
@@ -627,9 +633,7 @@ export default function ProspectsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {leadLoading ? (
-                      <tr><td colSpan={7} className="table-empty">Loading prospects...</td></tr>
-                    ) : filteredLeads.length === 0 ? (
+                    {leadLoading && filteredLeads.length === 0 ? null : filteredLeads.length === 0 ? (
                       <tr><td colSpan={7} className="table-empty">No prospects match the current filters.</td></tr>
                     ) : filteredLeads.map(lead => (
                       <LeadRow
@@ -645,9 +649,9 @@ export default function ProspectsPage() {
                   </tbody>
                 </table>
               </div>
-              <div className="prospects-mobile-list">
-                {leadLoading ? (
-                  <div className="soft-empty">Loading prospects...</div>
+              <div className="prospects-mobile-list" style={{ opacity: leadLoading ? 0.5 : 1, pointerEvents: leadLoading ? "none" : "auto", transition: "opacity .15s" }}>
+                {leadLoading && filteredLeads.length === 0 ? (
+                  <div className="soft-empty"><Spinner size={16} /></div>
                 ) : filteredLeads.length === 0 ? (
                   <div className="soft-empty">No prospects match the current filters.</div>
                 ) : filteredLeads.map(lead => (

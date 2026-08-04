@@ -3,6 +3,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import Spinner from "../../../components/ui/Spinner";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 import { getSupabaseBrowserClient } from "../../../lib/supabase-browser";
 import { cleanText } from "../../../lib/validation";
@@ -72,6 +75,7 @@ export default function SupportPage() {
   const [replyBody, setReplyBody] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const showSkeleton = useFirstLoad(loading);
 
   const openTickets = useMemo(() => tickets.filter(ticket => ticket.status === "open").length, [tickets]);
 
@@ -211,13 +215,7 @@ export default function SupportPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="scroll grow app-page">
-        <p className="muted">Loading support...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   return (
     <div className="support-layout">
@@ -285,7 +283,9 @@ export default function SupportPage() {
 
         <div className="support-message-list">
           {detailLoading ? (
-            <p className="muted">Loading messages...</p>
+            <div style={{ display: "grid", placeItems: "center", padding: "40px 0" }}>
+              <Spinner size={20} />
+            </div>
           ) : !detail ? (
             <div className="empty-state">
               <Icon name="chat" size={42} color="var(--faint)" />
