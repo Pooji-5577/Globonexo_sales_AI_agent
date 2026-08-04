@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 
 const STAGES = [
@@ -60,6 +62,7 @@ export default function PipelinePage() {
   const [query, setQuery] = useState("");
   const [hotOnly, setHotOnly] = useState(false);
   const [selectedStage, setSelectedStage] = useState("all");
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
     api.get("/leads", { params: { perPage: 500 } })
@@ -96,13 +99,7 @@ export default function PipelinePage() {
     contacted: visibleLeads.filter(lead => ["contacted", "engaged", "meeting_booked"].includes(lead.status)).length,
   }), [visibleLeads]);
 
-  if (loading) {
-    return (
-      <div style={{ padding: 40 }}>
-        <p className="muted">Loading pipeline...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   return (
     <div className="scroll grow app-page">

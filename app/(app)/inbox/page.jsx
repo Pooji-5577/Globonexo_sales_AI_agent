@@ -3,6 +3,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import Spinner from "../../../components/ui/Spinner";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 import { cleanText } from "../../../lib/validation";
 
@@ -91,6 +94,7 @@ export default function InboxPage() {
   const [composerBody, setComposerBody] = useState("");
   const [sentMessages, setSentMessages] = useState({});
   const [activeFilter, setActiveFilter] = useState("all");
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
     let cancelled = false;
@@ -202,13 +206,7 @@ export default function InboxPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="scroll grow" style={{ padding: 40, minHeight: 0 }}>
-        <p className="muted">Loading real inbox...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   const hasThreads = threads.length > 0;
   const thread = threads.find(item => item.id === selectedId) || threads[0] || null;
@@ -337,8 +335,8 @@ export default function InboxPage() {
               <span>Choose a lead on the left to open the email conversation.</span>
             </div>
           ) : detailLoading ? (
-            <div className="email-empty-chat">
-              <span className="muted">Loading conversation...</span>
+            <div className="card" style={{ padding: 18, maxWidth: 720, display: "grid", placeItems: "center", minHeight: 120 }}>
+              <Spinner size={20} />
             </div>
           ) : (
             <div className="email-chat-stack">

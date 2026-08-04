@@ -3,6 +3,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import Spinner from "../../../components/ui/Spinner";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 import { getSupabaseBrowserClient } from "../../../lib/supabase-browser";
 import { cleanText } from "../../../lib/validation";
@@ -72,6 +75,7 @@ export default function SupportPage() {
   const [replyBody, setReplyBody] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const showSkeleton = useFirstLoad(loading);
 
   const openTickets = useMemo(() => tickets.filter(ticket => ticket.status === "open").length, [tickets]);
 
@@ -110,33 +114,51 @@ export default function SupportPage() {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return undefined;
 
-    const channel = supabase
-      .channel(`support-ticket-${selectedId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${selectedId}` },
-        payload => {
-          const row = payload.new;
-          setDetail(current => {
-            if (!current || current.messages?.some(message => message.id === row.id)) return current;
-            return {
-              ...current,
-              messages: appendMessageOnce(current.messages, {
-                id: row.id,
-                ticketId: row.ticket_id,
-                senderType: row.sender_type,
-                senderId: row.sender_id,
-                body: row.body,
-                createdAt: row.created_at,
-              }),
-            };
-          });
-        }
-      )
-      .subscribe();
+    let cancelled = false;
+    let channel;
+
+    // The browser's Supabase client only carries the anon key, which RLS
+    // treats as no identity at all — postgres_changes rows never pass the
+    // org-isolation policy without this. Fetching the caller's own Supabase
+    // access token (already valid, just normally locked in an httpOnly
+    // cookie) and feeding it to the Realtime socket gives it a real auth.uid()
+    // to check against.
+    api.get("/support/realtime-token")
+      .then(async ({ data }) => {
+        if (cancelled || !data?.token) return;
+        await supabase.realtime.setAuth(data.token);
+        if (cancelled) return;
+
+        channel = supabase
+          .channel(`support-ticket-${selectedId}`)
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "support_messages", filter: `ticket_id=eq.${selectedId}` },
+            payload => {
+              const row = payload.new;
+              setDetail(current => {
+                if (!current || current.messages?.some(message => message.id === row.id)) return current;
+                return {
+                  ...current,
+                  messages: appendMessageOnce(current.messages, {
+                    id: row.id,
+                    ticketId: row.ticket_id,
+                    senderType: row.sender_type,
+                    senderId: row.sender_id,
+                    body: row.body,
+                    createdAt: row.created_at,
+                  }),
+                };
+              });
+            }
+          )
+          .subscribe();
+      })
+      .catch(() => {});
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
     };
   }, [selectedId]);
 
@@ -193,13 +215,7 @@ export default function SupportPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="scroll grow app-page">
-        <p className="muted">Loading support...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   return (
     <div className="support-layout">
@@ -267,7 +283,9 @@ export default function SupportPage() {
 
         <div className="support-message-list">
           {detailLoading ? (
-            <p className="muted">Loading messages...</p>
+            <div style={{ display: "grid", placeItems: "center", padding: "40px 0" }}>
+              <Spinner size={20} />
+            </div>
           ) : !detail ? (
             <div className="empty-state">
               <Icon name="chat" size={42} color="var(--faint)" />

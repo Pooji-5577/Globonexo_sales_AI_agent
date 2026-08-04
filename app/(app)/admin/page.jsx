@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import Spinner from "../../../components/ui/Spinner";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 import { cleanText } from "../../../lib/validation";
 
@@ -42,6 +46,7 @@ function appendMessageOnce(messages = [], message) {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("orgs");
   const [supportTickets, setSupportTickets] = useState([]);
@@ -53,6 +58,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const showSkeleton = useFirstLoad(loading);
 
   const load = () => {
     setLoading(true);
@@ -64,7 +70,11 @@ export default function AdminPage() {
           setError("Admin API timed out. Confirm the backend is running on port 5001, then refresh.");
           return;
         }
-        setError(err?.response?.status === 403 ? "Admin access required." : "Admin data could not be loaded.");
+        if (err?.response?.status === 403) {
+          router.replace("/dashboard");
+          return;
+        }
+        setError("Admin data could not be loaded.");
       })
       .finally(() => setLoading(false));
   };
@@ -167,13 +177,7 @@ export default function AdminPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="admin-screen">
-        <p className="muted">Loading admin console...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton variant="admin" />;
 
   return (
     <div className="admin-screen">
@@ -315,7 +319,7 @@ export default function AdminPage() {
               <button className="btn btn-ghost btn-sm" type="button" onClick={loadSupportTickets}>Refresh</button>
             </div>
             {supportLoading && supportTickets.length === 0 ? (
-              <div className="soft-empty">Loading support tickets...</div>
+              <div className="soft-empty"><Spinner size={16} /></div>
             ) : supportTickets.length === 0 ? (
               <div className="soft-empty">No support tickets yet.</div>
             ) : supportTickets.map(ticket => (
