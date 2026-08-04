@@ -190,7 +190,7 @@ export default function AgentPage() {
   const [typing, setTyping] = useState(false);
   const [sidebarData, setSidebarData] = useState(null);
   const [initialLoaded, setInitialLoaded] = useState(false);
-  const [name, setName] = useState('Nexo');
+  const [name, setName] = useState('GNX sales');
   const scrollRef = useRef(null);
 
   useEffect(() => {

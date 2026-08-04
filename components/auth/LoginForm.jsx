@@ -109,7 +109,7 @@ export function LoginForm() {
   }
 
   return (
-    <div style={{ width: 380, maxWidth: '100%' }}>
+    <div className="auth-form">
       <h2 className="display" style={{ fontSize: 30 }}>Sign in</h2>
       <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Welcome back. Let&apos;s get to work.</p>
       <button

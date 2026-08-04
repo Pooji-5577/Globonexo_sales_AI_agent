@@ -12,8 +12,8 @@ const useStateSA = useState;
 const useStateSB = useState;
 
 function getAgentName() {
-  if (typeof window === "undefined") return "Nexo";
-  return window.__agentName || "Nexo";
+  if (typeof window === "undefined") return "GNX sales";
+  return window.__agentName || "GNX sales";
 }
 
 /* Icons — consistent stroke set. Exposed on window.Icon */
@@ -562,11 +562,11 @@ function Forgot({ go }) {
 
 const STEPS = [
   { title: 'About you', sub: 'Personalize your agent from the start.', ico: 'user' },
-  { title: 'Your team', sub: 'Context that shapes how Nexo targets.', ico: 'users' },
+  { title: 'Your team', sub: 'Context that shapes how GNX sales targets.', ico: 'users' },
   { title: 'Who you sell to', sub: 'Define your ideal customer profile.', ico: 'target' },
-  { title: 'Your goals', sub: 'Set the targets Nexo optimizes for.', ico: 'trend' },
+  { title: 'Your goals', sub: 'Set the targets GNX sales optimizes for.', ico: 'trend' },
   { title: 'Your tone', sub: 'Make the agent sound like you.', ico: 'spark' },
-  { title: 'Connect your tools', sub: 'Nexo works best with your stack.', ico: 'link' },
+  { title: 'Connect your tools', sub: 'GNX sales works best with your stack.', ico: 'link' },
   { title: 'Review & launch', sub: 'Everything looks right? Let\'s go.', ico: 'checkCircle' },
 ];
 
@@ -577,7 +577,7 @@ const DEFAULTS = {
   meetingTarget: 15, dealSize: '$25k–$100k', salesCycle: '1–3 months',
   tone: 'Consultative', hook: 'Pain-based', followup: 'Standard 5-day',
   tools: ['Gmail', 'HubSpot', 'Google Calendar'],
-  agentName: 'Nexo',
+  agentName: 'GNX sales',
 };
 
 function OnboardingWizard({ go }) {
@@ -719,7 +719,7 @@ function Step1({ d, set }) {
 function Step2({ d, toggle }) {
   return (
     <div className="col" style={{ gap: 24 }}>
-      <OMulti label="Job titles you target" hint="Nexo will prioritize these roles in outreach."
+      <OMulti label="Job titles you target" hint="GNX sales will prioritize these roles in outreach."
         options={['CEO / Founder', 'VP Sales', 'Head of Sales', 'Sales Manager', 'CTO', 'VP Marketing', 'RevOps / SalesOps', 'Director of Ops']}
         value={d.titles} onChange={v => toggle('titles', v)} />
       <OMulti label="Target company sizes"
@@ -739,7 +739,7 @@ function Step3({ d, set }) {
       <div className="field">
         <div className="row spread"><label>Meetings per week target</label><span style={{ fontWeight: 800, color: 'var(--g-700)', fontSize: 18 }}>{d.meetingTarget}</span></div>
         <input type="range" min={1} max={50} value={d.meetingTarget} onChange={e => set('meetingTarget', +e.target.value)} style={{ accentColor: 'var(--g-500)', width: '100%', marginTop: 8 }} />
-        <span className="faint" style={{ fontSize: 12.5 }}>Nexo will pace daily outreach to hit this number.</span>
+        <span className="faint" style={{ fontSize: 12.5 }}>GNX sales will pace daily outreach to hit this number.</span>
       </div>
       <OSelect label="Average deal size" value={d.dealSize} onChange={v => set('dealSize', v)}
         options={['Under $5k', '$5k–$25k', '$25k–$100k', '$100k–$500k', '$500k+']} />
@@ -836,7 +836,7 @@ function Step6({ d, set }) {
         <label>Agent name</label>
         <div className="input-wrap">
           <span className="lead-ico"><Icon name="spark" size={19} /></span>
-          <input className="input has-ico" value={d.agentName} onChange={e => set('agentName', e.target.value)} placeholder="Nexo" />
+          <input className="input has-ico" value={d.agentName} onChange={e => set('agentName', e.target.value)} placeholder="GNX sales" />
         </div>
         <span className="faint" style={{ fontSize: 12.5 }}>This is what your AI agent is called in the app.</span>
       </div>
@@ -924,7 +924,7 @@ function CelebrationScreen({ go }) {
           </div>
           <h1 id="prototype-celebrate-title" className="display">Your agent is ready.</h1>
           <p>
-            Nexo is fully configured and queueing your first outreach. Your prospect list,
+            GNX sales is fully configured and queueing your first outreach. Your prospect list,
             templates, cadence, and connected tools are ready to start booking meetings.
           </p>
           <div className="celebrate-actions">
@@ -1110,7 +1110,7 @@ function Dashboard({ setTab }) {
           <p className="muted" style={{ fontSize: 14, marginTop: 3 }}>Your agent worked overnight. Here's where things stand.</p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => setTab('agent')}>
-          <Icon name="spark" size={16} color="#06231a" /> Talk to Nexo
+          <Icon name="spark" size={16} color="#06231a" /> Talk to GNX sales
         </button>
       </div>
 
@@ -1185,7 +1185,7 @@ function Dashboard({ setTab }) {
             <div style={{ height: 8, background: '#fff', borderRadius: 99, marginTop: 10, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: '72%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))', transition: 'width 1s ease' }} />
             </div>
-            <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>7 more meetings to hit your target. Nexo is on pace.</p>
+            <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>7 more meetings to hit your target. GNX sales is on pace.</p>
             <button className="btn btn-ghost btn-sm" style={{ marginTop: 10, width: '100%' }} onClick={() => setTab('analytics')}>
               View analytics
             </button>

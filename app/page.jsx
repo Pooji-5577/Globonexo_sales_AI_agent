@@ -5,6 +5,7 @@ import Link from "next/link";
 import Logo from "../components/ui/Logo";
 import Aurora from "../components/ui/Aurora";
 import Icon from "../components/ui/Icon";
+import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 
 export default function LandingPage() {
@@ -41,21 +42,7 @@ export default function LandingPage() {
       <div className="landing-scroll">
         <section className="landing-hero">
           <Aurora />
-          <nav className="landing-nav">
-            <button onClick={() => scrollTo('landing-top')} aria-label="Globonexo home"><Logo size={34} light /></button>
-            <div className="landing-nav-links">
-              <button onClick={() => scrollTo('product')}>Product</button>
-              <button onClick={() => scrollTo('how-it-works')}>How it works</button>
-              <button onClick={() => scrollTo('results')}>Results</button>
-              <Link href="/pricing">Pricing</Link>
-            </div>
-            <div className="landing-nav-actions">
-              <button className="landing-signin" onClick={handleSignIn}>Sign in</button>
-              <button className="btn btn-primary btn-sm" onClick={() => router.push('/signup')}>
-                Start free trial <Icon name="arrow" size={16} color="#06231a" />
-              </button>
-            </div>
-          </nav>
+          <PublicNav variant="dark" scrollTo={scrollTo} onSignIn={handleSignIn} />
 
           <div id="landing-top" className="landing-hero-inner">
             <div className="landing-hero-copy">
@@ -139,8 +126,8 @@ export default function LandingPage() {
           <div className="landing-steps">
             {steps.map((step, index) => (
               <article key={step.title}>
-                <div className="landing-step-icon"><Icon name={step.icon} size={22} color="var(--g-800)" /></div>
                 <span>{index + 1}</span>
+                <div className="landing-step-icon"><Icon name={step.icon} size={22} color="var(--g-800)" /></div>
                 <h3>{step.title}</h3>
                 <p>{step.text}</p>
               </article>

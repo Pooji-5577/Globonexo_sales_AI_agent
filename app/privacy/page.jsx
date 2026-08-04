@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Privacy Policy — Globonexo Sales AI",
-  description: "Privacy Policy for Globonexo Sales AI.",
+  title: "Privacy Policy — GNX sales",
+  description: "Privacy Policy for GNX sales.",
 };
 
 import LegalPage from "../../components/layout/LegalPage";

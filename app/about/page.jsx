@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "About Us — Globonexo Sales AI",
+  title: "About Us — GNX sales",
   description: "Globonexo builds AI sales agents that find buyers, start conversations, and book meetings for small sales teams.",
 };
 
@@ -47,7 +47,7 @@ export default function AboutPage() {
           <span className="eyebrow">About us</span>
           <h1 className="display">We are building the sales rep that never drops a follow-up.</h1>
           <p>
-            Globonexo Sales AI gives small teams the outbound capacity of a much larger one. Our agents find the right
+            GNX sales gives small teams the outbound capacity of a much larger one. Our agents find the right
             buyers, write messages worth replying to, handle the back and forth, and book the meeting, while your team
             stays focused on the conversations that close.
           </p>
