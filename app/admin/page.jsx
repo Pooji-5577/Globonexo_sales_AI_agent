@@ -120,6 +120,7 @@ export default function AdminPage() {
   const recentCampaigns = useMemo(() => campaigns.slice(0, 12), [campaigns]);
 
   const suspendOrg = async org => {
+    if (!window.confirm(`Suspend ${org.name}? They will immediately lose access to the app.`)) return;
     setError("");
     setNotice("");
     try {
@@ -131,7 +132,20 @@ export default function AdminPage() {
     }
   };
 
+  const unsuspendOrg = async org => {
+    setError("");
+    setNotice("");
+    try {
+      await api.post(`/admin/organizations/${org.id}/unsuspend`);
+      setNotice(`${org.name} unsuspended.`);
+      load();
+    } catch (err) {
+      setError(err?.response?.data?.error || "Organization could not be unsuspended.");
+    }
+  };
+
   const impersonateOrg = async org => {
+    if (!window.confirm(`Impersonate ${org.name}? This logs you into their account for 15 minutes.`)) return;
     setError("");
     setNotice("");
     try {
@@ -251,7 +265,11 @@ export default function AdminPage() {
                     <td>
                       <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
                         <button className="btn btn-ghost btn-sm" type="button" onClick={() => impersonateOrg(org)}>Impersonate</button>
-                        <button className="btn btn-ghost btn-sm danger-text" type="button" onClick={() => suspendOrg(org)}>Suspend</button>
+                        {org.subscriptionStatus === "suspended" ? (
+                          <button className="btn btn-ghost btn-sm" type="button" onClick={() => unsuspendOrg(org)}>Unsuspend</button>
+                        ) : (
+                          <button className="btn btn-ghost btn-sm danger-text" type="button" onClick={() => suspendOrg(org)}>Suspend</button>
+                        )}
                       </div>
                     </td>
                   </tr>
