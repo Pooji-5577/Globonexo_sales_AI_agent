@@ -471,6 +471,12 @@ a { color: inherit; text-decoration: none; }
 .data-row:hover {
   background: var(--g-50);
 }
+.profile-menu-item {
+  transition: background .12s ease;
+}
+.profile-menu-item:hover {
+  background: var(--g-50);
+}
 .table-empty,
 .soft-empty {
   padding: 30px 18px !important;
