@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Terms of Service — Globonexo Sales AI",
-  description: "Terms of Service for Globonexo Sales AI.",
+  title: "Terms of Service — GNX sales",
+  description: "Terms of Service for GNX sales.",
 };
 
 import LegalPage from "../../components/layout/LegalPage";
@@ -8,11 +8,11 @@ import LegalPage from "../../components/layout/LegalPage";
 const sections = [
   {
     title: "1. Agreement",
-    body: "These Terms govern access to Globonexo Sales AI, a SaaS platform for AI-assisted outbound sales, reply drafting, voice campaigns, and meeting workflows. By creating an account or using the service, you agree to these Terms.",
+    body: "These Terms govern access to GNX sales, a SaaS platform for AI-assisted outbound sales, reply drafting, voice campaigns, and meeting workflows. By creating an account or using the service, you agree to these Terms.",
   },
   {
     title: "2. Accounts and Eligibility",
-    body: "You must provide accurate account information, keep credentials secure, and use the service only for lawful business purposes. Globonexo Sales AI is intended for US business users during the v0.1 launch.",
+    body: "You must provide accurate account information, keep credentials secure, and use the service only for lawful business purposes. GNX sales is intended for US business users during the v0.1 launch.",
   },
   {
     title: "3. Acceptable Use",

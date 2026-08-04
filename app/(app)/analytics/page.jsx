@@ -129,12 +129,12 @@ export default function AnalyticsPage() {
   const calls = data.calls ?? null;
 
   return (
-    <div className="scroll grow" style={{ padding: '18px 24px', minHeight: 0 }}>
+    <div className="scroll grow analytics-page" style={{ minHeight: 0 }}>
       <div style={{ marginBottom: 20 }}>
         <h1 className="display" style={{ fontSize: 22 }}>Analytics</h1>
         <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>Performance over the last 30 days</p>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
+      <div className="analytics-summary-grid">
         {[
           { k: 'Meetings booked', v: summary.meetings ?? 0 },
           { k: 'Reply rate', v: `${summary.replyRate ?? 0}%` },
@@ -146,7 +146,7 @@ export default function AnalyticsPage() {
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+      <div className="analytics-chart-grid">
         <BarChart title="Emails sent (last 7 days)" data={(data.dailyEmails?.length ? data.dailyEmails : [summary.emailsSent ?? 0])} labels={(data.dayLabels?.length ? data.dayLabels : ['Total'])} color="var(--teal)" />
         <BarChart title="Meetings booked (last 7 days)" data={(data.dailyMeetings?.length ? data.dailyMeetings : [summary.meetings ?? 0])} labels={(data.dayLabels?.length ? data.dayLabels : ['Total'])} color="var(--g-500)" />
       </div>
@@ -154,7 +154,7 @@ export default function AnalyticsPage() {
       {calls && (
         <div className="card" style={{ padding: 18, marginTop: 16 }}>
           <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Call performance</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
+          <div className="analytics-call-grid">
             {[
               { k: 'Total calls', v: calls.total ?? 0 },
               { k: 'Answer rate', v: `${calls.answerRate ?? 0}%` },

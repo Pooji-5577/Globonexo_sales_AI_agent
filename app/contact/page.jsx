@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Contact Support — Globonexo Sales AI",
-  description: "Reach the Globonexo Sales AI team for product support, billing questions, sales, and security reports.",
+  title: "Contact Support — GNX sales",
+  description: "Reach the GNX sales team for product support, billing questions, sales, and security reports.",
 };
 
 import Link from "next/link";
@@ -70,7 +70,7 @@ export default function ContactPage() {
           <span className="eyebrow">Contact support</span>
           <h1 className="display">Talk to a person who knows the product.</h1>
           <p>
-            Support is handled by the team that builds Globonexo Sales AI. Pick the channel that matches your question
+            Support is handled by the team that builds GNX sales. Pick the channel that matches your question
             and we will get back to you quickly.
           </p>
           <p className="content-hero-meta">

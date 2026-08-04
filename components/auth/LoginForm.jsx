@@ -40,7 +40,7 @@ export function LoginForm() {
   };
 
   return (
-    <div style={{ width: 380, maxWidth: '100%' }}>
+    <div className="auth-form">
       <h2 className="display" style={{ fontSize: 30 }}>Sign in</h2>
       <p className="muted" style={{ marginTop: 8, fontSize: 15 }}>Welcome back. Let&apos;s get to work.</p>
       <button
@@ -59,11 +59,11 @@ export function LoginForm() {
           <Field label="Work email" icon="mail" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
           <Field label="Password" icon="lock" toggle placeholder="Your password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         </div>
-        <div className="row spread" style={{ marginTop: 14 }}>
-          <label className="row nw" style={{ gap: 8, fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)', cursor: 'pointer' }}>
+        <div className="login-options-row" style={{ marginTop: 14 }}>
+          <label className="row" style={{ gap: 8, fontSize: 13.5, fontWeight: 600, color: 'var(--ink-2)', cursor: 'pointer' }}>
             <input type="checkbox" defaultChecked style={{ accentColor: 'var(--g-500)', width: 16, height: 16 }} /> Remember me
           </label>
-          <a href="/forgot-password" className="nw" style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--g-700)' }}>Forgot password?</a>
+          <a href="/forgot-password" style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--g-700)' }}>Forgot password?</a>
         </div>
         {error && (
           <p style={{ marginTop: 14, fontSize: 13.5, color: '#c0392b', fontWeight: 600 }}>{error}</p>

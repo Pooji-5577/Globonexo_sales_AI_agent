@@ -2,7 +2,7 @@ import { AuthAside } from "../../../components/layout/AuthAside";
 import { ForgotPasswordForm } from "../../../components/auth/ForgotPasswordForm";
 
 export const metadata = {
-  title: "Reset password — Globonexo Sales AI",
+  title: "Reset password — GNX sales",
 };
 
 export default function ForgotPasswordPage() {

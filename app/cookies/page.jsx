@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Cookie Policy — Globonexo Sales AI",
-  description: "How Globonexo Sales AI uses cookies and similar technologies.",
+  title: "Cookie Policy — GNX sales",
+  description: "How GNX sales uses cookies and similar technologies.",
 };
 
 import LegalPage from "../../components/layout/LegalPage";

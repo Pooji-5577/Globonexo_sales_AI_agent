@@ -2,7 +2,7 @@ import { AuthAside } from "../../../components/layout/AuthAside";
 import { SignupForm } from "../../../components/auth/SignupForm";
 
 export const metadata = {
-  title: "Create account — Globonexo Sales AI",
+  title: "Create account — GNX sales",
 };
 
 export default function SignupPage() {

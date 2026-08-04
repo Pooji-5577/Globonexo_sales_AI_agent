@@ -16,8 +16,8 @@ export function Logo({ size = 34, showWord = true, light = false }) {
       </div>
       {showWord && (
         <div className="col" style={{ lineHeight: 1 }}>
-          <span className="display" style={{ fontSize: size * .47, fontWeight: 600, letterSpacing: '-.02em', color: light ? '#fff' : 'var(--ink)' }}>Globonexo</span>
-          <span style={{ fontSize: size * .26, fontWeight: 700, color: light ? 'var(--g-300)' : 'var(--g-700)', letterSpacing: '.02em', marginTop: 2 }}>Sales AI</span>
+          <span className="display" style={{ fontSize: size * .47, fontWeight: 600, letterSpacing: '-.02em', color: light ? '#fff' : 'var(--ink)' }}>GNX</span>
+          <span style={{ fontSize: size * .26, fontWeight: 700, color: light ? 'var(--g-300)' : 'var(--g-700)', letterSpacing: '.02em', marginTop: 2 }}>sales</span>
         </div>
       )}
     </div>

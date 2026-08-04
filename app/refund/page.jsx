@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Refund Policy — Globonexo Sales AI",
-  description: "Refund Policy for Globonexo Sales AI subscriptions.",
+  title: "Refund Policy — GNX sales",
+  description: "Refund Policy for GNX sales subscriptions.",
 };
 
 import LegalPage from "../../components/layout/LegalPage";
@@ -8,7 +8,7 @@ import LegalPage from "../../components/layout/LegalPage";
 const sections = [
   {
     title: "1. Overview",
-    body: "This Refund Policy explains how billing, cancellations, and refunds work for Globonexo Sales AI subscriptions. It applies alongside our Terms of Service.",
+    body: "This Refund Policy explains how billing, cancellations, and refunds work for GNX sales subscriptions. It applies alongside our Terms of Service.",
   },
   {
     title: "2. Free Trial",

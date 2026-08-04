@@ -32,7 +32,7 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <div style={{ width: 380, maxWidth: '100%' }}>
+    <div className="auth-form">
       <a href="/login" className="row" style={{ gap: 8, color: 'var(--muted)', fontWeight: 700, fontSize: 14, marginBottom: 22 }}>
         <Icon name="arrowLeft" size={17} /> Back to sign in
       </a>

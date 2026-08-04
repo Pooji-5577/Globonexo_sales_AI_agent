@@ -129,7 +129,7 @@ export default function DashboardPage() {
   const weeklyGoal = data?.weeklyGoal ?? { current: 0, target: 1, progress: 0, monthlyTarget: 0 };
   const nextMeeting = data?.nextMeeting ?? null;
   const firstName = data?.user?.firstName || "there";
-  const agentName = data?.agentName || "Nexo";
+  const agentName = data?.agentName || "GNX sales";
 
   const kpiItems = useMemo(() => ([
     { label: "Emails sent", value: kpis.emailsSent ?? 0, detail: "total sent", icon: "send" },

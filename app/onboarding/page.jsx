@@ -9,7 +9,7 @@ import api from "../../lib/api";
 import { clampNumber, cleanList, cleanText, normalizeUrl } from "../../lib/validation";
 
 const STEPS = [
-  { title: 'Profile', sub: 'Tell Nexo who is setting up the workspace.', ico: 'user' },
+  { title: 'Profile', sub: 'Tell GNX sales who is setting up the workspace.', ico: 'user' },
   { title: 'Product', sub: 'Explain what you sell and why buyers care.', ico: 'doc' },
   { title: 'Ideal customer', sub: 'Define the accounts and people to target.', ico: 'target' },
   { title: 'Outreach strategy', sub: 'Set the messaging style and campaign goals.', ico: 'send' },
@@ -52,7 +52,7 @@ const DEFAULTS = {
   hookStyle: 'Pain-based (problem-first)',
   followUpCadence: 'Day 0, Day 3, Day 7',
   tools: [],
-  agentName: 'Nexo',
+  agentName: 'GNX sales',
   bookingLink: '',
 };
 
@@ -190,7 +190,7 @@ export default function OnboardingPage() {
       meetingTarget: clampNumber(d.meetingTarget, { min: 1, max: 50, fallback: 15 }),
       dealSize: cleanText(d.dealSize, { max: 80 }),
       salesCycle: cleanText(d.salesCycle, { max: 80 }),
-      agentName: cleanText(d.agentName, { max: 80 }) || 'Nexo',
+      agentName: cleanText(d.agentName, { max: 80 }) || 'GNX sales',
       bookingLink: bookingLink || undefined,
       tools: cleanList(d.tools),
     };
@@ -240,10 +240,10 @@ export default function OnboardingPage() {
   ];
 
   return (
-    <div className="screen" style={{ flexDirection: 'row' }}>
+    <div className="screen onboarding-screen">
       {/* Left sidebar */}
-      <div style={{
-        width: 280, flex: 'none', background: 'linear-gradient(170deg,#06311f,#085c40)',
+      <div className="onboarding-sidebar" style={{
+        background: 'linear-gradient(170deg,#06311f,#085c40)',
         color: '#fff', display: 'flex', flexDirection: 'column', padding: '32px 24px', position: 'relative', overflow: 'hidden',
       }}>
         <Aurora />
@@ -286,7 +286,7 @@ export default function OnboardingPage() {
 
       {/* Main content */}
       <div className="grow col" style={{ background: '#fff', minWidth: 0 }}>
-        <div className="scroll grow" style={{ padding: '44px 88px 24px', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: 0 }}>
+        <div className="scroll grow onboarding-main-pad" style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', minHeight: 0 }}>
           <div style={{ width: '100%', maxWidth: 860, animation: 'rise .35s both' }} key={step}>
             <div className="row" style={{ gap: 14, marginBottom: 28 }}>
               <span style={{ width: 52, height: 52, borderRadius: 16, background: 'var(--g-50)', border: '1px solid var(--g-100)', display: 'grid', placeItems: 'center', flex: 'none' }}>
@@ -307,7 +307,7 @@ export default function OnboardingPage() {
             {/* Step 0: Profile */}
             {step === 0 && (
               <div className="col" style={{ gap: 22 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(300px,1fr))', gap: 24 }}>
+                <div className="onboarding-name-grid">
                   <Field label="First name" icon="user" placeholder="Poojitha" value={d.firstName} onChange={e => set('firstName', e.target.value)} />
                   <Field label="Last name" icon="user" placeholder="Gobburu" value={d.lastName} onChange={e => set('lastName', e.target.value)} />
                 </div>
@@ -316,7 +316,7 @@ export default function OnboardingPage() {
                 <OSelect label="Your role" value={d.role} onChange={v => set('role', v)}
                   options={['Account Executive', 'SDR / BDR', 'Sales Manager', 'VP of Sales', 'Founder / CEO', 'RevOps']} />
                 <Field label="Industry" icon="target" placeholder="B2B SaaS" value={d.industry} onChange={e => set('industry', e.target.value)}
-                  hint="Helps Nexo frame outreach around your market." />
+                  hint="Helps GNX sales frame outreach around your market." />
               </div>
             )}
 
@@ -345,7 +345,7 @@ export default function OnboardingPage() {
                   placeholder="e.g. Low reply rates, stale lead lists, manual research, missed follow-ups, and SDR teams spending too much time writing first drafts."
                   value={d.painPoints}
                   onChange={e => set('painPoints', e.target.value)}
-                  hint="These pains help Nexo write stronger first lines and follow-ups."
+                  hint="These pains help GNX sales write stronger first lines and follow-ups."
                 />
               </div>
             )}
@@ -353,7 +353,7 @@ export default function OnboardingPage() {
             {/* Step 2: Ideal customer */}
             {step === 2 && (
               <div className="col" style={{ gap: 24 }}>
-                <OMulti label="Job titles you target" hint="Nexo will prioritize these roles in outreach."
+                <OMulti label="Job titles you target" hint="GNX sales will prioritize these roles in outreach."
                   options={['CEO / Founder', 'VP Sales', 'Head of Sales', 'Sales Manager', 'CTO', 'VP Marketing', 'RevOps / SalesOps', 'Director of Ops']}
                   value={d.titles} onChange={v => toggle('titles', v)} />
                 <OMulti label="Target industries" hint="Use this to keep prospecting focused."
@@ -393,7 +393,7 @@ export default function OnboardingPage() {
                   options={['Pain-based (problem-first)', 'Insight-based (data/trend)', 'Social proof (customer story)', 'Personalized signal (news/hire)', 'Question-led']} />
                 <OSelect label="Follow-up cadence" value={d.followUpCadence} onChange={v => set('followUpCadence', v)}
                   options={['Day 0, Day 3, Day 7', 'Day 0, Day 2, Day 5', 'Day 0, Day 4, Day 10', 'Custom later']} />
-                <OMulti label="Tools you already use" hint="Helps Nexo understand the sales workflow it should fit into."
+                <OMulti label="Tools you already use" hint="Helps GNX sales understand the sales workflow it should fit into."
                   options={['Gmail', 'Apollo', 'HubSpot', 'Salesforce', 'Pipedrive', 'Slack', 'Google Calendar', 'Calendly / Cal.com']}
                   value={d.tools} onChange={v => toggle('tools', v)} />
               </div>
@@ -402,11 +402,11 @@ export default function OnboardingPage() {
             {/* Step 4: Review & launch */}
             {step === 4 && (
               <div className="col" style={{ gap: 20 }}>
-                <Field label="Agent name" icon="spark" placeholder="Nexo" value={d.agentName} onChange={e => set('agentName', e.target.value)}
+                <Field label="Agent name" icon="spark" placeholder="GNX sales" value={d.agentName} onChange={e => set('agentName', e.target.value)}
                   hint="What your AI agent is called inside the app." />
                 <Field label="Booking link (optional)" icon="link" placeholder="https://cal.com/yourname"
                   value={d.bookingLink} onChange={e => set('bookingLink', e.target.value)}
-                  hint="Nexo will include this when a prospect is ready to book." />
+                  hint="GNX sales will include this when a prospect is ready to book." />
                 <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
                   <div style={{ padding: '12px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--line)' }}>
                     <span style={{ fontWeight: 800, fontSize: 14 }}>Your setup summary</span>
@@ -429,7 +429,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Footer nav */}
-        <div className="row spread" style={{ padding: '16px 88px 28px', borderTop: '1px solid var(--line)', flex: 'none' }}>
+        <div className="row spread onboarding-footer-nav" style={{ borderTop: '1px solid var(--line)', flex: 'none' }}>
           <button className="btn btn-ghost" onClick={back} disabled={loading}>
             <Icon name="arrowLeft" size={17} /> Back
           </button>

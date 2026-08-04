@@ -46,7 +46,7 @@ export function ResetPasswordForm() {
   };
 
   return (
-    <div style={{ width: 380, maxWidth: '100%' }}>
+    <div className="auth-form">
       <span style={{ width: 54, height: 54, borderRadius: 16, background: 'var(--g-50)', border: '1px solid var(--g-100)', display: 'grid', placeItems: 'center' }}>
         <Icon name="lock" size={26} color="var(--g-600)" />
       </span>
