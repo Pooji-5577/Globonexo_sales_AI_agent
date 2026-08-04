@@ -54,12 +54,12 @@ export default function LandingPage() {
               <p>Finds buyers, writes outreach, handles replies, and books meetings while your team focuses on closing.</p>
               <div className="landing-hero-actions">
                 <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
-                  Start free trial <Icon name="arrow" size={18} color="#06231a" />
+                  Start with a paid plan <Icon name="arrow" size={18} color="#06231a" />
                 </button>
                 <button className="landing-outline-btn" onClick={handleSignIn}>Sign in</button>
               </div>
               <div className="landing-assurances">
-                <span><Icon name="check" size={15} color="var(--g-300)" /> No credit card required</span>
+                <span><Icon name="check" size={15} color="var(--g-300)" /> Monthly or annual billing</span>
                 <span><Icon name="check" size={15} color="var(--g-300)" /> Live in 5 minutes</span>
               </div>
             </div>
@@ -149,12 +149,12 @@ export default function LandingPage() {
 
         <section className="landing-cta landing-section">
           <div>
-            <h2 className="display">Start your free trial</h2>
-            <p>Hire your AI sales rep in five minutes. No credit card required.</p>
+            <h2 className="display">Put your AI sales rep to work.</h2>
+            <p>Choose a paid plan, connect your inbox, and get your outbound workflow moving.</p>
           </div>
           <div className="landing-cta-actions">
             <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
-              Start free trial <Icon name="arrow" size={18} color="#06231a" />
+              Choose a plan <Icon name="arrow" size={18} color="#06231a" />
             </button>
             <Link className="landing-outline-btn" href="/pricing">View pricing</Link>
           </div>

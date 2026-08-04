@@ -671,7 +671,7 @@ CREATE TABLE organizations (
   name TEXT NOT NULL,
   website TEXT,
   plan_id TEXT NOT NULL DEFAULT 'starter',
-  subscription_status TEXT NOT NULL DEFAULT 'trialing',
+  subscription_status TEXT NOT NULL DEFAULT 'payment_required',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -833,7 +833,7 @@ CREATE TABLE subscriptions (
   stripe_subscription_id TEXT,
   plan_id TEXT NOT NULL,
   status TEXT NOT NULL,
-  trial_ends_at TIMESTAMPTZ,
+  -- No free-trial field: billing is required before onboarding.
   current_period_start TIMESTAMPTZ,
   current_period_end TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),

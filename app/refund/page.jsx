@@ -11,12 +11,12 @@ const sections = [
     body: "This Refund Policy explains how billing, cancellations, and refunds work for GNX sales subscriptions. It applies alongside our Terms of Service.",
   },
   {
-    title: "2. Free Trial",
-    body: "Paid plans start with a free trial. You are not charged until the trial ends. If you cancel before the trial ends, no charge is made and no refund is required.",
+    title: "2. Subscription Billing",
+    body: "There is no free trial. Paid plans are billed in advance through Razorpay for the monthly or annual period selected at checkout. Billing must be completed before onboarding and product access.",
   },
   {
-    title: "3. Subscription Billing",
-    body: "Subscriptions are billed in advance through Stripe on a monthly or annual cycle and renew automatically until cancelled. Renewal charges are made using the payment method on file.",
+    title: "3. Plan Billing",
+    body: "Paid plans use Razorpay recurring subscriptions. Monthly plans run for 120 billing cycles and annual plans run for 10 billing cycles. You can cancel at any time; cancellation takes effect at the end of the current paid period.",
   },
   {
     title: "4. Cancellations",
@@ -36,7 +36,7 @@ const sections = [
   },
   {
     title: "8. Approved Refunds",
-    body: "Approved refunds are issued to the original payment method through Stripe and typically appear within 5 to 10 business days depending on your bank or card issuer.",
+    body: "Approved refunds are issued to the original payment method through Razorpay and typically appear within 5 to 10 business days depending on your bank or card issuer.",
   },
   {
     title: "9. Chargebacks",

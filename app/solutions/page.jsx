@@ -61,11 +61,11 @@ export default function SolutionsPage() {
           <h1 className="display">Built for how your team actually sells.</h1>
           <p>
             The same AI sales agent, framed for how you run outbound today. Jump to the section closest to your team,
-            or start a free trial and see it work on your own pipeline.
+            or choose a plan and see it work on your own pipeline.
           </p>
           <div className="content-hero-actions">
             <Link className="btn btn-primary btn-lg" href="/signup">
-              Start free trial <Icon name="arrow" size={18} color="#06231a" />
+              Choose a plan <Icon name="arrow" size={18} color="#06231a" />
             </Link>
             <Link className="btn btn-ghost btn-lg" href="/contact">Talk to us</Link>
           </div>

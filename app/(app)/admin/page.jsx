@@ -26,7 +26,7 @@ function Metric({ label, value, icon, tone }) {
 
 function StatusBadge({ value }) {
   const suspended = value === "suspended";
-  const active = ["active", "trialing", "open"].includes(value);
+  const active = ["active", "past_due"].includes(value);
   const neutral = ["resolved", "closed"].includes(value);
   return (
     <span className="badge" style={{

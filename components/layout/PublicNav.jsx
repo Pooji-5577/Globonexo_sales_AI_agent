@@ -50,7 +50,7 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
           <Link className="public-link" href="/login">Sign in</Link>
         )}
         <Link className="btn btn-primary btn-sm" href="/signup">
-          Start free trial <Icon name="arrow" size={16} color="#06231a" />
+          Choose a plan <Icon name="arrow" size={16} color="#06231a" />
         </Link>
       </div>
 
@@ -77,7 +77,7 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
             ) : (
               <Link className="btn btn-ghost btn-lg" href="/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
             )}
-            <Link className="btn btn-primary btn-lg" href="/signup" onClick={() => setMobileOpen(false)}>Start free trial</Link>
+            <Link className="btn btn-primary btn-lg" href="/signup" onClick={() => setMobileOpen(false)}>Choose a plan</Link>
           </div>
         </div>
       )}
