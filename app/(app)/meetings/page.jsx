@@ -3,6 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 
 const STATUS_STYLES = {
@@ -79,6 +81,7 @@ export default function MeetingsPage() {
   const [bookingLink, setBookingLink] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
     api.get("/meetings")
@@ -95,13 +98,7 @@ export default function MeetingsPage() {
   const pastMeetings = useMemo(() => (data?.past || []).map(normalizeMeeting), [data]);
   const meetingCount = data?.summary?.total ?? 0;
 
-  if (loading) {
-    return (
-      <div style={{ padding: 40 }}>
-        <p className="muted">Loading meetings...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   return (
     <div className="scroll grow app-page">

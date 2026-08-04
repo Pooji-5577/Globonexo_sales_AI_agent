@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
 import Avatar from "../../../../components/ui/Avatar";
+import Spinner from "../../../../components/ui/Spinner";
 
 const DEFAULT_FORM = {
   name: "",
@@ -831,7 +832,7 @@ export default function NewCampaignPage() {
                   </thead>
                   <tbody>
                     {leadsLoading ? (
-                      <tr><td colSpan={4} style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontWeight: 700 }}>Loading leads...</td></tr>
+                      <tr><td colSpan={4} style={{ padding: 24, textAlign: "center" }}><Spinner size={18} /></td></tr>
                     ) : filteredLeads.length === 0 ? (
                       <tr><td colSpan={4} style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontWeight: 700 }}>{leadSearch ? "No leads match." : "No leads yet. Import from Prospects first."}</td></tr>
                     ) : (

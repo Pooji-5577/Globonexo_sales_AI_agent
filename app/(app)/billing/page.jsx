@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Script from "next/script";
 import Icon from "../../../components/ui/Icon";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 
 const PLAN_CONFIG = [
@@ -21,6 +23,7 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [upgrading, setUpgrading] = useState("");
+  const showSkeleton = useFirstLoad(loading);
 
   const loadBillingData = useCallback(async () => {
     const [usageRes, historyRes] = await Promise.allSettled([
@@ -83,13 +86,7 @@ export default function BillingPage() {
   const pastDue = usage?.subscriptionStatus === 'past_due';
   const restricted = usage?.subscriptionStatus === 'restricted';
 
-  if (loading) {
-    return (
-      <div style={{ padding: 40 }}>
-        <p className="muted">Loading billing…</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   return (
     <div className="scroll grow" style={{ padding: '24px 32px', minHeight: 0 }}>

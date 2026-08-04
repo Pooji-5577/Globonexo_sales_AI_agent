@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { api } from '../../../lib/api';
 import { Field } from '../../../components/ui/Input';
 import Icon from '../../../components/ui/Icon';
+import RouteSkeleton from '../../../components/ui/RouteSkeleton';
+import { useFirstLoad } from '../../../hooks/useFirstLoad';
 import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
 
 const HELP_LINKS = [
@@ -63,6 +65,7 @@ export default function SettingsPage() {
   const [systemLoading, setSystemLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState(false);
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
     api.get('/settings', requestOptions())
@@ -187,13 +190,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="scroll grow" style={{ padding: 40, minHeight: 0 }}>
-        <p className="muted">Loading settings…</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   return (
     <div className="scroll grow settings-page" style={{ minHeight: 0 }}>

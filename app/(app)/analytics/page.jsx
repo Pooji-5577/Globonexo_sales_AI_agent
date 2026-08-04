@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 
 function buildFallbackAnalytics(campaignsPayload, callsPayload) {
@@ -100,6 +102,7 @@ function FunnelChart({ funnel }) {
 export default function AnalyticsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
     loadAnalytics()
@@ -108,13 +111,7 @@ export default function AnalyticsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div style={{ padding: 40 }}>
-        <p className="muted">Loading analytics…</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   if (!data) {
     return (

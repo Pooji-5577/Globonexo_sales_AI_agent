@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
+import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import Spinner from "../../../components/ui/Spinner";
+import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import api from "../../../lib/api";
 import { assertSafeExternalUrl, cleanText } from "../../../lib/validation";
 
@@ -33,6 +36,7 @@ export default function InboxPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [draftBody, setDraftBody] = useState("");
+  const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
     Promise.allSettled([
@@ -144,13 +148,7 @@ export default function InboxPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="scroll grow" style={{ padding: 40, minHeight: 0 }}>
-        <p className="muted">Loading inbox...</p>
-      </div>
-    );
-  }
+  if (showSkeleton) return <RouteSkeleton />;
 
   const hasThreads = threads.length > 0;
   const thread = threads.find(item => item.id === selectedId) || threads[0] || null;
@@ -333,8 +331,8 @@ export default function InboxPage() {
               </aside>
             </div>
           ) : detailLoading ? (
-            <div className="card" style={{ padding: 18, maxWidth: 720 }}>
-              <p className="muted">Loading thread...</p>
+            <div className="card" style={{ padding: 18, maxWidth: 720, display: "grid", placeItems: "center", minHeight: 120 }}>
+              <Spinner size={20} />
             </div>
           ) : (
             <>

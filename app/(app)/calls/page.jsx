@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../../lib/api";
 import Icon from "../../../components/ui/Icon";
+import Spinner from "../../../components/ui/Spinner";
 
 const STATUS_STYLES = {
   queued:      { label: "Queued",      bg: "var(--bg-2)",  color: "var(--muted)", dot: "var(--faint)" },
@@ -229,9 +230,16 @@ export default function CallsPage() {
       </div>
 
       {/* Table */}
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        {loading ? (
-          <div style={{ padding: 32, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>Loading…</div>
+      <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
+        {loading && calls.length > 0 && (
+          <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,.6)", display: "grid", placeItems: "center", zIndex: 1 }}>
+            <Spinner size={22} />
+          </div>
+        )}
+        {loading && calls.length === 0 ? (
+          <div style={{ padding: 32, textAlign: "center" }}>
+            <Spinner size={20} />
+          </div>
         ) : error ? (
           <div style={{ padding: 24, textAlign: "center", color: "var(--error)", fontSize: 13 }}>
             {error} <button className="btn btn-ghost btn-sm" onClick={load} style={{ marginLeft: 8 }}>Retry</button>
@@ -243,7 +251,7 @@ export default function CallsPage() {
             <div style={{ fontSize: 13, color: "var(--muted)" }}>{emptyCopy.body}</div>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ overflowX: "auto", opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto", transition: "opacity .15s" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "var(--bg-2)" }}>
