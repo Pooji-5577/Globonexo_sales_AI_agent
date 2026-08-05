@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 import { Icon } from '../ui/Icon';
 import { Field } from '../ui/Input';
+import { hasWorkspaceAccess } from '../../lib/billingAccess';
 import { cleanText, isValidEmail } from '../../lib/validation';
 
 export function LoginForm() {
@@ -47,8 +48,7 @@ export function LoginForm() {
     try {
       const data = await verifyLogin(email, otp);
       localStorage.setItem('returning_user', '1');
-      const status = data.organization?.subscription_status;
-      router.push(['active', 'past_due'].includes(status) ? '/dashboard' : '/subscribe');
+      router.push(hasWorkspaceAccess(data.user, data.organization) ? '/dashboard' : '/subscribe');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid or expired code.');
     } finally {
