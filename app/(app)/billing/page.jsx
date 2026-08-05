@@ -19,6 +19,20 @@ const PLAN_CONFIG = [
 
 const ACTIVE_STATUSES = new Set(['active', 'past_due']);
 
+const MOST_POPULAR_PLAN_ID = 'growth';
+
+// Derived from PLAN_CONFIG so the toggle's claim can never drift from the
+// prices actually shown on the cards.
+const MAX_ANNUAL_SAVINGS_PERCENT = Math.round(
+  Math.max(...PLAN_CONFIG.map((plan) => (1 - plan.annualMonthly / plan.monthly) * 100)),
+);
+
+// Display labels only. The values sent to the backend stay 'monthly'/'annual'.
+const BILLING_PERIOD_OPTIONS = [
+  { label: 'Monthly', isAnnual: false },
+  { label: 'Yearly', isAnnual: true },
+];
+
 function formatDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -182,12 +196,39 @@ export default function BillingPage() {
             <span className="badge" style={{ marginLeft: 10, background: hasEntitlement ? 'var(--g-50)' : '#fff8e6', color: hasEntitlement ? 'var(--g-700)' : '#8a5a00' }}>{statusLabel}</span>
           </p>
         </div>
-        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-          <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>Monthly</span>
-          <button aria-label="Toggle annual billing" aria-pressed={annual} onClick={() => setAnnual(!annual)} style={{ width: 48, height: 28, borderRadius: 99, padding: 3, background: annual ? 'var(--g-500)' : 'var(--line)', transition: 'background .2s' }}>
-            <span style={{ display: 'block', width: 22, height: 22, borderRadius: 99, background: '#fff', boxShadow: 'var(--sh-xs)', transform: annual ? 'translateX(20px)' : 'none', transition: 'transform .2s' }} />
-          </button>
-          <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>Annual <span className="badge" style={{ background: 'var(--g-50)', color: 'var(--g-700)' }}>Billed annually</span></span>
+        <div
+          className="row billing-period-toggle"
+          role="group"
+          aria-label="Billing period"
+          style={{ gap: 4, alignItems: 'center', background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: 4 }}
+        >
+          {BILLING_PERIOD_OPTIONS.map((option) => {
+            const selected = annual === option.isAnnual;
+            return (
+              <button
+                key={option.label}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setAnnual(option.isAnnual)}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: 'var(--r-pill)',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  background: selected ? 'var(--ink)' : 'transparent',
+                  color: selected ? '#fff' : 'var(--muted)',
+                  boxShadow: selected ? 'var(--sh-xs)' : 'none',
+                  transition: 'background .2s, color .2s',
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+          <span className="badge" style={{ background: 'var(--g-50)', color: 'var(--g-700)', fontWeight: 800, margin: '0 8px 0 4px', whiteSpace: 'nowrap' }}>
+            Save up to {MAX_ANNUAL_SAVINGS_PERCENT}%
+          </span>
         </div>
       </div>
 
@@ -247,6 +288,8 @@ export default function BillingPage() {
         {PLAN_CONFIG.map((plan) => {
           const isCurrent = hasEntitlement && plan.id === currentPlanId;
           const price = annual ? plan.annualMonthly : plan.monthly;
+          // The "Current plan" ribbon wins the top strip when both apply.
+          const showPopular = plan.id === MOST_POPULAR_PLAN_ID && !isCurrent;
           const sameSelection = isCurrent && selectedBillingPeriod === subscription?.billingPeriod;
           const actionDisabled = !canManageBilling || sameSelection || busy === plan.id || (status === 'past_due' && isCurrent);
           const actionLabel = busy === plan.id
@@ -259,13 +302,23 @@ export default function BillingPage() {
                   ? 'Change billing period'
                   : 'Change plan';
           return (
-            <div key={plan.id} className="card billing-plan-card" style={{ padding: 32, border: isCurrent ? '2px solid var(--g-400)' : '1px solid var(--line)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={plan.id} className="card billing-plan-card" style={{ padding: 32, paddingTop: showPopular ? 42 : 32, border: isCurrent ? '2px solid var(--g-400)' : showPopular ? '2px solid var(--ink)' : '1px solid var(--line)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               {isCurrent && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--g-500)', color: '#06231a', fontSize: 11.5, fontWeight: 800, padding: '5px 14px', borderBottomLeftRadius: 10 }}>Current plan</div>}
+              {showPopular && (
+                <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', background: 'var(--ink)', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '.07em', padding: '5px 18px', borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }}>
+                  MOST POPULAR
+                </div>
+              )}
               <div className="display" style={{ fontSize: 26 }}>{plan.name}</div>
               <div style={{ marginTop: 10 }}>
+                {annual && (
+                  <span className="muted" style={{ fontSize: 24, fontWeight: 700, marginRight: 9, textDecoration: 'line-through' }}>${plan.monthly}</span>
+                )}
                 <span className="display" style={{ fontSize: 48 }}>${price}</span>
                 <span className="muted" style={{ fontSize: 14, marginLeft: 5 }}>/mo</span>
-                {annual && <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>Billed ${plan.annualTotal.toLocaleString()} annually</div>}
+                <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>
+                  {annual ? `Billed $${plan.annualTotal.toLocaleString()} annually` : 'Billed monthly'}
+                </div>
               </div>
               <p className="muted" style={{ fontSize: 14, marginTop: 8, marginBottom: 22 }}>{plan.desc}</p>
               <div className="col" style={{ gap: 11, marginBottom: 24, flex: 1 }}>
