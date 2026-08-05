@@ -200,18 +200,23 @@ export default function OnboardingPage() {
       return;
     }
     try {
-      await api.post('/onboarding', payload);
-    } catch (err) {
-      // If the API returns a validation error, surface it. Otherwise proceed
-      // (backend may not be running yet during local frontend dev).
-      const status = err?.response?.status;
-      if (status >= 400 && status < 500) {
+      const { data: result } = await api.post('/onboarding', payload, { timeout: 120000 });
+      if (!result?.campaign?.id) {
         setLoading(false);
-        setError(err?.response?.data?.message || 'Please check your inputs and try again.');
+        setError('We saved your onboarding details, but could not prepare the first campaign. Please try again.');
         return;
       }
+
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('gnx_onboarding_preparation', JSON.stringify(result.preparation || {}));
+      }
+      router.push(`/celebrate?campaignId=${encodeURIComponent(result.campaign.id)}`);
+      return;
+    } catch (err) {
+      setLoading(false);
+      setError(err?.response?.data?.message || err?.response?.data?.error || 'We could not prepare your first campaign. Please try again.');
+      return;
     }
-    router.push('/celebrate');
   };
 
   const pct = (step / (STEPS.length - 1)) * 100;
