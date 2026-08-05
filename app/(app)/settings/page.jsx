@@ -8,6 +8,7 @@ import Icon from '../../../components/ui/Icon';
 import RouteSkeleton from '../../../components/ui/RouteSkeleton';
 import { useFirstLoad } from '../../../hooks/useFirstLoad';
 import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
+import { useSetup } from '../../../providers/SetupProvider';
 
 const HELP_LINKS = [
   { href: '/support', label: 'Support tickets', ico: 'inbox' },
@@ -38,7 +39,23 @@ const requestOptions = () => (
     : {}
 );
 
+const EMPTY_SMTP_FORM = {
+  email: '',
+  displayName: '',
+  smtpHost: '',
+  smtpPort: '587',
+  smtpSecure: false,
+  smtpUsername: '',
+  smtpPassword: '',
+  imapHost: '',
+  imapPort: '993',
+  imapSecure: true,
+  imapUsername: '',
+  imapPassword: '',
+};
+
 export default function SettingsPage() {
+  const { startTour } = useSetup();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -54,9 +71,16 @@ export default function SettingsPage() {
   const [saving,  setSaving]  = useState(false);
   const [gmailLoading, setGmailLoading] = useState(true);
   const [gmailBusy, setGmailBusy] = useState(false);
-  const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null, expiresAt: null });
+  const [gmailStatus, setGmailStatus] = useState({ connected: false, active: false, email: null, expiresAt: null });
+  const [smtpLoading, setSmtpLoading] = useState(true);
+  const [smtpBusy, setSmtpBusy] = useState(false);
+  const [smtpStatus, setSmtpStatus] = useState({ connections: [] });
+  const [smtpForm, setSmtpForm] = useState(EMPTY_SMTP_FORM);
   const [voiceAgentId, setVoiceAgentId] = useState(null);
   const [voiceBusy, setVoiceBusy] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState([]);
+  const [phoneLoading, setPhoneLoading] = useState(true);
+  const [phoneRetrying, setPhoneRetrying] = useState(false);
   const [systemStatus, setSystemStatus] = useState({
     backend: { running: false },
     redis: { connected: false },
@@ -88,8 +112,13 @@ export default function SettingsPage() {
 
     api.get('/gmail/status', requestOptions())
       .then(({ data }) => setGmailStatus(data))
-      .catch(() => setGmailStatus({ connected: false, email: null, expiresAt: null }))
+      .catch(() => setGmailStatus({ connected: false, active: false, email: null, expiresAt: null }))
       .finally(() => setGmailLoading(false));
+
+    api.get('/smtp/status', requestOptions())
+      .then(({ data }) => setSmtpStatus({ connections: Array.isArray(data?.connections) ? data.connections : [] }))
+      .catch(() => setSmtpStatus({ connections: [] }))
+      .finally(() => setSmtpLoading(false));
 
     api.get('/system/status', requestOptions())
       .then(({ data }) => setSystemStatus(data))
@@ -99,9 +128,28 @@ export default function SettingsPage() {
         workers: { required: true, queues: [] },
       }))
       .finally(() => setSystemLoading(false));
+
+    api.get('/voice/phone-numbers', requestOptions())
+      .then(({ data }) => setPhoneNumbers(Array.isArray(data) ? data : []))
+      .catch(() => setPhoneNumbers([]))
+      .finally(() => setPhoneLoading(false));
   }, []);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
+  const setSmtp = (field) => (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setSmtpForm((f) => ({ ...f, [field]: value }));
+  };
+
+  const refreshSmtpStatus = async () => {
+    const { data } = await api.get('/smtp/status', requestOptions());
+    setSmtpStatus({ connections: Array.isArray(data?.connections) ? data.connections : [] });
+  };
+
+  const refreshGmailStatus = async () => {
+    const { data } = await api.get('/gmail/status', requestOptions());
+    setGmailStatus(data);
+  };
 
   const connectGmail = async () => {
     setError('');
@@ -125,11 +173,79 @@ export default function SettingsPage() {
     setGmailBusy(true);
     try {
       await api.delete('/gmail/disconnect');
-      setGmailStatus({ connected: false, email: null, expiresAt: null });
+      setGmailStatus({ connected: false, active: false, email: null, expiresAt: null });
+      await refreshSmtpStatus().catch(() => undefined);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to disconnect Gmail.');
     } finally {
       setGmailBusy(false);
+    }
+  };
+
+  const activateGmail = async () => {
+    setError('');
+    setGmailBusy(true);
+    try {
+      await api.post('/gmail/activate');
+      setGmailStatus((status) => ({ ...status, active: true }));
+      setSmtpStatus((status) => ({
+        connections: status.connections.map((connection) => ({ ...connection, active: false })),
+      }));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to activate Gmail.');
+    } finally {
+      setGmailBusy(false);
+    }
+  };
+
+  const connectSmtp = async () => {
+    setError('');
+    setSuccess(false);
+    setSmtpBusy(true);
+    try {
+      const { data } = await api.post('/smtp/connect', {
+        ...smtpForm,
+        smtpPort: Number(smtpForm.smtpPort),
+        imapPort: Number(smtpForm.imapPort),
+      });
+      setSmtpForm((formState) => ({ ...formState, smtpPassword: '', imapPassword: '' }));
+      await refreshSmtpStatus();
+      setGmailStatus((status) => ({ ...status, active: false }));
+      setSuccess(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not verify the SMTP and IMAP connection.');
+    } finally {
+      setSmtpBusy(false);
+    }
+  };
+
+  const activateSmtp = async (connectionId) => {
+    setError('');
+    setSmtpBusy(true);
+    try {
+      await api.post('/smtp/activate');
+      setSmtpStatus((status) => ({
+        connections: status.connections.map((connection) => ({ ...connection, active: connection.id === connectionId })),
+      }));
+      setGmailStatus((status) => ({ ...status, active: false }));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to activate custom email.');
+    } finally {
+      setSmtpBusy(false);
+    }
+  };
+
+  const disconnectSmtp = async () => {
+    setError('');
+    setSmtpBusy(true);
+    try {
+      await api.delete('/smtp/disconnect');
+      await refreshSmtpStatus();
+      await refreshGmailStatus().catch(() => undefined);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to disconnect custom email.');
+    } finally {
+      setSmtpBusy(false);
     }
   };
 
@@ -153,6 +269,26 @@ export default function SettingsPage() {
       setError(err.response?.data?.error || 'Failed to set up voice agent.');
     } finally {
       setVoiceBusy(false);
+    }
+  };
+
+  const retryPhoneProvisioning = async () => {
+    setError('');
+    setSuccess(false);
+    setPhoneRetrying(true);
+    try {
+      const { data } = await api.post('/voice/phone-numbers/retry');
+      const { data: refreshed } = await api.get('/voice/phone-numbers', requestOptions());
+      setPhoneNumbers(Array.isArray(refreshed) ? refreshed : []);
+      if (data?.status === 'provisioning') {
+        setSuccess(true);
+      } else if (data?.status === 'active') {
+        setSuccess(true);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Retell could not provision the number. You can retry again or contact support.');
+    } finally {
+      setPhoneRetrying(false);
     }
   };
 
@@ -189,6 +325,13 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  const activePhone = phoneNumbers.find(phone => phone.status === 'active' && phone.phone_number);
+  const pendingPhone = phoneNumbers.find(phone => ['requested', 'provisioning'].includes(phone.status));
+  const failedPhone = phoneNumbers.find(phone => phone.status === 'failed');
+  const phoneReady = Boolean(activePhone);
+  const smtpConnection = smtpStatus.connections.find((connection) => connection.provider === 'smtp') || null;
+  const emailConnectionReady = gmailStatus.active === true || smtpConnection?.active === true;
 
   if (showSkeleton) return <RouteSkeleton />;
 
@@ -229,6 +372,108 @@ export default function SettingsPage() {
               <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
                 <Field label="First name" value={form.firstName || ''} onChange={set('firstName')} />
                 <Field label="Last name" value={form.lastName || ''} onChange={set('lastName')} />
+              </div>
+            </section>
+
+            <section className="card" style={{ padding: 24, borderRadius: 8 }}>
+              <div className="row spread" style={{ gap: 16, marginBottom: 18, alignItems: 'flex-start' }}>
+                <div className="row" style={{ gap: 10, minWidth: 0 }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, background: smtpConnection?.active ? 'var(--g-50)' : 'var(--bg-2)', display: 'grid', placeItems: 'center', color: smtpConnection?.active ? 'var(--g-700)' : 'var(--ink-2)', flex: 'none' }}>
+                    <Icon name="send" size={18} />
+                  </span>
+                  <div>
+                    <h2 style={{ fontSize: 16, fontWeight: 800 }}>Custom SMTP + IMAP</h2>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>SMTP sends outbound email; IMAP polls the inbox for replies.</p>
+                  </div>
+                </div>
+                <span
+                  style={{
+                    padding: '7px 10px',
+                    borderRadius: 999,
+                    border: `1px solid ${smtpConnection?.active ? 'var(--g-100)' : 'var(--line)'}`,
+                    background: smtpConnection?.active ? 'var(--g-50)' : 'var(--bg-2)',
+                    color: smtpConnection?.active ? 'var(--g-700)' : 'var(--muted)',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    flex: 'none',
+                  }}
+                >
+                  {smtpLoading ? 'Checking' : smtpConnection?.active ? 'Active' : smtpConnection ? 'Connected, not active' : 'Not connected'}
+                </span>
+              </div>
+
+              {smtpConnection && (
+                <div style={{ padding: 14, border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-2)', marginBottom: 18 }}>
+                  <div className="row spread" style={{ gap: 12, alignItems: 'flex-start' }}>
+                    <div className="col" style={{ gap: 4, minWidth: 0 }}>
+                      <span className="ellip" style={{ fontSize: 13.5, fontWeight: 800 }}>{smtpConnection.email}</span>
+                      <span style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.45 }}>
+                        SMTP: {smtpConnection.smtpHost || 'configured'} · IMAP: {smtpConnection.imapHost || 'configured'}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'var(--faint)' }}>Passwords are never displayed after saving.</span>
+                    </div>
+                    <div className="row" style={{ gap: 8, flex: 'none' }}>
+                      {!smtpConnection.active && (
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => activateSmtp(smtpConnection.id)} disabled={smtpBusy || smtpLoading}>
+                          Use this mailbox
+                        </button>
+                      )}
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={disconnectSmtp} disabled={smtpBusy || smtpLoading}>
+                        <Icon name="logout" size={15} />
+                        Disconnect
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="col" style={{ gap: 16 }}>
+                <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
+                  <Field label="Sending email" type="email" value={smtpForm.email} onChange={setSmtp('email')} placeholder="you@company.com" autoComplete="email" />
+                  <Field label="Display name" value={smtpForm.displayName} onChange={setSmtp('displayName')} placeholder="Your name or company" autoComplete="organization" />
+                </div>
+
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 900, marginBottom: 10 }}>SMTP sending</p>
+                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: 14 }}>
+                    <Field label="SMTP host" value={smtpForm.smtpHost} onChange={setSmtp('smtpHost')} placeholder="smtp.yourprovider.com" autoComplete="off" />
+                    <Field label="Port" type="number" value={smtpForm.smtpPort} onChange={setSmtp('smtpPort')} placeholder="587" autoComplete="off" />
+                  </div>
+                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginTop: 14 }}>
+                    <Field label="SMTP username" value={smtpForm.smtpUsername} onChange={setSmtp('smtpUsername')} placeholder="Usually your email" autoComplete="username" />
+                    <Field label="SMTP password / app password" type="password" toggle value={smtpForm.smtpPassword} onChange={setSmtp('smtpPassword')} autoComplete="new-password" />
+                  </div>
+                  <label className="row" style={{ gap: 8, marginTop: 12, fontSize: 12.5, color: 'var(--muted)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={smtpForm.smtpSecure} onChange={setSmtp('smtpSecure')} style={{ accentColor: 'var(--g-500)' }} />
+                    Use secure SMTP (usually port 465; leave off for STARTTLS on port 587)
+                  </label>
+                </div>
+
+                <div>
+                  <p style={{ fontSize: 13, fontWeight: 900, marginBottom: 10 }}>IMAP reply polling</p>
+                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: 14 }}>
+                    <Field label="IMAP host" value={smtpForm.imapHost} onChange={setSmtp('imapHost')} placeholder="imap.yourprovider.com" autoComplete="off" />
+                    <Field label="Port" type="number" value={smtpForm.imapPort} onChange={setSmtp('imapPort')} placeholder="993" autoComplete="off" />
+                  </div>
+                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginTop: 14 }}>
+                    <Field label="IMAP username" value={smtpForm.imapUsername} onChange={setSmtp('imapUsername')} placeholder="Usually your email" autoComplete="username" />
+                    <Field label="IMAP password / app password" type="password" toggle value={smtpForm.imapPassword} onChange={setSmtp('imapPassword')} autoComplete="new-password" />
+                  </div>
+                  <label className="row" style={{ gap: 8, marginTop: 12, fontSize: 12.5, color: 'var(--muted)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={smtpForm.imapSecure} onChange={setSmtp('imapSecure')} style={{ accentColor: 'var(--g-500)' }} />
+                    Use secure IMAP (usually port 993)
+                  </label>
+                </div>
+
+                <div className="row spread" style={{ gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.45, maxWidth: 520 }}>
+                    We test both connections before saving. Use provider-specific app passwords where your mail host requires them; never paste a Google Calendar password here.
+                  </span>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={connectSmtp} disabled={smtpBusy || smtpLoading} style={{ flex: 'none' }}>
+                    <Icon name="check" size={15} color="#06231a" />
+                    {smtpBusy ? 'Testing and saving...' : 'Test & save connection'}
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -335,27 +580,27 @@ export default function SettingsPage() {
             <section className="card" style={{ padding: 24, borderRadius: 8 }}>
               <div className="row spread" style={{ gap: 16, marginBottom: 20, alignItems: 'flex-start' }}>
                 <div className="row" style={{ gap: 10, minWidth: 0 }}>
-                  <span style={{ width: 36, height: 36, borderRadius: 10, background: gmailStatus.connected ? 'var(--g-50)' : 'var(--bg-2)', display: 'grid', placeItems: 'center', color: gmailStatus.connected ? 'var(--g-700)' : 'var(--ink-2)', flex: 'none' }}>
+                  <span style={{ width: 36, height: 36, borderRadius: 10, background: gmailStatus.active ? 'var(--g-50)' : 'var(--bg-2)', display: 'grid', placeItems: 'center', color: gmailStatus.active ? 'var(--g-700)' : 'var(--ink-2)', flex: 'none' }}>
                     <Icon name="google" size={18} />
                   </span>
                   <div>
                     <h2 style={{ fontSize: 16, fontWeight: 800 }}>Gmail Connection</h2>
-                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Required for campaign launch, sending emails, and inbox polling.</p>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Gmail can send campaigns and poll replies through Google OAuth.</p>
                   </div>
                 </div>
                 <span
                   style={{
                     padding: '7px 10px',
                     borderRadius: 999,
-                    border: `1px solid ${gmailStatus.connected ? 'var(--g-100)' : 'var(--line)'}`,
-                    background: gmailStatus.connected ? 'var(--g-50)' : 'var(--bg-2)',
-                    color: gmailStatus.connected ? 'var(--g-700)' : 'var(--muted)',
+                    border: `1px solid ${gmailStatus.active ? 'var(--g-100)' : 'var(--line)'}`,
+                    background: gmailStatus.active ? 'var(--g-50)' : 'var(--bg-2)',
+                    color: gmailStatus.active ? 'var(--g-700)' : 'var(--muted)',
                     fontSize: 12,
                     fontWeight: 900,
                     flex: 'none',
                   }}
                 >
-                  {gmailLoading ? 'Checking' : gmailStatus.connected ? 'Connected' : 'Not connected'}
+                  {gmailLoading ? 'Checking' : gmailStatus.active ? 'Active' : gmailStatus.connected ? 'Connected, not active' : 'Not connected'}
                 </span>
               </div>
 
@@ -367,20 +612,31 @@ export default function SettingsPage() {
                   <span style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.45 }}>
                     {gmailStatus.connected
                       ? `Token expiry: ${gmailStatus.expiresAt ? new Date(gmailStatus.expiresAt).toLocaleString() : 'refresh token available'}`
-                      : 'Connect Gmail before launching email campaigns.'}
+                      : 'Connect Gmail or configure custom SMTP + IMAP before launching email campaigns.'}
                   </span>
                 </div>
                 {gmailStatus.connected ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={disconnectGmail}
-                    disabled={gmailBusy || gmailLoading}
-                    style={{ flex: 'none' }}
-                  >
-                    <Icon name="logout" size={15} />
-                    Disconnect
-                  </button>
+                  <div className="row" style={{ gap: 8, flex: 'none' }}>
+                    {!gmailStatus.active && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={activateGmail}
+                        disabled={gmailBusy || gmailLoading}
+                      >
+                        Use Gmail
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={disconnectGmail}
+                      disabled={gmailBusy || gmailLoading}
+                    >
+                      <Icon name="logout" size={15} />
+                      Disconnect
+                    </button>
+                  </div>
                 ) : (
                   <button
                     type="button"
@@ -451,8 +707,63 @@ export default function SettingsPage() {
                 type="tel"
                 value={form.retellPhoneNumber || ''}
                 onChange={set('retellPhoneNumber')}
-                hint="Buy a number inside your Retell dashboard, then paste it here in E.164 format, e.g. +14155551234"
+                hint="Your included US/Canada number is provisioned here after payment. Custom numbers can still be entered in E.164 format."
               />
+
+              <div
+                style={{
+                  marginTop: 4,
+                  padding: 16,
+                  border: `1px solid ${phoneReady ? 'var(--g-100)' : failedPhone ? '#fed7aa' : 'var(--line)'}`,
+                  borderRadius: 10,
+                  background: phoneReady ? 'var(--g-50)' : failedPhone ? '#fff7ed' : 'var(--bg-2)',
+                }}
+              >
+                <div className="row spread" style={{ gap: 14, alignItems: 'flex-start' }}>
+                  <div className="col" style={{ gap: 5, minWidth: 0 }}>
+                    <span style={{ fontWeight: 800, fontSize: 13.5 }}>Included Retell number</span>
+                    <span style={{ color: 'var(--muted)', fontSize: 12.5, lineHeight: 1.45 }}>
+                      {phoneLoading
+                        ? 'Checking number provisioning status...'
+                        : phoneReady
+                          ? `${activePhone.phone_number} is ready for voice calls.`
+                          : pendingPhone
+                            ? 'Retell is still provisioning your included number. This page will show it when ready.'
+                            : failedPhone
+                              ? 'The previous provisioning attempt failed. Your number was not purchased.'
+                              : 'No included number has been provisioned yet.'}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      padding: '6px 9px',
+                      borderRadius: 999,
+                      background: phoneReady ? 'var(--g-100)' : failedPhone ? '#ffedd5' : 'var(--bg)',
+                      color: phoneReady ? 'var(--g-700)' : failedPhone ? '#9a3412' : 'var(--muted)',
+                      fontSize: 11.5,
+                      fontWeight: 900,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {phoneLoading ? 'Checking' : phoneReady ? 'Active' : pendingPhone ? 'Provisioning' : failedPhone ? 'Failed' : 'Not ready'}
+                  </span>
+                </div>
+
+                {!phoneLoading && !phoneReady && !pendingPhone && (
+                  <div className="row" style={{ gap: 10, marginTop: 13, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={retryPhoneProvisioning}
+                      disabled={phoneRetrying}
+                    >
+                      <Icon name="refresh" size={14} />
+                      {phoneRetrying ? 'Retrying...' : failedPhone ? 'Retry provisioning' : 'Provision included number'}
+                    </button>
+                    {failedPhone && <span className="faint" style={{ fontSize: 12 }}>If it fails again, contact Support with the time of the attempt.</span>}
+                  </div>
+                )}
+              </div>
             </section>
 
             {error && <p style={{ fontSize: 13.5, color: '#c0392b', fontWeight: 700 }}>{error}</p>}
@@ -501,7 +812,7 @@ export default function SettingsPage() {
               </div>
               <div className="col" style={{ gap: 10, marginTop: 14 }}>
                 {[
-                  ['Gmail connected', gmailStatus.connected],
+                  ['Email account connected', emailConnectionReady],
                   ['Backend API', systemStatus.backend?.running],
                   ['Redis jobs', systemStatus.redis?.connected],
                   ['Reply approval', true],
@@ -509,7 +820,7 @@ export default function SettingsPage() {
                   <div key={label} className="row spread" style={{ gap: 12 }}>
                     <span className="faint" style={{ fontSize: 12.5, fontWeight: 800 }}>{label}</span>
                     <span style={{ color: ready ? 'var(--g-700)' : 'var(--muted)', fontWeight: 900, fontSize: 12 }}>
-                      {systemLoading && label !== 'Gmail connected' ? 'Checking' : ready ? 'Ready' : 'Needed'}
+                      {systemLoading && label !== 'Email account connected' ? 'Checking' : ready ? 'Ready' : 'Needed'}
                     </span>
                   </div>
                 ))}
@@ -517,6 +828,25 @@ export default function SettingsPage() {
               <p className="muted" style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.45 }}>
                 Redis must be running for delayed email sequence jobs and inbox polling.
               </p>
+            </section>
+
+            <section className="card" data-tour="settings-tour" style={{ padding: 18, borderRadius: 8 }}>
+              <div className="row" style={{ gap: 8, fontWeight: 800, fontSize: 13 }}>
+                <Icon name="play" size={16} color="var(--g-700)" />
+                Guided tour
+              </div>
+              <p className="muted" style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.5 }}>
+                Replay the walkthrough of the dashboard, AI agent, prospects, campaigns, inbox, meetings,
+                and analytics. Useful when someone new joins your team, or to revisit a section you skipped.
+              </p>
+              <div className="col" style={{ gap: 8, marginTop: 12 }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => startTour({ restart: true })}>
+                  <Icon name="play" size={14} /> Restart tour
+                </button>
+                <Link href="/setup" className="btn btn-ghost btn-sm">
+                  <Icon name="checkCircle" size={14} /> Open setup checklist
+                </Link>
+              </div>
             </section>
 
             <section className="card" style={{ padding: 18, borderRadius: 8 }}>

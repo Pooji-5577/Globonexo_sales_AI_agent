@@ -2,15 +2,70 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Icon from "../../../components/ui/Icon";
-import Avatar from "../../../components/ui/Avatar";
-import RouteSkeleton from "../../../components/ui/RouteSkeleton";
-import Spinner from "../../../components/ui/Spinner";
-import { useFirstLoad } from "../../../hooks/useFirstLoad";
-import api from "../../../lib/api";
-import { cleanText } from "../../../lib/validation";
+import Link from "next/link";
+import Icon from "../../components/ui/Icon";
+import Avatar from "../../components/ui/Avatar";
+import Logo from "../../components/ui/Logo";
+import RouteSkeleton from "../../components/ui/RouteSkeleton";
+import Spinner from "../../components/ui/Spinner";
+import { useFirstLoad } from "../../hooks/useFirstLoad";
+import api from "../../lib/api";
+import { cleanText } from "../../lib/validation";
 
 const SUPPORT_STATUSES = new Set(["open", "resolved", "closed"]);
+
+const NAV_ITEMS = [
+  { id: "orgs", label: "Organizations", ico: "building" },
+  { id: "users", label: "Users", ico: "users" },
+  { id: "campaigns", label: "Campaigns", ico: "send" },
+  { id: "support", label: "Support", ico: "chat" },
+];
+
+function AdminSidebar({ tab, onTabChange, adminName, adminEmail, onLogout }) {
+  return (
+    <aside className="admin-sidebar" style={{ width: 200, flex: "none", background: "#fff", borderRight: "1px solid var(--line)", display: "flex", flexDirection: "column", padding: "18px 14px" }}>
+      <div style={{ padding: "4px 6px 16px" }}><Logo size={26} /></div>
+
+      <nav className="col" style={{ gap: 2 }}>
+        {NAV_ITEMS.map(item => {
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onTabChange(item.id)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10, height: 40, padding: "0 10px", width: "100%",
+                borderRadius: 10, fontWeight: 700, fontSize: 14, textAlign: "left",
+                color: active ? "#06231a" : "var(--ink-2)",
+                background: active ? "var(--g-50)" : "transparent",
+                boxShadow: active ? "inset 0 0 0 1px var(--g-100)" : "none", transition: "all .12s",
+              }}
+            >
+              <Icon name={item.ico} size={18} color={active ? "var(--g-600)" : "var(--muted)"} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="grow" />
+
+      {adminName && (
+        <div className="col" style={{ gap: 2, padding: "10px 6px", borderTop: "1px solid var(--line)", marginBottom: 4 }}>
+          <span className="ellip" style={{ fontWeight: 800, fontSize: 13 }}>{adminName}</span>
+          <span className="faint ellip" style={{ fontSize: 11.5 }}>{adminEmail}</span>
+        </div>
+      )}
+      <Link className="row nw" href="/dashboard" style={{ gap: 9, padding: "0 6px", height: 36, color: "var(--muted)", fontWeight: 700, fontSize: 13.5 }}>
+        <Icon name="arrowLeft" size={16} /> Back to app
+      </Link>
+      <button type="button" className="row nw" onClick={onLogout} style={{ gap: 9, padding: "0 6px", height: 36, color: "var(--muted)", fontWeight: 700, fontSize: 13.5 }}>
+        <Icon name="logout" size={16} /> Log out
+      </button>
+    </aside>
+  );
+}
 
 function Metric({ label, value, icon, tone }) {
   return (
@@ -40,6 +95,26 @@ function StatusBadge({ value }) {
   );
 }
 
+function StatChips({ items }) {
+  return (
+    <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+      {items.map(item => (
+        <span
+          key={item.label}
+          className="badge"
+          style={{
+            background: item.tone === "warn" ? "#fff7ed" : "var(--bg-2)",
+            color: item.tone === "warn" ? "#c2410c" : "var(--ink-2)",
+            border: `1px solid ${item.tone === "warn" ? "#fed7aa" : "var(--line)"}`,
+          }}
+        >
+          {item.value} {item.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function appendMessageOnce(messages = [], message) {
   if (!message || messages.some(item => item.id === message.id)) return messages;
   return [...messages, message];
@@ -49,6 +124,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [data, setData] = useState(null);
   const [tab, setTab] = useState("orgs");
+  const [search, setSearch] = useState("");
   const [supportTickets, setSupportTickets] = useState([]);
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [selectedTicket, setSelectedTicket] = useState(null);
@@ -58,7 +134,22 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [adminUser, setAdminUser] = useState(null);
   const showSkeleton = useFirstLoad(loading);
+
+  useEffect(() => {
+    api.get("/auth/me").then(res => setAdminUser(res.data.user)).catch(() => {});
+  }, []);
+
+  const adminName = adminUser ? [adminUser.first_name, adminUser.last_name].filter(Boolean).join(" ") || adminUser.email : "";
+  const adminEmail = adminUser?.email || "";
+
+  const handleLogout = async () => {
+    try {
+      await api.post("/auth/logout");
+    } catch {}
+    window.location.href = "/login";
+  };
 
   const load = () => {
     setLoading(true);
@@ -116,10 +207,37 @@ export default function AdminPage() {
   const organizations = data?.organizations ?? [];
   const users = data?.users ?? [];
   const campaigns = data?.campaigns ?? [];
+  const searchNeedle = search.trim().toLowerCase();
 
-  const recentCampaigns = useMemo(() => campaigns.slice(0, 12), [campaigns]);
+  const filteredOrganizations = useMemo(() => {
+    if (!searchNeedle) return organizations;
+    return organizations.filter(org =>
+      org.name.toLowerCase().includes(searchNeedle) || (org.website || "").toLowerCase().includes(searchNeedle)
+    );
+  }, [organizations, searchNeedle]);
+
+  const filteredUsers = useMemo(() => {
+    if (!searchNeedle) return users;
+    return users.filter(user =>
+      user.name.toLowerCase().includes(searchNeedle) || user.email.toLowerCase().includes(searchNeedle)
+    );
+  }, [users, searchNeedle]);
+
+  const visibleCampaigns = useMemo(() => {
+    if (!searchNeedle) return campaigns.slice(0, 12);
+    return campaigns.filter(campaign =>
+      campaign.name.toLowerCase().includes(searchNeedle) || campaign.organizationName.toLowerCase().includes(searchNeedle)
+    );
+  }, [campaigns, searchNeedle]);
+
+  const searchPlaceholder = tab === "orgs"
+    ? "Search organizations by name or website..."
+    : tab === "users"
+      ? "Search users by name or email..."
+      : "Search campaigns by name or organization...";
 
   const suspendOrg = async org => {
+    if (!window.confirm(`Suspend ${org.name}? They will immediately lose access to the app.`)) return;
     setError("");
     setNotice("");
     try {
@@ -131,7 +249,20 @@ export default function AdminPage() {
     }
   };
 
+  const unsuspendOrg = async org => {
+    setError("");
+    setNotice("");
+    try {
+      await api.post(`/admin/organizations/${org.id}/unsuspend`);
+      setNotice(`${org.name} unsuspended.`);
+      load();
+    } catch (err) {
+      setError(err?.response?.data?.error || "Organization could not be unsuspended.");
+    }
+  };
+
   const impersonateOrg = async org => {
+    if (!window.confirm(`Impersonate ${org.name}? This logs you into their account for 15 minutes.`)) return;
     setError("");
     setNotice("");
     try {
@@ -180,13 +311,18 @@ export default function AdminPage() {
   if (showSkeleton) return <RouteSkeleton variant="admin" />;
 
   return (
-    <div className="admin-screen">
-      <div className="row spread page-head">
-        <div>
-          <h1 className="display page-title">Admin Console</h1>
-          <p className="muted page-subtitle">Platform-wide organizations, users, campaigns, and support signals.</p>
-        </div>
-        <a className="btn btn-ghost btn-sm" href="/dashboard"><Icon name="arrowLeft" size={15} /> Back to app</a>
+    <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+      <AdminSidebar
+        tab={tab}
+        onTabChange={(value) => { setTab(value); setSearch(""); }}
+        adminName={adminName}
+        adminEmail={adminEmail}
+        onLogout={handleLogout}
+      />
+      <div className="admin-screen scroll grow" style={{ minHeight: 0 }}>
+      <div className="page-head">
+        <h1 className="display page-title">Admin Console</h1>
+        <p className="muted page-subtitle">Platform-wide organizations, users, campaigns, and support signals.</p>
       </div>
 
       {(error || notice) ? <div className={error ? "notice-warn" : "notice-good"}>{error || notice}</div> : null}
@@ -219,16 +355,18 @@ export default function AdminPage() {
         </div>
       </section>
 
-      <div className="admin-tabs">
-        {[
-          ["orgs", "Organizations"],
-          ["users", "Users"],
-          ["campaigns", "Campaigns"],
-          ["support", "Support"],
-        ].map(([value, label]) => (
-          <button key={value} type="button" className={tab === value ? "is-active" : ""} onClick={() => setTab(value)}>{label}</button>
-        ))}
-      </div>
+      {tab !== "support" && (
+        <div className="input-wrap" style={{ width: 280, marginBottom: 12 }}>
+          <span className="lead-ico"><Icon name="search" size={15} /></span>
+          <input
+            className="input has-ico"
+            style={{ height: 36, fontSize: 13 }}
+            value={search}
+            onChange={event => setSearch(event.target.value)}
+            placeholder={searchPlaceholder}
+          />
+        </div>
+      )}
 
       {tab === "orgs" ? (
         <div className="card table-shell">
@@ -236,7 +374,9 @@ export default function AdminPage() {
             <table className="data-table">
               <thead><tr>{["Organization", "Plan", "Status", "Usage", "Support", ""].map(header => <th key={header}>{header}</th>)}</tr></thead>
               <tbody>
-                {organizations.map(org => (
+                {filteredOrganizations.length === 0 ? (
+                  <tr><td colSpan={6} className="table-empty">No organizations match your search.</td></tr>
+                ) : filteredOrganizations.map(org => (
                   <tr className="data-row" key={org.id}>
                     <td>
                       <div className="row" style={{ gap: 11, minWidth: 240 }}>
@@ -249,12 +389,26 @@ export default function AdminPage() {
                     </td>
                     <td><span className="chip">{org.planId}</span></td>
                     <td><StatusBadge value={org.subscriptionStatus} /></td>
-                    <td><span className="faint">{org.counts.leads} leads · {org.counts.activeCampaigns} active · {org.counts.meetings} meetings</span></td>
-                    <td><span className="faint">{org.counts.openTickets} open tickets</span></td>
+                    <td>
+                      <StatChips items={[
+                        { label: "leads", value: org.counts.leads },
+                        { label: "active", value: org.counts.activeCampaigns },
+                        { label: "meetings", value: org.counts.meetings },
+                      ]} />
+                    </td>
+                    <td>
+                      <StatChips items={[
+                        { label: "open tickets", value: org.counts.openTickets, tone: org.counts.openTickets > 0 ? "warn" : undefined },
+                      ]} />
+                    </td>
                     <td>
                       <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
                         <button className="btn btn-ghost btn-sm" type="button" onClick={() => impersonateOrg(org)}>Impersonate</button>
-                        <button className="btn btn-ghost btn-sm danger-text" type="button" onClick={() => suspendOrg(org)}>Suspend</button>
+                        {org.subscriptionStatus === "suspended" ? (
+                          <button className="btn btn-ghost btn-sm" type="button" onClick={() => unsuspendOrg(org)}>Unsuspend</button>
+                        ) : (
+                          <button className="btn btn-ghost btn-sm danger-text" type="button" onClick={() => suspendOrg(org)}>Suspend</button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -269,7 +423,9 @@ export default function AdminPage() {
             <table className="data-table">
               <thead><tr>{["User", "Organization", "Role", "Created"].map(header => <th key={header}>{header}</th>)}</tr></thead>
               <tbody>
-                {users.map(user => (
+                {filteredUsers.length === 0 ? (
+                  <tr><td colSpan={4} className="table-empty">No users match your search.</td></tr>
+                ) : filteredUsers.map(user => (
                   <tr className="data-row" key={user.id}>
                     <td>
                       <div className="row" style={{ gap: 11 }}>
@@ -295,13 +451,21 @@ export default function AdminPage() {
             <table className="data-table">
               <thead><tr>{["Campaign", "Organization", "Channel", "Status", "Stats"].map(header => <th key={header}>{header}</th>)}</tr></thead>
               <tbody>
-                {recentCampaigns.map(campaign => (
+                {visibleCampaigns.length === 0 ? (
+                  <tr><td colSpan={5} className="table-empty">No campaigns match your search.</td></tr>
+                ) : visibleCampaigns.map(campaign => (
                   <tr className="data-row" key={campaign.id}>
                     <td><strong style={{ fontSize: 14 }}>{campaign.name}</strong></td>
                     <td>{campaign.organizationName}</td>
                     <td><span className="chip">{campaign.channel}</span></td>
                     <td><StatusBadge value={campaign.status} /></td>
-                    <td><span className="faint">{campaign.stats.leads} leads · {campaign.stats.emailsSent} sent · {campaign.stats.meetings} meetings</span></td>
+                    <td>
+                      <StatChips items={[
+                        { label: "leads", value: campaign.stats.leads },
+                        { label: "sent", value: campaign.stats.emailsSent },
+                        { label: "meetings", value: campaign.stats.meetings },
+                      ]} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -391,6 +555,7 @@ export default function AdminPage() {
           </div>
         </section>
       )}
+      </div>
     </div>
   );
 }

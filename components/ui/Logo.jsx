@@ -15,10 +15,10 @@ export function Logo({ size = 34, showWord = true, light = false }) {
         </svg>
       </div>
       {showWord && (
-        <div className="col" style={{ lineHeight: 1 }}>
-          <span className="display" style={{ fontSize: size * .47, fontWeight: 600, letterSpacing: '-.02em', color: light ? '#fff' : 'var(--ink)' }}>GNX</span>
-          <span style={{ fontSize: size * .26, fontWeight: 700, color: light ? 'var(--g-300)' : 'var(--g-700)', letterSpacing: '.02em', marginTop: 2 }}>sales</span>
-        </div>
+        <span className="display" style={{ fontSize: size * .47, fontWeight: 600, letterSpacing: '-.02em', color: light ? '#fff' : 'var(--ink)', whiteSpace: 'nowrap' }}>
+          GNX{' '}
+          <span style={{ fontSize: size * .38, fontWeight: 600, color: light ? 'var(--g-300)' : 'var(--g-700)', letterSpacing: '-.02em' }}>Sales</span>
+        </span>
       )}
     </div>
   );

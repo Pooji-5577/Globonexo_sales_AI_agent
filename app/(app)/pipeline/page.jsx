@@ -118,7 +118,7 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      <div className="metric-grid">
+      <div className="metric-grid" data-tour="pipeline-metrics">
         <div className="metric-card"><span className="metric-icon"><Icon name="users" size={16} /></span><div><strong>{metrics.total}</strong><span>visible leads</span></div></div>
         <div className="metric-card"><span className="metric-icon" data-tone="warn"><Icon name="flame" size={16} /></span><div><strong>{metrics.hot}</strong><span>hot leads</span></div></div>
         <div className="metric-card"><span className="metric-icon"><Icon name="chat" size={16} /></span><div><strong>{metrics.contacted}</strong><span>in conversation</span></div></div>

@@ -1,26 +1,12 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+import React from "react";
 import { useRouter } from "next/navigation";
 import Aurora from "../../components/ui/Aurora";
 import Icon from "../../components/ui/Icon";
 
 export default function CelebratePage() {
   const router = useRouter();
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 80);
-    const stop = setTimeout(() => clearInterval(id), 2400);
-    const redirect = setTimeout(() => router.push('/dashboard'), 6500);
-    return () => { clearInterval(id); clearTimeout(stop); clearTimeout(redirect); };
-  }, [router]);
-
-  const items = [
-    'ICP profile saved', 'Outreach templates generated', 'Cadence configured',
-    'Tools connected', 'First 50 prospects queued', 'Agent ready',
-  ];
-  const completeCount = items.filter((_, i) => tick > i * 4).length;
-  const progress = Math.round((completeCount / items.length) * 100);
 
   return (
     <div className="screen celebrate-screen">
@@ -30,47 +16,49 @@ export default function CelebratePage() {
           <div className="celebrate-mark" aria-hidden="true">
             <Icon name="bolt" size={42} color="#06231a" stroke={2.25} />
           </div>
-          <h1 id="celebrate-title" className="display">Your agent is ready.</h1>
+          <h1 id="celebrate-title" className="display">Your sales workspace is ready.</h1>
           <p>
-            GNX sales is fully configured and queueing your first outreach. Your prospect list,
-            templates, cadence, and connected tools are ready to start booking meetings.
+            Your onboarding details are saved and your first campaign draft is created. GNX will prepare the first 50 Apollo leads in the background while you explore the workspace.
           </p>
+
           <div className="celebrate-actions">
-            <button className="btn btn-primary btn-lg" onClick={() => router.push('/dashboard')}>
+            <button className="btn btn-primary btn-lg" type="button" onClick={() => router.push("/dashboard")}>
               Open dashboard <Icon name="arrow" size={18} color="#06231a" />
             </button>
-            <span className="celebrate-auto">Auto-opening dashboard in a few seconds</span>
+            <span className="celebrate-auto">
+              You can review and launch the campaign when the audience is ready.
+            </span>
           </div>
         </section>
 
-        <aside className="celebrate-card" aria-label="Agent launch checklist">
+        <aside className="celebrate-card" aria-label="Onboarding completion">
           <div className="celebrate-card-top">
             <div>
-              <span>Launch sequence</span>
-              <strong>{completeCount}/{items.length} complete</strong>
+              <span>Setup complete</span>
+              <strong>2/2 complete</strong>
             </div>
             <span className="celebrate-status"><span /> Ready</span>
           </div>
-          <div className="celebrate-progress" aria-label={`${progress}% complete`}>
-            <span style={{ width: `${progress}%` }} />
+          <div className="celebrate-progress" aria-label="100% complete">
+            <span style={{ width: "100%" }} />
           </div>
           <div className="celebrate-list">
-            {items.map((item, i) => {
-              const done = tick > i * 4;
-              return (
-                <div key={item} className={'celebrate-item ' + (done ? 'is-done' : '')}>
-                  <span className="celebrate-check">
-                    {done ? <Icon name="check" size={14} color="#06231a" stroke={3} /> : <span />}
-                  </span>
-                  <span>{item}</span>
-                </div>
-              );
-            })}
+            {[
+              "Onboarding context saved",
+              "First campaign draft created",
+            ].map(label => (
+              <div key={label} className="celebrate-item is-done">
+                <span className="celebrate-check">
+                  <Icon name="check" size={14} color="#06231a" stroke={3} />
+                </span>
+                <span>{label}</span>
+              </div>
+            ))}
           </div>
           <div className="celebrate-metrics">
-            <div><strong>50</strong><span>Prospects queued</span></div>
-            <div><strong>6</strong><span>Steps verified</span></div>
-            <div><strong>Now</strong><span>First wave ready</span></div>
+            <div><strong>1</strong><span>Draft campaign</span></div>
+            <div><strong>50</strong><span>Leads preparing</span></div>
+            <div><strong>Now</strong><span>Workspace ready</span></div>
           </div>
         </aside>
       </div>

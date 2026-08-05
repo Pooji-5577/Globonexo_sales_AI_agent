@@ -91,7 +91,7 @@ export default function PricingPage() {
         <section className="pricing-note public-section">
           <div>
             <h2>Every plan includes the core sales loop.</h2>
-            <p>Gmail sending, Apollo and CSV lead sourcing, AI-generated email sequences, reply drafting, inbox review, dashboard metrics, and support access are included.</p>
+            <p>Gmail or custom SMTP + IMAP sending, Apollo and CSV lead sourcing, AI-generated email sequences, reply drafting, inbox review, dashboard metrics, and support access are included.</p>
           </div>
           <Link className="btn btn-primary btn-lg" href="/signup">
             Create account <Icon name="arrow" size={16} color="#06231a" />

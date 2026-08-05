@@ -48,7 +48,7 @@ export function LoginForm() {
     try {
       const data = await verifyLogin(email, otp);
       localStorage.setItem('returning_user', '1');
-      router.push(hasWorkspaceAccess(data.user, data.organization) ? '/dashboard' : '/billing?required=1');
+      router.push(hasWorkspaceAccess(data.user, data.organization) ? '/dashboard' : '/subscribe');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid or expired code.');
     } finally {

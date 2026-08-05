@@ -64,7 +64,7 @@ export function SignupForm() {
     try {
       const data = await verifySignup(form.email, otp);
       localStorage.setItem('returning_user', '1');
-      router.push(hasWorkspaceAccess(data.user, data.organization) ? '/dashboard' : '/billing?required=1');
+      router.push(hasWorkspaceAccess(data.user, data.organization) ? '/dashboard' : '/subscribe');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid or expired code.');
     } finally {
