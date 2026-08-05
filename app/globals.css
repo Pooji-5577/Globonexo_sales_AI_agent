@@ -517,6 +517,9 @@ a { color: inherit; text-decoration: none; }
 .danger-text {
   color: #b91c1c;
 }
+.success-text {
+  color: var(--g-700);
+}
 .source-panel {
   padding: 18px;
   border-radius: 8px;
@@ -646,6 +649,61 @@ a { color: inherit; text-decoration: none; }
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+.cal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  align-items: start;
+}
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+.cal-day-col {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+.cal-day-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-2);
+}
+.cal-day-head span { font-size: 10.5px; font-weight: 800; text-transform: uppercase; }
+.cal-day-head strong { font-size: 16px; color: var(--ink); }
+.cal-day-head.is-today { background: var(--g-50); border-bottom-color: var(--g-100); }
+.cal-day-head.is-today strong { color: var(--g-700); }
+.cal-day-body {
+  min-height: 120px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cal-meeting-card {
+  padding: 10px;
+  border: 1px solid var(--g-100);
+  border-radius: 8px;
+  background: var(--g-50);
+}
+.cal-settings-card { padding: 20px; border-radius: 8px; }
+.cal-day-toggle {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1.5px solid var(--line);
+  font-size: 12px;
+  font-weight: 800;
+  transition: all .12s;
+}
+
 .empty-state {
   padding: 54px 24px;
   text-align: center;
@@ -1554,9 +1612,11 @@ a { color: inherit; text-decoration: none; }
   .form-grid,
   .form-grid.two,
   .booking-hero,
-  .admin-health-list {
+  .admin-health-list,
+  .cal-layout {
     grid-template-columns: 1fr;
   }
+  .cal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .filter-bar { grid-template-columns: 1fr; }
   .meeting-row {
     align-items: flex-start;
