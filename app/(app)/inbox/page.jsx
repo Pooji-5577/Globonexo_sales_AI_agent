@@ -109,7 +109,7 @@ export default function InboxPage() {
         setSelectedId(items[0]?.id || null);
       })
       .catch(() => {
-        if (!cancelled) setError("Inbox could not be loaded. Check backend, login session, and Gmail connection.");
+        if (!cancelled) setError("Inbox could not be loaded. Check backend, login session, and your email connection.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -194,9 +194,9 @@ export default function InboxPage() {
         ai_draft_reply: body,
         ai_draft_status: data?.ai_draft_status || "approved",
       } : current);
-      setSuccess(isSentThread ? "Follow-up queued. The send-email worker will send it through connected Gmail." : "Reply queued. The send-email worker will send it through connected Gmail.");
+      setSuccess(isSentThread ? "Follow-up queued. The send-email worker will send it through your active email account." : "Reply queued. The send-email worker will send it through your active email account.");
     } catch {
-      setError("Message could not be queued. Check Gmail connection, Redis worker, and backend logs.");
+      setError("Message could not be queued. Check your email connection, Redis worker, and backend logs.");
     } finally {
       setSending(false);
     }

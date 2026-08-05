@@ -169,8 +169,9 @@ export default function LandingPage() {
           <div className="landing-usecase-head">
             <h3>How GNX Sales uses your Google account data</h3>
             <p>
-              Connecting Gmail is optional and takes one click in Settings. When you connect it, GNX Sales requests
-              only the permissions below, and uses each one for a single purpose in the product.
+              Connecting Gmail is optional and takes one click in Settings. You can also use a custom SMTP + IMAP
+              mailbox. When you connect Gmail, GNX Sales requests only the permissions below, and uses each one for
+              a single purpose in the product.
             </p>
           </div>
 
