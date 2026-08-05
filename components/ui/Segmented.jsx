@@ -1,9 +1,9 @@
 "use client";
 import React from "react";
 
-export default function Segmented({ options, value, onChange, className = "" }) {
+export default function Segmented({ options, value, onChange, className = "", ...rest }) {
   return (
-    <div className={`row segmented-control ${className}`.trim()} role="tablist">
+    <div className={`row segmented-control ${className}`.trim()} role="tablist" {...rest}>
       {options.map(o => (
         <button
           key={o.value}

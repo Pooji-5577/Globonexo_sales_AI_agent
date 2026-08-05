@@ -6,6 +6,7 @@ import Icon from "../../../components/ui/Icon";
 import Avatar from "../../../components/ui/Avatar";
 import RouteSkeleton from "../../../components/ui/RouteSkeleton";
 import { useFirstLoad } from "../../../hooks/useFirstLoad";
+import SetupChecklist from "../../../components/setup/SetupChecklist";
 import api from "../../../lib/api";
 
 const ICON_MAP = {
@@ -170,12 +171,14 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="dashboard-kpi-grid">
+      <SetupChecklist variant="compact" />
+
+      <div className="dashboard-kpi-grid" data-tour="dashboard-kpis">
         {kpiItems.map(item => <KpiCard key={item.label} item={item} />)}
       </div>
 
       <div className="dashboard-main-grid">
-        <div className="card" style={{ padding: 0, overflow: "hidden", borderRadius: 8 }}>
+        <div className="card" data-tour="dashboard-activity" style={{ padding: 0, overflow: "hidden", borderRadius: 8 }}>
           <div className="row spread" style={{ padding: "14px 18px", borderBottom: "1px solid var(--line)" }}>
             <div>
               <span style={{ fontWeight: 800, fontSize: 15 }}>Activity feed</span>
