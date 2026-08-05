@@ -6,6 +6,8 @@ import Aurora from "../../components/ui/Aurora";
 import Icon from "../../components/ui/Icon";
 import api from "../../lib/api";
 
+const DEFAULT_TARGET = 50;
+
 function readPreparation() {
   if (typeof window === "undefined") return {};
   try {
@@ -25,7 +27,6 @@ export default function CelebratePage() {
   const [campaignId, setCampaignId] = useState(null);
   const [queryRead, setQueryRead] = useState(false);
   const [campaign, setCampaign] = useState(null);
-  const [leadCount, setLeadCount] = useState(null);
   const [preparation, setPreparation] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -43,47 +44,88 @@ export default function CelebratePage() {
     if (!campaignId) {
       setLoading(false);
       setError("The first campaign reference was not returned. Open Campaigns to continue.");
-      return;
+      return undefined;
     }
 
     let cancelled = false;
-    Promise.all([
-      api.get(`/campaigns/${encodeURIComponent(campaignId)}`),
-      api.get("/leads", { params: { campaignId, page: 1, perPage: 100 } }),
-    ])
-      .then(([campaignResponse, leadsResponse]) => {
-        if (cancelled) return;
-        setCampaign(campaignResponse.data || null);
-        const items = leadsResponse.data?.items;
-        setLeadCount(Array.isArray(items) ? items.length : campaignResponse.data?.stats?.enrolled || 0);
-      })
-      .catch((requestError) => {
-        if (cancelled) return;
-        setError(requestError?.response?.data?.message || requestError?.response?.data?.error || "We could not load the prepared campaign. Open Campaigns to continue.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    let timer;
 
-    return () => { cancelled = true; };
+    const load = async () => {
+      try {
+        const [campaignResponse, preparationResponse] = await Promise.all([
+          api.get(`/campaigns/${encodeURIComponent(campaignId)}`),
+          api.get("/onboarding/preparation", { params: { campaignId } }),
+        ]);
+        if (cancelled) return;
+
+        const nextCampaign = campaignResponse.data || null;
+        const nextPreparation = preparationResponse.data || {};
+        setCampaign(nextCampaign);
+        setPreparation(nextPreparation);
+        setError("");
+        setLoading(false);
+
+        const target = Number(nextPreparation.targetEnriched || DEFAULT_TARGET);
+        const enriched = Number(nextPreparation.enriched || 0);
+        const stillPreparing = nextPreparation.status === "queued"
+          || nextPreparation.status === "preparing"
+          || enriched < target && nextPreparation.status !== "attention";
+
+        if (stillPreparing) {
+          timer = window.setTimeout(load, 3000);
+        }
+      } catch (requestError) {
+        if (cancelled) return;
+        setLoading(false);
+        setError(requestError?.response?.data?.message || requestError?.response?.data?.error || "We could not load the first campaign preparation. Please retry from Prospects.");
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
   }, [campaignId, queryRead]);
 
-  const apollo = preparation?.apollo || {};
+  const target = Number(preparation.targetEnriched || DEFAULT_TARGET);
+  const enriched = Number(preparation.enriched || 0);
+  const attached = Number(preparation.attached ?? preparation.candidatesFound ?? 0);
+  const candidatesAttempted = Number(preparation.candidatesAttempted || 0);
+  const status = loading ? "preparing" : preparation.status || (enriched >= target ? "ready" : "attention");
+  const isReady = Boolean(campaign) && status === "ready" && enriched >= target;
+  const needsAttention = Boolean(error) || status === "attention";
+
   const checklist = useMemo(() => [
     { label: "Onboarding context saved", done: !loading && !error },
     { label: "First campaign draft created", done: Boolean(campaign) },
     {
-      label: leadCount > 0 ? `${leadCount} Apollo prospects attached` : "Apollo lead batch attached",
-      done: Number(leadCount) > 0,
+      label: preparation.searchPages > 0 ? "Apollo audience searched" : "Apollo audience search queued",
+      done: preparation.searchPages > 0 || status === "ready" || status === "attention",
     },
-    { label: "Ready for your review", done: Boolean(campaign) },
-  ], [campaign, error, leadCount, loading]);
+    { label: `${enriched}/${target} prospects enriched`, done: enriched >= target },
+    { label: "Ready for launch review", done: isReady },
+  ], [campaign, enriched, error, isReady, loading, preparation.searchPages, status, target]);
 
   const completeCount = checklist.filter(item => item.done).length;
-  const progress = Math.round((completeCount / checklist.length) * 100);
-  const needsAttention = Boolean(error) || preparation?.status === "attention" || (campaign && Number(leadCount) === 0);
-  const statusLabel = loading ? "Preparing" : needsAttention ? "Review needed" : "Ready to review";
-  const apolloMessage = apollo.error || (Number(leadCount) === 0 && !loading ? "No leads are attached yet. You can run the Apollo search from Prospects before launching." : "");
+  const progress = enriched >= target ? 100 : Math.min(99, Math.round((enriched / Math.max(target, 1)) * 100));
+  const apolloMessage = preparation.error || (needsAttention && !error
+    ? `Apollo prepared ${enriched} enriched prospects. Refine the ICP and retry to reach ${target}.`
+    : "");
+
+  const title = loading
+    ? "Preparing your first campaign."
+    : isReady
+      ? "Your first campaign is ready to review."
+      : needsAttention
+        ? "Your audience needs one more pass."
+        : `Preparing your first ${target} enriched leads.`;
+
+  const description = isReady
+    ? "We created one draft campaign from your onboarding answers and prepared an enriched Apollo audience. Review the audience, sequence, and lead facts before you launch."
+    : needsAttention
+      ? "The campaign draft is saved, but Apollo did not reach the enriched-lead target. Refine the ICP in Prospects and retry before launching."
+      : `GNX is searching Apollo, removing duplicates, and enriching each prospect. We will keep going until ${target} enriched leads are ready or Apollo has no more usable matches.`;
 
   return (
     <div className="screen celebrate-screen">
@@ -93,14 +135,8 @@ export default function CelebratePage() {
           <div className="celebrate-mark" aria-hidden="true">
             <Icon name="bolt" size={42} color="#06231a" stroke={2.25} />
           </div>
-          <h1 id="celebrate-title" className="display">
-            {loading ? "Preparing your first campaign." : campaign ? "Your first campaign is ready to review." : "Your sales workspace is ready."}
-          </h1>
-          <p>
-            {campaign
-              ? "We created one draft campaign from your onboarding answers and attached the first Apollo batch when it was available. Review the audience, sequence, and lead facts before you launch."
-              : "Your onboarding details are saved. Open Campaigns to finish preparing your first outreach campaign."}
-          </p>
+          <h1 id="celebrate-title" className="display">{title}</h1>
+          <p>{description}</p>
 
           {apolloMessage && (
             <div className="notice-warn" style={{ marginTop: 18, maxWidth: 580 }}>
@@ -117,9 +153,10 @@ export default function CelebratePage() {
           <div className="celebrate-actions">
             <button
               className="btn btn-primary btn-lg"
+              disabled={!campaign || loading || (!isReady && !needsAttention)}
               onClick={() => router.push(campaign?.id ? `/campaigns/${campaign.id}` : "/campaigns")}
             >
-              {campaign ? "Review first campaign" : "Open campaigns"} <Icon name="arrow" size={18} color="#06231a" />
+              {isReady ? "Review first campaign" : needsAttention ? "Open campaign" : "Preparing leads…"} <Icon name="arrow" size={18} color="#06231a" />
             </button>
             <span className="celebrate-auto">
               After launch, turn on Auto-Copilot to keep daily lead generation and outreach within your plan limits.
@@ -133,7 +170,7 @@ export default function CelebratePage() {
               <span>First campaign preparation</span>
               <strong>{completeCount}/{checklist.length} complete</strong>
             </div>
-            <span className="celebrate-status"><span /> {statusLabel}</span>
+            <span className="celebrate-status"><span /> {loading ? "Preparing" : displayStatus(status)}</span>
           </div>
           <div className="celebrate-progress" aria-label={`${progress}% complete`}>
             <span style={{ width: `${progress}%` }} />
@@ -149,9 +186,9 @@ export default function CelebratePage() {
             ))}
           </div>
           <div className="celebrate-metrics">
-            <div><strong>{loading ? "—" : Number(leadCount || 0)}</strong><span>Prospects attached</span></div>
-            <div><strong>{campaign ? displayStatus(campaign.status) : "—"}</strong><span>Campaign status</span></div>
-            <div><strong>{campaign?.status === "active" ? "On" : "Manual"}</strong><span>Launch control</span></div>
+            <div><strong>{loading ? "—" : `${enriched}/${target}`}</strong><span>Enriched prospects</span></div>
+            <div><strong>{attached}</strong><span>Attached candidates</span></div>
+            <div><strong>{candidatesAttempted}</strong><span>Enrichment attempts</span></div>
           </div>
         </aside>
       </div>

@@ -63,7 +63,7 @@ export function SignupForm() {
     try {
       await verifySignup(form.email, otp);
       localStorage.setItem('returning_user', '1');
-      router.push('/billing?required=1');
+      router.push('/subscribe');
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid or expired code.');
     } finally {

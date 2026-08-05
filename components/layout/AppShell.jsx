@@ -47,7 +47,10 @@ const NAV_GROUPS = [
 ];
 
 const ACCESS_STATUSES = new Set(['active', 'past_due']);
-const BILLING_ALLOWED_PATHS = ['/billing', '/support'];
+// Routes an unpaid account may still reach inside the shell. /billing is not
+// one of them any more — accounts without entitlement are sent to the
+// standalone /subscribe checkout, which renders outside this shell entirely.
+const BILLING_ALLOWED_PATHS = ['/support'];
 
 export default function AppShell({ children }) {
   const router = useRouter();
@@ -125,7 +128,7 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     if (paymentRequired && !billingRouteAllowed) {
-      router.replace('/billing?required=1');
+      router.replace('/subscribe');
     }
   }, [paymentRequired, billingRouteAllowed, router]);
 
@@ -161,10 +164,10 @@ export default function AppShell({ children }) {
         <div className="card" style={{ maxWidth: 460, padding: 32, textAlign: 'center' }}>
           <h1 className="display" style={{ fontSize: 24 }}>Complete billing to continue</h1>
           <p className="muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-            Your account is ready. Choose a monthly or annual plan in Billing to unlock onboarding and the sales workspace.
+            Your account is ready. Choose a monthly or yearly plan to unlock onboarding and the sales workspace.
           </p>
-          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => router.replace('/billing?required=1')}>
-            Go to Billing
+          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => router.replace('/subscribe')}>
+            Choose a plan
           </button>
         </div>
       </div>
