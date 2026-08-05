@@ -11,6 +11,7 @@ const NAV_GROUPS = [
     label: null,
     items: [
       { id: 'dashboard', label: 'Dashboard', ico: 'grid' },
+      { id: 'setup', label: 'Get set up', ico: 'checkCircle' },
       { id: 'agent', label: 'AI Agent', ico: 'spark' },
     ]
   },
@@ -46,7 +47,10 @@ const NAV_GROUPS = [
 ];
 
 const ACCESS_STATUSES = new Set(['active', 'past_due']);
-const BILLING_ALLOWED_PATHS = ['/billing', '/support'];
+// Routes an unpaid account may still reach inside the shell. /billing is not
+// one of them any more — accounts without entitlement are sent to the
+// standalone /subscribe checkout, which renders outside this shell entirely.
+const BILLING_ALLOWED_PATHS = ['/support'];
 
 export default function AppShell({ children }) {
   const router = useRouter();
@@ -93,6 +97,15 @@ export default function AppShell({ children }) {
     setProfileMenuOpen(false);
   }, [pathname]);
 
+  // The product tour anchors several steps to sidebar items. On a narrow
+  // viewport those only exist inside the mobile drawer, so the tour asks for it
+  // to be opened rather than falling back to a targetless card.
+  useEffect(() => {
+    const handleTourNav = (event) => setMobileNavOpen(Boolean(event.detail?.open));
+    window.addEventListener('gnx:tour:nav', handleTourNav);
+    return () => window.removeEventListener('gnx:tour:nav', handleTourNav);
+  }, []);
+
   useEffect(() => {
     if (!profileMenuOpen) return undefined;
     const handleClickOutside = (event) => {
@@ -115,7 +128,7 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     if (paymentRequired && !billingRouteAllowed) {
-      router.replace('/billing?required=1');
+      router.replace('/subscribe');
     }
   }, [paymentRequired, billingRouteAllowed, router]);
 
@@ -151,10 +164,10 @@ export default function AppShell({ children }) {
         <div className="card" style={{ maxWidth: 460, padding: 32, textAlign: 'center' }}>
           <h1 className="display" style={{ fontSize: 24 }}>Complete billing to continue</h1>
           <p className="muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-            Your account is ready. Choose a monthly or annual plan in Billing to unlock onboarding and the sales workspace.
+            Your account is ready. Choose a monthly or yearly plan to unlock onboarding and the sales workspace.
           </p>
-          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => router.replace('/billing?required=1')}>
-            Go to Billing
+          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => router.replace('/subscribe')}>
+            Choose a plan
           </button>
         </div>
       </div>
@@ -185,7 +198,7 @@ export default function AppShell({ children }) {
               {g.items.map(n => {
                 const active = activeTab === n.id;
                 return (
-                  <button key={n.id} onClick={() => goTo('/' + n.id)} style={{
+                  <button key={n.id} data-tour={`nav-${n.id}`} onClick={() => goTo('/' + n.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 10, height: 40, padding: '0 10px', width: '100%',
                     borderRadius: 10, fontWeight: 700, fontSize: 14, textAlign: 'left',
                     color: active ? '#06231a' : 'var(--ink-2)',
@@ -211,6 +224,7 @@ export default function AppShell({ children }) {
                   <button
                     key={n.id}
                     type="button"
+                    data-tour={`nav-${n.id}`}
                     className={`app-shell-mobile-item ${active ? 'is-active' : ''}`}
                     onClick={() => goTo('/' + n.id)}
                   >

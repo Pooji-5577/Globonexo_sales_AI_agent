@@ -100,9 +100,9 @@ function migrateIcpSource(savedForm) {
   return { icpSource: undefined, promptNotes: merged.slice(0, 2000) };
 }
 
-function Field({ label, children, hint }) {
+function Field({ label, children, hint, ...rest }) {
   return (
-    <label className="field">
+    <label className="field" {...rest}>
       <span>{label}</span>
       {children}
       {hint && <span style={{ fontSize: 12.5, color: "var(--faint)", lineHeight: 1.45 }}>{hint}</span>}
@@ -518,7 +518,7 @@ export default function NewCampaignPage() {
                   />
                 </Field>
 
-                <Field label="Channel" hint="Pick one or both. Running both sends the email sequence and places calls from the same campaign.">
+                <Field label="Channel" data-tour="campaign-channel" hint="Pick one or both. Running both sends the email sequence and places calls from the same campaign.">
                   <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
                     {[
                       { value: "email", label: "Email", icon: "mail", help: "Outbound sequence", active: emailEnabled },
@@ -656,7 +656,7 @@ export default function NewCampaignPage() {
             </section>
 
             {emailEnabled && (
-              <section ref={emailSequenceRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
+              <section ref={emailSequenceRef} data-tour="campaign-sequence" className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
                 <div className="row" style={{ gap: 10, marginBottom: 18 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
                     <Icon name="mail" size={18} />

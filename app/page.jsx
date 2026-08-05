@@ -31,6 +31,27 @@ export default function LandingPage() {
     { day: 'Thu', date: '12', initials: 'LP', type: 'Technical review', color: '#69c2c0' },
   ];
 
+  const googleScopes = [
+    {
+      icon: 'send',
+      scope: 'gmail.send',
+      title: 'Send your outreach and follow-ups',
+      text: 'GNX Sales sends the outreach emails and scheduled follow-ups you have approved from your own Gmail account, so prospects see your address and every message stays in your Sent mail.',
+    },
+    {
+      icon: 'inbox',
+      scope: 'gmail.readonly',
+      title: 'Detect replies and stop follow-ups',
+      text: 'GNX Sales reads the message threads it started on your behalf to detect when a prospect replies. That is how a pending follow-up is cancelled automatically and how the conversation appears in your Inbox view. We do not read unrelated mail in your mailbox.',
+    },
+    {
+      icon: 'user',
+      scope: 'userinfo.email',
+      title: 'Show which account is connected',
+      text: 'We read the email address of the Google account you connect so we can display it in Settings and send from the right mailbox.',
+    },
+  ];
+
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   const handleSignIn = () => {
     const dest = localStorage.getItem('returning_user') ? '/login' : '/signup';
@@ -132,6 +153,70 @@ export default function LandingPage() {
                 <p>{step.text}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section id="what-we-do" className="landing-usecase landing-section">
+          <div className="landing-section-intro">
+            <h2 className="display">What GNX Sales does</h2>
+            <p>
+              GNX Sales helps sales teams and founders write personalized outreach messages and automatically
+              follow up with prospects at the right time. Instead of manually drafting emails or tracking who to
+              follow up with, GNX Sales handles the writing and timing so you can focus on closing deals.
+            </p>
+          </div>
+
+          <div className="landing-usecase-head">
+            <h3>How GNX Sales uses your Google account data</h3>
+            <p>
+              Connecting Gmail is optional and takes one click in Settings. When you connect it, GNX Sales requests
+              only the permissions below, and uses each one for a single purpose in the product.
+            </p>
+          </div>
+
+          <div className="landing-usecase-grid">
+            {googleScopes.map((item) => (
+              <article key={item.scope}>
+                <div className="landing-usecase-icon"><Icon name={item.icon} size={20} color="var(--g-800)" /></div>
+                <code>{item.scope}</code>
+                <h4>{item.title}</h4>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="landing-usecase-note">
+            <div className="landing-usecase-icon"><Icon name="lock" size={20} color="var(--g-800)" /></div>
+            <div>
+              <h4>Limited Use disclosure</h4>
+              <p>
+                GNX Sales&apos; use and transfer of information received from Google APIs to any other app will
+                adhere to the{' '}
+                <a
+                  href="https://developers.google.com/terms/api-services-user-data-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Google API Services User Data Policy
+                </a>
+                , including the Limited Use requirements. We do not sell Google user data, do not use it for
+                advertising, and do not use it to train generalized AI or machine learning models. Google user data
+                is used only to provide the sending and reply-tracking features described above.
+              </p>
+              <p>
+                You can disconnect Google at any time from Settings, which deletes the access and refresh tokens we
+                store, and you can also revoke access from your{' '}
+                <a
+                  href="https://myaccount.google.com/permissions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Google Account permissions page
+                </a>
+                . See our <Link href="/privacy">Privacy Policy</Link> and <Link href="/terms">Terms of Service</Link> for
+                full details.
+              </p>
+            </div>
           </div>
         </section>
 

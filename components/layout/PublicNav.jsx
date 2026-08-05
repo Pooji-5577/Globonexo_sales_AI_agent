@@ -26,11 +26,11 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
   return (
     <header className={`site-nav${dark ? " site-nav--dark" : ""}`}>
       {scrollTo ? (
-        <button className="site-nav-logo" onClick={() => handleScroll("landing-top")} aria-label="Globonexo home">
+        <button className="site-nav-logo" onClick={() => handleScroll("landing-top")} aria-label="GNX Sales home">
           <Logo size={34} light={dark} />
         </button>
       ) : (
-        <Link className="site-nav-logo" href="/" aria-label="Globonexo home" onClick={() => setMobileOpen(false)}>
+        <Link className="site-nav-logo" href="/" aria-label="GNX Sales home" onClick={() => setMobileOpen(false)}>
           <Logo size={34} light={dark} />
         </Link>
       )}

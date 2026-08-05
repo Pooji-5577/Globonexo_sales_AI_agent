@@ -3,8 +3,8 @@ import { AuthProvider } from "../providers/AuthProvider";
 import PostHogProvider from "../providers/PostHogProvider";
 
 export const metadata = {
-  title: "GNX sales",
-  description: "GNX sales frontend",
+  title: "GNX Sales",
+  description: "GNX Sales — an AI sales rep that writes outreach and follows up with prospects automatically.",
 };
 
 export default function RootLayout({ children }) {

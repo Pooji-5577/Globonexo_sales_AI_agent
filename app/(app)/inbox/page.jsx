@@ -37,7 +37,10 @@ function formatBody(body) {
 }
 
 function leadName(lead = {}, fallback = "Lead") {
-  return [lead.first_name, lead.last_name].filter(Boolean).join(" ") || lead.name || fallback;
+  return [lead.first_name, lead.last_name].filter(Boolean).join(" ") ||
+    [lead.firstName, lead.lastName].filter(Boolean).join(" ") ||
+    lead.name ||
+    fallback;
 }
 
 function formatDateTime(value) {
@@ -101,12 +104,12 @@ export default function InboxPage() {
     api.get("/inbox")
       .then(res => {
         if (cancelled) return;
-        const items = (res.data?.threads || []).map(item => ({ ...item, kind: "reply" }));
+        const items = (res.data?.threads || []).map(item => ({ ...item, kind: item.kind || "reply" }));
         setThreads(items);
         setSelectedId(items[0]?.id || null);
       })
       .catch(() => {
-        if (!cancelled) setError("Real inbox could not be loaded. Check backend, login session, and Gmail connection.");
+        if (!cancelled) setError("Inbox could not be loaded. Check backend, login session, and Gmail connection.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -126,14 +129,35 @@ export default function InboxPage() {
     setError("");
     setSuccess("");
     setComposerBody("");
+
     api.get(`/inbox/${selectedId}`)
       .then(res => {
-        setDetail({ ...res.data, kind: "reply" });
+        setDetail({ ...res.data, kind: res.data?.kind || "reply" });
         setDraftBody(res.data?.ai_draft_reply || "");
       })
-      .catch(() => setError("Thread details could not be loaded."))
+      .catch(() => {
+        const selectedThread = threads.find(item => item.id === selectedId);
+        if (selectedThread?.kind === "sent") {
+          setDetail({
+            kind: "sent",
+            leads: {
+              name: selectedThread.name,
+              company: selectedThread.company,
+              email: selectedThread.email,
+            },
+            email_messages: {
+              subject: selectedThread.subject,
+              body: selectedThread.preview,
+              created_at: selectedThread.createdAt,
+              sent_at: selectedThread.sentAt,
+            },
+          });
+          return;
+        }
+        setError("Thread details could not be loaded.");
+      })
       .finally(() => setDetailLoading(false));
-  }, [selectedId]);
+  }, [selectedId, threads]);
 
   const sendManualMessage = async event => {
     event.preventDefault();
@@ -146,7 +170,8 @@ export default function InboxPage() {
     setError("");
     setSuccess("");
     try {
-      const { data } = await api.post(`/emails/${selectedId}/approve`, { body });
+      const isSentThread = thread?.kind === "sent" || detail?.kind === "sent";
+      const { data } = await api.post(isSentThread ? `/inbox/${selectedId}/follow-up` : `/emails/${selectedId}/approve`, { body });
       const message = {
         id: data?.queuedEmailMessageId || `${selectedId}-${Date.now()}`,
         body,
@@ -169,9 +194,9 @@ export default function InboxPage() {
         ai_draft_reply: body,
         ai_draft_status: data?.ai_draft_status || "approved",
       } : current);
-      setSuccess("Reply queued. The send-email worker will send it through connected Gmail.");
+      setSuccess(isSentThread ? "Follow-up queued. The send-email worker will send it through connected Gmail." : "Reply queued. The send-email worker will send it through connected Gmail.");
     } catch {
-      setError("Reply could not be queued. Check Gmail connection, Redis worker, and backend logs.");
+      setError("Message could not be queued. Check Gmail connection, Redis worker, and backend logs.");
     } finally {
       setSending(false);
     }
@@ -184,7 +209,14 @@ export default function InboxPage() {
     setSuccess("");
     try {
       let body = detail?.ai_draft_reply || draftBody;
-      if (!body) {
+      if (!body && (thread?.kind === "sent" || detail?.kind === "sent")) {
+        try {
+          const { data } = await api.post(`/inbox/${selectedId}/draft-follow-up`);
+          body = data?.body || "";
+        } catch {
+          body = buildFallbackDraft(detail, thread, displayName);
+        }
+      } else if (!body) {
         const { data } = await api.post(`/emails/${selectedId}/regenerate`);
         body = data?.ai_draft_reply || "";
         setDetail(current => current ? { ...current, ...data } : current);
@@ -215,6 +247,7 @@ export default function InboxPage() {
   const displayName = leadName(lead, thread?.name || "Lead");
   const draftStatus = detail?.ai_draft_status || thread?.aiDraftStatus || "pending";
   const hasReply = detail?.kind === "reply";
+  const canReply = Boolean(thread);
   const manualMessages = selectedId ? sentMessages[selectedId] || [] : [];
   const filteredThreads = filterThreads(threads, activeFilter);
   const filterCounts = {
@@ -234,7 +267,7 @@ export default function InboxPage() {
 
   return (
     <div className="email-inbox-shell">
-      <aside className="email-list-panel">
+      <aside data-tour="inbox-threads" className="email-list-panel">
         <div className="email-list-head">
           <div className="row spread" style={{ gap: 12 }}>
             <div>
@@ -342,9 +375,9 @@ export default function InboxPage() {
             <div className="email-chat-stack">
               <div className="email-chat-date">{formatDateTime(originalMessage.sent_at) || thread.time}</div>
 
-              <MessageBubble side="outbound" label="You sent" meta={formatDateTime(originalMessage.sent_at)}>
+              <MessageBubble side="outbound" label="You sent" meta={formatDateTime(originalMessage.sent_at || originalMessage.created_at)}>
                 <h2>{originalMessage.subject || thread.subject}</h2>
-                <p>{formatBody(originalMessage.body || thread.preview)}</p>
+                <p>{formatBody(originalMessage.body || thread.preview || lead.email)}</p>
               </MessageBubble>
 
               {hasReply ? (
@@ -367,7 +400,7 @@ export default function InboxPage() {
           )}
         </div>
 
-        {thread ? (
+        {thread && canReply ? (
           <div className="email-composer-wrap">
             <div className="email-nexo-row">
               <button
