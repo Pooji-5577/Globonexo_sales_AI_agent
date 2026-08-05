@@ -5,6 +5,7 @@ import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
 import Avatar from "../ui/Avatar";
 import api from "../../lib/api";
+import { hasWorkspaceAccess } from "../../lib/billingAccess";
 
 const NAV_GROUPS = [
   {
@@ -45,7 +46,6 @@ const NAV_GROUPS = [
   },
 ];
 
-const ACCESS_STATUSES = new Set(['active', 'past_due']);
 const BILLING_ALLOWED_PATHS = ['/billing', '/support'];
 
 export default function AppShell({ children }) {
@@ -94,8 +94,7 @@ export default function AppShell({ children }) {
     authChecked
       && user
       && org
-      && user.role !== 'admin'
-      && !ACCESS_STATUSES.has(org.subscription_status),
+      && !hasWorkspaceAccess(user, org),
   );
   const billingRouteAllowed = BILLING_ALLOWED_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 
