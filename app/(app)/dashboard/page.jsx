@@ -100,9 +100,9 @@ function NextMeetingCard({ meeting, onViewMeetings }) {
           {attendeeDetail ? <span className="faint" style={{ fontSize: 12 }}>{attendeeDetail}</span> : null}
         </div>
       </div>
-      {meeting.joinUrl ? (
-        <a className="btn btn-primary btn-sm btn-block" style={{ marginTop: 14 }} href={meeting.joinUrl} target="_blank" rel="noreferrer">
-          <Icon name="play" size={14} color="#06231a" /> Join call
+      {meeting.attendeePhone ? (
+        <a className="btn btn-primary btn-sm btn-block" style={{ marginTop: 14 }} href={`tel:${meeting.attendeePhone}`}>
+          <Icon name="phone" size={14} color="#06231a" /> Call {attendee.name || "Guest"}
         </a>
       ) : (
         <button className="btn btn-ghost btn-sm btn-block" type="button" style={{ marginTop: 14 }} onClick={onViewMeetings}>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <NextMeetingCard meeting={nextMeeting} onViewMeetings={() => router.push("/meetings")} />
+          <NextMeetingCard meeting={nextMeeting} onViewMeetings={() => router.push("/calendar")} />
         </div>
       </div>
     </div>
