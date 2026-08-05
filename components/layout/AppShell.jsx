@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
@@ -56,6 +56,8 @@ export default function AppShell({ children }) {
   const [org, setOrg] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -88,7 +90,19 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     setMobileNavOpen(false);
+    setProfileMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profileMenuOpen]);
 
   const paymentRequired = Boolean(
     authChecked
@@ -109,6 +123,7 @@ export default function AppShell({ children }) {
     ? [user.first_name, user.last_name].filter(Boolean).join(' ') || 'User'
     : '';
   const orgName = org?.name || '';
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = async () => {
     try {
@@ -231,13 +246,45 @@ export default function AppShell({ children }) {
             <button style={{ position: 'relative', color: 'var(--muted)' }}>
               <Icon name="bell" size={20} />
             </button>
-            {userName && (
+            {userName && !isAdmin && (
               <div className="row" style={{ gap: 9 }}>
                 <Avatar name={userName} size={34} />
                 <div className="col" style={{ lineHeight: 1.2 }}>
                   <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{userName}</span>
                   <span className="faint nw" style={{ fontSize: 11.5 }}>{orgName}</span>
                 </div>
+              </div>
+            )}
+            {userName && isAdmin && (
+              <div className="profile-menu" ref={profileMenuRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="row profile-menu-trigger"
+                  style={{ gap: 9, background: 'transparent' }}
+                  onClick={() => setProfileMenuOpen(open => !open)}
+                  aria-haspopup="menu"
+                  aria-expanded={profileMenuOpen}
+                >
+                  <Avatar name={userName} size={34} />
+                  <div className="col" style={{ lineHeight: 1.2 }}>
+                    <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{userName}</span>
+                    <span className="faint nw" style={{ fontSize: 11.5 }}>{orgName}</span>
+                  </div>
+                  <Icon name="arrow" size={11} color="var(--faint)" style={{ transform: 'rotate(90deg)' }} />
+                </button>
+                {profileMenuOpen && (
+                  <div className="card profile-menu-dropdown" role="menu" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, minWidth: 180, padding: 6, zIndex: 40 }}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="profile-menu-item"
+                      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 10px', borderRadius: 8, fontWeight: 700, fontSize: 13.5, textAlign: 'left', color: 'var(--ink-2)' }}
+                      onClick={() => { setProfileMenuOpen(false); goTo('/admin'); }}
+                    >
+                      <Icon name="sliders" size={16} color="var(--muted)" /> Admin panel
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
