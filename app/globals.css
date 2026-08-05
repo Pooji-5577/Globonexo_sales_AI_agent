@@ -2151,6 +2151,22 @@ a { color: inherit; text-decoration: none; }
 .landing-steps h3 { font-size: 17px; }
 .landing-steps p { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.65; }
 
+/* "What GNX Sales does" + Google API data-use disclosure (OAuth verification) */
+.landing-usecase { padding-top: 100px; padding-bottom: 104px; background: var(--bg); border-top: 1px solid var(--line); }
+.landing-usecase-head { margin-top: 60px; max-width: 610px; }
+.landing-usecase-head h3 { font-size: 21px; }
+.landing-usecase-head p { margin-top: 12px; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.landing-usecase-grid { margin-top: 30px; display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.landing-usecase-grid article { padding: 26px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-sm); }
+.landing-usecase-icon { width: 44px; height: 44px; display: grid; place-items: center; flex: none; background: var(--g-50); border: 1px solid var(--g-100); border-radius: 14px; }
+.landing-usecase-grid code { margin-top: 16px; display: inline-block; padding: 3px 8px; color: var(--g-700); background: var(--g-50); border-radius: var(--r-pill); font-size: 11.5px; font-weight: 700; }
+.landing-usecase-grid h4 { margin-top: 12px; font-size: 15.5px; }
+.landing-usecase-grid p { margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.landing-usecase-note { margin-top: 20px; padding: 26px; display: flex; gap: 18px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-sm); }
+.landing-usecase-note h4 { font-size: 15.5px; }
+.landing-usecase-note p { margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.landing-usecase-note a { color: var(--g-700); font-weight: 700; text-decoration: underline; }
+
 .landing-results { padding-top: 105px; padding-bottom: 110px; display: grid; grid-template-columns: .9fr 1.4fr; gap: 100px; align-items: center; background: var(--bg); }
 .landing-outcomes { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; overflow: hidden; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-md); }
 .landing-outcomes div { min-height: 150px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; background: #fff; }
@@ -2369,6 +2385,7 @@ a { color: inherit; text-decoration: none; }
   .landing-product-shell { grid-template-columns: 120px 1fr; transform: scale(.92); transform-origin: top center; }
   .landing-steps { grid-template-columns: 1fr 1fr; }
   .landing-steps::before { display: none; }
+  .landing-usecase-grid { grid-template-columns: 1fr; }
   .landing-results { grid-template-columns: 1fr; gap: 46px; }
 }
 
@@ -2393,6 +2410,10 @@ a { color: inherit; text-decoration: none; }
   .landing-steps article { padding-top: 0; padding-left: 74px; min-height: 60px; }
   .landing-step-icon { top: 0; }
   .landing-steps article > span { display: none; }
+  .landing-usecase { padding-top: 72px; padding-bottom: 76px; }
+  .landing-usecase-head { margin-top: 40px; }
+  .landing-usecase-grid article, .landing-usecase-note { padding: 20px; }
+  .landing-usecase-note { gap: 14px; flex-direction: column; }
   .landing-results { padding-top: 72px; padding-bottom: 76px; }
   .landing-outcomes div { min-height: 120px; padding: 20px; }
   .landing-outcomes strong { font-size: 28px; }
