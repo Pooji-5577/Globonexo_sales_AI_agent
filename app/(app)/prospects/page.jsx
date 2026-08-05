@@ -560,6 +560,7 @@ export default function ProspectsPage() {
           <p className="muted page-subtitle">Source, score, filter, and prepare leads for campaigns.</p>
         </div>
         <Segmented
+          data-tour="prospects-sources"
           className="prospects-source-tabs"
           options={[
             { label: "Lead table", value: "table" },

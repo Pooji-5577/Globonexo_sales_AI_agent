@@ -267,7 +267,7 @@ export default function InboxPage() {
 
   return (
     <div className="email-inbox-shell">
-      <aside className="email-list-panel">
+      <aside data-tour="inbox-threads" className="email-list-panel">
         <div className="email-list-head">
           <div className="row spread" style={{ gap: 12 }}>
             <div>

@@ -257,7 +257,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      <div className="card billing-usage-card" style={{ padding: 24, marginBottom: 28 }}>
+      <div className="card billing-usage-card" data-tour="billing-usage" style={{ padding: 24, marginBottom: 28 }}>
         <div className="row spread" style={{ marginBottom: 18 }}>
           <div style={{ fontWeight: 800, fontSize: 15 }}>Current usage</div>
           {hasEntitlement && canManageBilling && !subscription?.cancelAtCycleEnd && (

@@ -320,7 +320,7 @@ export default function AgentPage() {
         </div>
       </div>
 
-      <aside className="scroll agent-overview-panel" style={{ width: 300, flex: 'none', borderLeft: '1px solid var(--line)', background: '#fff', padding: 18 }}>
+      <aside data-tour="agent-overview" className="scroll agent-overview-panel" style={{ width: 300, flex: 'none', borderLeft: '1px solid var(--line)', background: '#fff', padding: 18 }}>
         <span className="eyebrow">Overview</span>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 12 }}>
           {[

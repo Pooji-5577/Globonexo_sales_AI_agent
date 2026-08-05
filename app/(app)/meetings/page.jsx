@@ -120,7 +120,7 @@ export default function MeetingsPage() {
 
       {error ? <div className="notice-warn">{error}</div> : null}
 
-      <section className="booking-hero">
+      <section className="booking-hero" data-tour="meetings-booking">
         <div>
           <span className="eyebrow">Calendar booking</span>
           <h2>Native booking stays off. Every CTA sends prospects to your calendar link.</h2>

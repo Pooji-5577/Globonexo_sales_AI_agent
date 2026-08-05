@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { usePathname, useRouter } from "next/navigation";
 import Icon from "../ui/Icon";
 import { TOUR_STEPS } from "../../lib/tour-steps";
 import {
@@ -27,23 +28,39 @@ function requestMobileNav(open) {
 
 export default function TourOverlay() {
   const { tourOpen, tourIndex, goToTourStep, finishTour } = useSetup();
+  const router = useRouter();
+  const pathname = usePathname();
   const [rect, setRect] = useState(null);
   const [position, setPosition] = useState({ top: 0, left: 0, placement: "center" });
   const [mounted, setMounted] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const popoverRef = useRef(null);
 
   const step = stepAt(TOUR_STEPS, tourIndex);
   const needsNav = Boolean(step?.target?.startsWith('[data-tour="nav-'));
+  const onStepRoute = !step?.route || pathname === step.route;
 
   useEffect(() => setMounted(true), []);
 
-  // Locate the anchor. Targets can render late (data still loading) or be
-  // hidden behind a collapsed drawer, so this retries briefly before giving up
-  // and letting the step render as a centred card.
+  // Take the customer to the page this step is about before explaining it.
+  useEffect(() => {
+    if (!tourOpen || !step?.route) return;
+    if (pathname === step.route) {
+      setNavigating(false);
+      return;
+    }
+    setNavigating(true);
+    setRect(null);
+    router.push(step.route);
+  }, [tourOpen, step, pathname, router]);
+
+  // Locate the anchor once we're on the right page. Targets render late while
+  // a page fetches (most show a skeleton first), so this retries for a few
+  // seconds before giving up and letting the step render as a centred card.
   useEffect(() => {
     if (!tourOpen || !step) return undefined;
 
-    if (!step.target) {
+    if (!step.target || !onStepRoute) {
       setRect(null);
       return undefined;
     }
@@ -53,17 +70,19 @@ export default function TourOverlay() {
 
     let attempts = 0;
     let frame = 0;
+    let settle = 0;
 
     const locate = () => {
       const element = pickVisibleTarget(document.querySelectorAll(step.target));
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
         // Read the rect after the scroll settles rather than mid-animation.
-        window.setTimeout(() => setRect(element.getBoundingClientRect()), 260);
+        settle = window.setTimeout(() => setRect(element.getBoundingClientRect()), 300);
         return;
       }
       attempts += 1;
-      if (attempts < 20) frame = window.setTimeout(locate, 100);
+      // ~6s of retries covers a page that has to fetch before it renders.
+      if (attempts < 40) frame = window.setTimeout(locate, 150);
       else setRect(null);
     };
 
@@ -71,13 +90,14 @@ export default function TourOverlay() {
 
     return () => {
       window.clearTimeout(frame);
+      window.clearTimeout(settle);
       if (needsNav && isNarrow) requestMobileNav(false);
     };
-  }, [tourOpen, step, needsNav]);
+  }, [tourOpen, step, needsNav, onStepRoute]);
 
   // Keep the spotlight glued to its element while the page scrolls or resizes.
   useEffect(() => {
-    if (!tourOpen || !step?.target) return undefined;
+    if (!tourOpen || !step?.target || !onStepRoute) return undefined;
 
     const reposition = () => {
       const element = pickVisibleTarget(document.querySelectorAll(step.target));
@@ -90,7 +110,7 @@ export default function TourOverlay() {
       window.removeEventListener("resize", reposition);
       window.removeEventListener("scroll", reposition, true);
     };
-  }, [tourOpen, step]);
+  }, [tourOpen, step, onStepRoute]);
 
   useLayoutEffect(() => {
     if (!tourOpen) return;
@@ -142,7 +162,9 @@ export default function TourOverlay() {
 
   return createPortal(
     <div className="tour-root" role="dialog" aria-modal="true" aria-labelledby="tour-title">
-      <div className="tour-scrim" onClick={handleSkip} aria-hidden="true" />
+      {/* Dim from the scrim only when no anchor is cut out, so the two dimming
+          layers can never stack over the highlighted element. */}
+      <div className={`tour-scrim ${rect ? "" : "is-dimmed"}`} onClick={handleSkip} aria-hidden="true" />
 
       {rect ? (
         <div
@@ -170,6 +192,9 @@ export default function TourOverlay() {
         </div>
 
         <h2 id="tour-title" className="tour-title">{step.title}</h2>
+        {navigating && !onStepRoute ? (
+          <p className="tour-navigating">Opening {step.route}…</p>
+        ) : null}
         <p className="tour-body">{step.body}</p>
         {step.footnote ? <p className="tour-footnote">{step.footnote}</p> : null}
 

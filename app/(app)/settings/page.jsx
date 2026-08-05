@@ -521,7 +521,7 @@ export default function SettingsPage() {
               </p>
             </section>
 
-            <section className="card" style={{ padding: 18, borderRadius: 8 }}>
+            <section className="card" data-tour="settings-tour" style={{ padding: 18, borderRadius: 8 }}>
               <div className="row" style={{ gap: 8, fontWeight: 800, fontSize: 13 }}>
                 <Icon name="play" size={16} color="var(--g-700)" />
                 Guided tour

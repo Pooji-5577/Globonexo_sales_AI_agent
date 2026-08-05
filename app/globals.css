@@ -4134,12 +4134,23 @@ canvas {
 
 /* ---- Product tour ---- */
 .tour-root { position: fixed; inset: 0; z-index: 1200; }
+
+/*
+ * The scrim is only a click-catcher while a step has an anchor: the spotlight's
+ * ring shadow below does the dimming, which leaves the highlighted element
+ * completely sharp and unfiltered. Stacking a full-page backdrop-filter here as
+ * well would blur the very thing the step is pointing at.
+ */
 .tour-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(10, 23, 18, .58);
-  backdrop-filter: blur(1.5px);
+  background: transparent;
   animation: tour-fade .2s ease both;
+}
+/* No anchor to cut out (a centred step), so the scrim itself dims the page. */
+.tour-scrim.is-dimmed {
+  background: rgba(10, 23, 18, .55);
+  backdrop-filter: blur(2px);
 }
 @keyframes tour-fade { from { opacity: 0; } to { opacity: 1; } }
 
@@ -4147,7 +4158,11 @@ canvas {
   position: fixed;
   border-radius: 12px;
   pointer-events: none;
-  box-shadow: 0 0 0 9999px rgba(10, 23, 18, .58), 0 0 0 3px var(--g-400);
+  /* The 9999px spread dims everything except this rect. */
+  box-shadow:
+    0 0 0 9999px rgba(10, 23, 18, .55),
+    0 0 0 3px var(--g-400),
+    0 0 0 7px rgba(41, 214, 143, .25);
   transition: top .28s cubic-bezier(.2,.7,.2,1), left .28s cubic-bezier(.2,.7,.2,1),
               width .28s cubic-bezier(.2,.7,.2,1), height .28s cubic-bezier(.2,.7,.2,1);
 }
@@ -4546,3 +4561,24 @@ canvas {
   .setup-step-actions { padding-left: 0; flex-wrap: wrap; }
   .setup-step-cta { width: 100%; justify-content: center; }
 }
+
+.tour-navigating {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--g-700);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.tour-navigating::before {
+  content: "";
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  border: 2px solid var(--g-200);
+  border-top-color: var(--g-600);
+  animation: tour-spin .7s linear infinite;
+  flex: none;
+}
+@keyframes tour-spin { to { transform: rotate(360deg); } }

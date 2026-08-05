@@ -147,7 +147,7 @@ export default function CampaignsPage() {
         </button>
       </div>
 
-      <div className="campaigns-metric-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 12, padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff" }}>
+      <div className="campaigns-metric-grid" data-tour="campaigns-metrics" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 12, padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff" }}>
         {metrics.map(metric => (
           <div key={metric.k} className="card campaigns-metric-card" style={{ padding: "12px 16px", borderRadius: 8 }}>
             <div className="faint" style={{ fontSize: 12, fontWeight: 800 }}>{metric.k}</div>
