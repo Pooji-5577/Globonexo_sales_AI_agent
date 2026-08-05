@@ -261,21 +261,6 @@ export default function AdminPage() {
     }
   };
 
-  const impersonateOrg = async org => {
-    if (!window.confirm(`Impersonate ${org.name}? This logs you into their account for 15 minutes.`)) return;
-    setError("");
-    setNotice("");
-    try {
-      const { data: tokenData } = await api.post(`/admin/organizations/${org.id}/impersonate`);
-      setNotice(`Impersonating ${tokenData.userEmail}. Redirecting to their dashboard...`);
-      window.setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 700);
-    } catch (err) {
-      setError(err?.response?.data?.error || "Impersonation token could not be created.");
-    }
-  };
-
   const sendAdminReply = async event => {
     event.preventDefault();
     const safeBody = cleanText(replyBody, { max: 4000, multiline: true });
@@ -403,9 +388,8 @@ export default function AdminPage() {
                     </td>
                     <td>
                       <div className="row" style={{ gap: 8, justifyContent: "flex-end" }}>
-                        <button className="btn btn-ghost btn-sm" type="button" onClick={() => impersonateOrg(org)}>Impersonate</button>
                         {org.subscriptionStatus === "suspended" ? (
-                          <button className="btn btn-ghost btn-sm" type="button" onClick={() => unsuspendOrg(org)}>Unsuspend</button>
+                          <button className="btn btn-ghost btn-sm success-text" type="button" onClick={() => unsuspendOrg(org)}>Unsuspend</button>
                         ) : (
                           <button className="btn btn-ghost btn-sm danger-text" type="button" onClick={() => suspendOrg(org)}>Suspend</button>
                         )}
