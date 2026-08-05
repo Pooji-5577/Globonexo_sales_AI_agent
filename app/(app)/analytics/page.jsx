@@ -128,7 +128,7 @@ export default function AnalyticsPage() {
   return (
     <div className="scroll grow analytics-page" style={{ minHeight: 0 }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 className="display" style={{ fontSize: 22 }}>Analytics</h1>
+        <h1 className="display" style={{ fontSize: 22 }} data-tour="analytics-header">Analytics</h1>
         <p className="muted" style={{ fontSize: 13, marginTop: 2 }}>Performance over the last 30 days</p>
       </div>
       <div className="analytics-summary-grid">

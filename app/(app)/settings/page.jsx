@@ -8,6 +8,7 @@ import Icon from '../../../components/ui/Icon';
 import RouteSkeleton from '../../../components/ui/RouteSkeleton';
 import { useFirstLoad } from '../../../hooks/useFirstLoad';
 import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
+import { useSetup } from '../../../providers/SetupProvider';
 
 const HELP_LINKS = [
   { href: '/support', label: 'Support tickets', ico: 'inbox' },
@@ -39,6 +40,7 @@ const requestOptions = () => (
 );
 
 export default function SettingsPage() {
+  const { startTour } = useSetup();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -57,6 +59,9 @@ export default function SettingsPage() {
   const [gmailStatus, setGmailStatus] = useState({ connected: false, email: null, expiresAt: null });
   const [voiceAgentId, setVoiceAgentId] = useState(null);
   const [voiceBusy, setVoiceBusy] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState([]);
+  const [phoneLoading, setPhoneLoading] = useState(true);
+  const [phoneRetrying, setPhoneRetrying] = useState(false);
   const [systemStatus, setSystemStatus] = useState({
     backend: { running: false },
     redis: { connected: false },
@@ -99,6 +104,11 @@ export default function SettingsPage() {
         workers: { required: true, queues: [] },
       }))
       .finally(() => setSystemLoading(false));
+
+    api.get('/voice/phone-numbers', requestOptions())
+      .then(({ data }) => setPhoneNumbers(Array.isArray(data) ? data : []))
+      .catch(() => setPhoneNumbers([]))
+      .finally(() => setPhoneLoading(false));
   }, []);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -156,6 +166,26 @@ export default function SettingsPage() {
     }
   };
 
+  const retryPhoneProvisioning = async () => {
+    setError('');
+    setSuccess(false);
+    setPhoneRetrying(true);
+    try {
+      const { data } = await api.post('/voice/phone-numbers/retry');
+      const { data: refreshed } = await api.get('/voice/phone-numbers', requestOptions());
+      setPhoneNumbers(Array.isArray(refreshed) ? refreshed : []);
+      if (data?.status === 'provisioning') {
+        setSuccess(true);
+      } else if (data?.status === 'active') {
+        setSuccess(true);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || 'Retell could not provision the number. You can retry again or contact support.');
+    } finally {
+      setPhoneRetrying(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -189,6 +219,11 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  const activePhone = phoneNumbers.find(phone => phone.status === 'active' && phone.phone_number);
+  const pendingPhone = phoneNumbers.find(phone => ['requested', 'provisioning'].includes(phone.status));
+  const failedPhone = phoneNumbers.find(phone => phone.status === 'failed');
+  const phoneReady = Boolean(activePhone);
 
   if (showSkeleton) return <RouteSkeleton />;
 
@@ -451,8 +486,63 @@ export default function SettingsPage() {
                 type="tel"
                 value={form.retellPhoneNumber || ''}
                 onChange={set('retellPhoneNumber')}
-                hint="Buy a number inside your Retell dashboard, then paste it here in E.164 format, e.g. +14155551234"
+                hint="Your included US/Canada number is provisioned here after payment. Custom numbers can still be entered in E.164 format."
               />
+
+              <div
+                style={{
+                  marginTop: 4,
+                  padding: 16,
+                  border: `1px solid ${phoneReady ? 'var(--g-100)' : failedPhone ? '#fed7aa' : 'var(--line)'}`,
+                  borderRadius: 10,
+                  background: phoneReady ? 'var(--g-50)' : failedPhone ? '#fff7ed' : 'var(--bg-2)',
+                }}
+              >
+                <div className="row spread" style={{ gap: 14, alignItems: 'flex-start' }}>
+                  <div className="col" style={{ gap: 5, minWidth: 0 }}>
+                    <span style={{ fontWeight: 800, fontSize: 13.5 }}>Included Retell number</span>
+                    <span style={{ color: 'var(--muted)', fontSize: 12.5, lineHeight: 1.45 }}>
+                      {phoneLoading
+                        ? 'Checking number provisioning status...'
+                        : phoneReady
+                          ? `${activePhone.phone_number} is ready for voice calls.`
+                          : pendingPhone
+                            ? 'Retell is still provisioning your included number. This page will show it when ready.'
+                            : failedPhone
+                              ? 'The previous provisioning attempt failed. Your number was not purchased.'
+                              : 'No included number has been provisioned yet.'}
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      padding: '6px 9px',
+                      borderRadius: 999,
+                      background: phoneReady ? 'var(--g-100)' : failedPhone ? '#ffedd5' : 'var(--bg)',
+                      color: phoneReady ? 'var(--g-700)' : failedPhone ? '#9a3412' : 'var(--muted)',
+                      fontSize: 11.5,
+                      fontWeight: 900,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {phoneLoading ? 'Checking' : phoneReady ? 'Active' : pendingPhone ? 'Provisioning' : failedPhone ? 'Failed' : 'Not ready'}
+                  </span>
+                </div>
+
+                {!phoneLoading && !phoneReady && !pendingPhone && (
+                  <div className="row" style={{ gap: 10, marginTop: 13, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={retryPhoneProvisioning}
+                      disabled={phoneRetrying}
+                    >
+                      <Icon name="refresh" size={14} />
+                      {phoneRetrying ? 'Retrying...' : failedPhone ? 'Retry provisioning' : 'Provision included number'}
+                    </button>
+                    {failedPhone && <span className="faint" style={{ fontSize: 12 }}>If it fails again, contact Support with the time of the attempt.</span>}
+                  </div>
+                )}
+              </div>
             </section>
 
             {error && <p style={{ fontSize: 13.5, color: '#c0392b', fontWeight: 700 }}>{error}</p>}
@@ -517,6 +607,25 @@ export default function SettingsPage() {
               <p className="muted" style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.45 }}>
                 Redis must be running for delayed email sequence jobs and inbox polling.
               </p>
+            </section>
+
+            <section className="card" data-tour="settings-tour" style={{ padding: 18, borderRadius: 8 }}>
+              <div className="row" style={{ gap: 8, fontWeight: 800, fontSize: 13 }}>
+                <Icon name="play" size={16} color="var(--g-700)" />
+                Guided tour
+              </div>
+              <p className="muted" style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.5 }}>
+                Replay the walkthrough of the dashboard, AI agent, prospects, campaigns, inbox, meetings,
+                and analytics. Useful when someone new joins your team, or to revisit a section you skipped.
+              </p>
+              <div className="col" style={{ gap: 8, marginTop: 12 }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => startTour({ restart: true })}>
+                  <Icon name="play" size={14} /> Restart tour
+                </button>
+                <Link href="/setup" className="btn btn-ghost btn-sm">
+                  <Icon name="checkCircle" size={14} /> Open setup checklist
+                </Link>
+              </div>
             </section>
 
             <section className="card" style={{ padding: 18, borderRadius: 8 }}>

@@ -3,21 +3,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
-import Icon from "../../../components/ui/Icon";
 import RouteSkeleton from "../../../components/ui/RouteSkeleton";
+import BillingPeriodToggle from "../../../components/billing/BillingPeriodToggle";
+import PlanCard from "../../../components/billing/PlanCard";
 import { useFirstLoad } from "../../../hooks/useFirstLoad";
+import useBillingCheckout from "../../../hooks/useBillingCheckout";
 import api from "../../../lib/api";
-
-// These display values mirror the backend's authoritative smallest-unit
-// amounts. Razorpay still receives the configured Plan ID; the browser never
-// decides the amount charged.
-const PLAN_CONFIG = [
-  { id: 'starter', name: 'Starter', monthly: 59, annualMonthly: 49, annualTotal: 588, desc: 'For solo reps getting started', feats: ['1 seat', '50 emails/day', 'Basic ICP targeting', 'Email only', '3 active campaigns'], emailCap: 1500 },
-  { id: 'growth', name: 'Growth', monthly: 179, annualMonthly: 149, annualTotal: 1788, desc: 'For small sales teams', feats: ['5 seats', '200 emails/day', 'Advanced ICP + signals', 'Email + LinkedIn', 'Unlimited campaigns', 'CRM sync'], emailCap: 6000, seats: 5 },
-  { id: 'scale', name: 'Scale', monthly: 479, annualMonthly: 399, annualTotal: 4788, desc: 'For high-velocity teams', feats: ['20 seats', 'Unlimited emails', 'Priority intent data', 'All channels incl. SMS', 'Custom AI training', 'Dedicated CSM'], emailCap: null, seats: 20 },
-];
-
-const ACTIVE_STATUSES = new Set(['active', 'past_due']);
+import { ACCESS_STATUSES as ACTIVE_STATUSES, MOST_POPULAR_PLAN_ID, PLAN_CONFIG } from "../../../lib/plans";
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -32,7 +24,6 @@ export default function BillingPage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
-  const [busy, setBusy] = useState("");
   const showSkeleton = useFirstLoad(loading);
 
   const loadBillingData = useCallback(async () => {
@@ -44,14 +35,20 @@ export default function BillingPage() {
     if (historyRes.status === 'fulfilled') setHistory(historyRes.value.data ?? []);
   }, []);
 
+  const showToast = useCallback((message) => {
+    setToast(message);
+    window.setTimeout(() => setToast(""), 4500);
+  }, []);
+
+  const { busy, setBusy, startCheckout } = useBillingCheckout({
+    onToast: showToast,
+    onRefresh: loadBillingData,
+    onVerified: () => router.push('/onboarding'),
+  });
+
   useEffect(() => {
     loadBillingData().finally(() => setLoading(false));
   }, [loadBillingData]);
-
-  const showToast = (message) => {
-    setToast(message);
-    window.setTimeout(() => setToast(""), 4500);
-  };
 
   const status = usage?.subscriptionStatus ?? 'payment_required';
   const subscription = usage?.subscription;
@@ -69,54 +66,12 @@ export default function BillingPage() {
     cancelled: 'Cancelled',
   }[status] ?? 'Billing required'), [status]);
 
-  const handleCheckout = async (planId) => {
+  const handleCheckout = (planId) => {
     if (!canManageBilling) {
       showToast('Ask your organization billing manager to choose a plan.');
       return;
     }
-    if (typeof window.Razorpay === 'undefined') {
-      showToast('Payment is loading. Please wait a moment and try again.');
-      return;
-    }
-
-    setBusy(planId);
-    try {
-      const { data } = await api.post('/billing/checkout', { planId, billingPeriod: selectedBillingPeriod });
-      const plan = PLAN_CONFIG.find((item) => item.id === planId);
-      const razorpay = new window.Razorpay({
-        key: data.keyId,
-        subscription_id: data.subscriptionId,
-        name: 'Globonexo Sales AI',
-        description: `${plan?.name ?? planId} · ${selectedBillingPeriod === 'annual' ? 'annual' : 'monthly'} subscription`,
-        handler: async (response) => {
-          try {
-            const verification = await api.post('/billing/checkout/verify', response);
-            if (verification.data.subscriptionStatus !== 'active') {
-              showToast('Payment received. Razorpay is still confirming the subscription; refresh Billing shortly.');
-              await loadBillingData();
-              return;
-            }
-            showToast('Billing verified. Continue with onboarding.');
-            await loadBillingData();
-            router.push('/onboarding');
-          } catch {
-            showToast('Payment is still being confirmed. Refresh Billing shortly or contact Support.');
-          } finally {
-            setBusy("");
-          }
-        },
-        modal: { ondismiss: () => setBusy("") },
-        theme: { color: '#0f6e63' },
-      });
-      razorpay.on('payment.failed', () => {
-        showToast('Payment failed. Please try again.');
-        setBusy("");
-      });
-      razorpay.open();
-    } catch (err) {
-      showToast(err?.response?.data?.error ?? 'Something went wrong. Please try again.');
-      setBusy("");
-    }
+    startCheckout(planId, selectedBillingPeriod);
   };
 
   const handlePlanChange = async (planId) => {
@@ -182,13 +137,7 @@ export default function BillingPage() {
             <span className="badge" style={{ marginLeft: 10, background: hasEntitlement ? 'var(--g-50)' : '#fff8e6', color: hasEntitlement ? 'var(--g-700)' : '#8a5a00' }}>{statusLabel}</span>
           </p>
         </div>
-        <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-          <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>Monthly</span>
-          <button aria-label="Toggle annual billing" aria-pressed={annual} onClick={() => setAnnual(!annual)} style={{ width: 48, height: 28, borderRadius: 99, padding: 3, background: annual ? 'var(--g-500)' : 'var(--line)', transition: 'background .2s' }}>
-            <span style={{ display: 'block', width: 22, height: 22, borderRadius: 99, background: '#fff', boxShadow: 'var(--sh-xs)', transform: annual ? 'translateX(20px)' : 'none', transition: 'transform .2s' }} />
-          </button>
-          <span className="muted" style={{ fontSize: 13.5, fontWeight: 700 }}>Annual <span className="badge" style={{ background: 'var(--g-50)', color: 'var(--g-700)' }}>Billed annually</span></span>
-        </div>
+        <BillingPeriodToggle annual={annual} onChange={setAnnual} />
       </div>
 
       {(requiredNotice || status === 'payment_required') && (
@@ -216,7 +165,7 @@ export default function BillingPage() {
         </div>
       )}
 
-      <div className="card billing-usage-card" style={{ padding: 24, marginBottom: 28 }}>
+      <div className="card billing-usage-card" data-tour="billing-usage" style={{ padding: 24, marginBottom: 28 }}>
         <div className="row spread" style={{ marginBottom: 18 }}>
           <div style={{ fontWeight: 800, fontSize: 15 }}>Current usage</div>
           {hasEntitlement && canManageBilling && !subscription?.cancelAtCycleEnd && (
@@ -246,7 +195,8 @@ export default function BillingPage() {
       <div className="billing-plan-grid" style={{ marginBottom: 28 }}>
         {PLAN_CONFIG.map((plan) => {
           const isCurrent = hasEntitlement && plan.id === currentPlanId;
-          const price = annual ? plan.annualMonthly : plan.monthly;
+          // The "Current plan" ribbon wins the top strip when both apply.
+          const showPopular = plan.id === MOST_POPULAR_PLAN_ID && !isCurrent;
           const sameSelection = isCurrent && selectedBillingPeriod === subscription?.billingPeriod;
           const actionDisabled = !canManageBilling || sameSelection || busy === plan.id || (status === 'past_due' && isCurrent);
           const actionLabel = busy === plan.id
@@ -259,27 +209,17 @@ export default function BillingPage() {
                   ? 'Change billing period'
                   : 'Change plan';
           return (
-            <div key={plan.id} className="card billing-plan-card" style={{ padding: 32, border: isCurrent ? '2px solid var(--g-400)' : '1px solid var(--line)', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              {isCurrent && <div style={{ position: 'absolute', top: 0, right: 0, background: 'var(--g-500)', color: '#06231a', fontSize: 11.5, fontWeight: 800, padding: '5px 14px', borderBottomLeftRadius: 10 }}>Current plan</div>}
-              <div className="display" style={{ fontSize: 26 }}>{plan.name}</div>
-              <div style={{ marginTop: 10 }}>
-                <span className="display" style={{ fontSize: 48 }}>${price}</span>
-                <span className="muted" style={{ fontSize: 14, marginLeft: 5 }}>/mo</span>
-                {annual && <div className="muted" style={{ fontSize: 12.5, marginTop: 4 }}>Billed ${plan.annualTotal.toLocaleString()} annually</div>}
-              </div>
-              <p className="muted" style={{ fontSize: 14, marginTop: 8, marginBottom: 22 }}>{plan.desc}</p>
-              <div className="col" style={{ gap: 11, marginBottom: 24, flex: 1 }}>
-                {plan.feats.map((feature) => (
-                  <div key={feature} className="row" style={{ gap: 9, alignItems: 'flex-start' }}>
-                    <Icon name="check" size={15} color="var(--g-500)" stroke={2.5} style={{ marginTop: 2, flex: 'none' }} />
-                    <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.4 }}>{feature}</span>
-                  </div>
-                ))}
-              </div>
-              <button className={'btn btn-block ' + (sameSelection ? 'btn-ghost' : 'btn-primary')} style={{ fontSize: 15, height: 48 }} disabled={actionDisabled} onClick={() => handlePlanAction(plan.id)}>
-                {actionLabel}
-              </button>
-            </div>
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              annual={annual}
+              isCurrent={isCurrent}
+              showPopular={showPopular}
+              actionLabel={actionLabel}
+              actionDisabled={actionDisabled}
+              ghostAction={sameSelection}
+              onAction={handlePlanAction}
+            />
           );
         })}
       </div>

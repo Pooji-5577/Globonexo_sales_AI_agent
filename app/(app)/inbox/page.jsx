@@ -135,9 +135,29 @@ export default function InboxPage() {
         setDetail({ ...res.data, kind: res.data?.kind || "reply" });
         setDraftBody(res.data?.ai_draft_reply || "");
       })
-      .catch(() => setError("Thread details could not be loaded."))
+      .catch(() => {
+        const selectedThread = threads.find(item => item.id === selectedId);
+        if (selectedThread?.kind === "sent") {
+          setDetail({
+            kind: "sent",
+            leads: {
+              name: selectedThread.name,
+              company: selectedThread.company,
+              email: selectedThread.email,
+            },
+            email_messages: {
+              subject: selectedThread.subject,
+              body: selectedThread.preview,
+              created_at: selectedThread.createdAt,
+              sent_at: selectedThread.sentAt,
+            },
+          });
+          return;
+        }
+        setError("Thread details could not be loaded.");
+      })
       .finally(() => setDetailLoading(false));
-  }, [selectedId]);
+  }, [selectedId, threads]);
 
   const sendManualMessage = async event => {
     event.preventDefault();
@@ -150,7 +170,8 @@ export default function InboxPage() {
     setError("");
     setSuccess("");
     try {
-      const { data } = await api.post(`/emails/${selectedId}/approve`, { body });
+      const isSentThread = thread?.kind === "sent" || detail?.kind === "sent";
+      const { data } = await api.post(isSentThread ? `/inbox/${selectedId}/follow-up` : `/emails/${selectedId}/approve`, { body });
       const message = {
         id: data?.queuedEmailMessageId || `${selectedId}-${Date.now()}`,
         body,
@@ -173,9 +194,9 @@ export default function InboxPage() {
         ai_draft_reply: body,
         ai_draft_status: data?.ai_draft_status || "approved",
       } : current);
-      setSuccess("Reply queued. The send-email worker will send it through connected Gmail.");
+      setSuccess(isSentThread ? "Follow-up queued. The send-email worker will send it through connected Gmail." : "Reply queued. The send-email worker will send it through connected Gmail.");
     } catch {
-      setError("Reply could not be queued. Check Gmail connection, Redis worker, and backend logs.");
+      setError("Message could not be queued. Check Gmail connection, Redis worker, and backend logs.");
     } finally {
       setSending(false);
     }
@@ -188,7 +209,14 @@ export default function InboxPage() {
     setSuccess("");
     try {
       let body = detail?.ai_draft_reply || draftBody;
-      if (!body) {
+      if (!body && (thread?.kind === "sent" || detail?.kind === "sent")) {
+        try {
+          const { data } = await api.post(`/inbox/${selectedId}/draft-follow-up`);
+          body = data?.body || "";
+        } catch {
+          body = buildFallbackDraft(detail, thread, displayName);
+        }
+      } else if (!body) {
         const { data } = await api.post(`/emails/${selectedId}/regenerate`);
         body = data?.ai_draft_reply || "";
         setDetail(current => current ? { ...current, ...data } : current);
@@ -219,7 +247,7 @@ export default function InboxPage() {
   const displayName = leadName(lead, thread?.name || "Lead");
   const draftStatus = detail?.ai_draft_status || thread?.aiDraftStatus || "pending";
   const hasReply = detail?.kind === "reply";
-  const canReply = hasReply;
+  const canReply = Boolean(thread);
   const manualMessages = selectedId ? sentMessages[selectedId] || [] : [];
   const filteredThreads = filterThreads(threads, activeFilter);
   const filterCounts = {
@@ -239,7 +267,7 @@ export default function InboxPage() {
 
   return (
     <div className="email-inbox-shell">
-      <aside className="email-list-panel">
+      <aside data-tour="inbox-threads" className="email-list-panel">
         <div className="email-list-head">
           <div className="row spread" style={{ gap: 12 }}>
             <div>

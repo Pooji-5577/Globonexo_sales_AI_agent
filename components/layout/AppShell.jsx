@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
@@ -11,6 +11,7 @@ const NAV_GROUPS = [
     label: null,
     items: [
       { id: 'dashboard', label: 'Dashboard', ico: 'grid' },
+      { id: 'setup', label: 'Get set up', ico: 'checkCircle' },
       { id: 'agent', label: 'AI Agent', ico: 'spark' },
     ]
   },
@@ -46,7 +47,10 @@ const NAV_GROUPS = [
 ];
 
 const ACCESS_STATUSES = new Set(['active', 'past_due']);
-const BILLING_ALLOWED_PATHS = ['/billing', '/support'];
+// Routes an unpaid account may still reach inside the shell. /billing is not
+// one of them any more — accounts without entitlement are sent to the
+// standalone /subscribe checkout, which renders outside this shell entirely.
+const BILLING_ALLOWED_PATHS = ['/support'];
 
 export default function AppShell({ children }) {
   const router = useRouter();
@@ -56,6 +60,8 @@ export default function AppShell({ children }) {
   const [org, setOrg] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -88,7 +94,28 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     setMobileNavOpen(false);
+    setProfileMenuOpen(false);
   }, [pathname]);
+
+  // The product tour anchors several steps to sidebar items. On a narrow
+  // viewport those only exist inside the mobile drawer, so the tour asks for it
+  // to be opened rather than falling back to a targetless card.
+  useEffect(() => {
+    const handleTourNav = (event) => setMobileNavOpen(Boolean(event.detail?.open));
+    window.addEventListener('gnx:tour:nav', handleTourNav);
+    return () => window.removeEventListener('gnx:tour:nav', handleTourNav);
+  }, []);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [profileMenuOpen]);
 
   const paymentRequired = Boolean(
     authChecked
@@ -101,7 +128,7 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     if (paymentRequired && !billingRouteAllowed) {
-      router.replace('/billing?required=1');
+      router.replace('/subscribe');
     }
   }, [paymentRequired, billingRouteAllowed, router]);
 
@@ -109,6 +136,7 @@ export default function AppShell({ children }) {
     ? [user.first_name, user.last_name].filter(Boolean).join(' ') || 'User'
     : '';
   const orgName = org?.name || '';
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = async () => {
     try {
@@ -136,10 +164,10 @@ export default function AppShell({ children }) {
         <div className="card" style={{ maxWidth: 460, padding: 32, textAlign: 'center' }}>
           <h1 className="display" style={{ fontSize: 24 }}>Complete billing to continue</h1>
           <p className="muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
-            Your account is ready. Choose a monthly or annual plan in Billing to unlock onboarding and the sales workspace.
+            Your account is ready. Choose a monthly or yearly plan to unlock onboarding and the sales workspace.
           </p>
-          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => router.replace('/billing?required=1')}>
-            Go to Billing
+          <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={() => router.replace('/subscribe')}>
+            Choose a plan
           </button>
         </div>
       </div>
@@ -170,7 +198,7 @@ export default function AppShell({ children }) {
               {g.items.map(n => {
                 const active = activeTab === n.id;
                 return (
-                  <button key={n.id} onClick={() => goTo('/' + n.id)} style={{
+                  <button key={n.id} data-tour={`nav-${n.id}`} onClick={() => goTo('/' + n.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 10, height: 40, padding: '0 10px', width: '100%',
                     borderRadius: 10, fontWeight: 700, fontSize: 14, textAlign: 'left',
                     color: active ? '#06231a' : 'var(--ink-2)',
@@ -196,6 +224,7 @@ export default function AppShell({ children }) {
                   <button
                     key={n.id}
                     type="button"
+                    data-tour={`nav-${n.id}`}
                     className={`app-shell-mobile-item ${active ? 'is-active' : ''}`}
                     onClick={() => goTo('/' + n.id)}
                   >
@@ -231,13 +260,45 @@ export default function AppShell({ children }) {
             <button style={{ position: 'relative', color: 'var(--muted)' }}>
               <Icon name="bell" size={20} />
             </button>
-            {userName && (
+            {userName && !isAdmin && (
               <div className="row" style={{ gap: 9 }}>
                 <Avatar name={userName} size={34} />
                 <div className="col" style={{ lineHeight: 1.2 }}>
                   <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{userName}</span>
                   <span className="faint nw" style={{ fontSize: 11.5 }}>{orgName}</span>
                 </div>
+              </div>
+            )}
+            {userName && isAdmin && (
+              <div className="profile-menu" ref={profileMenuRef} style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  className="row profile-menu-trigger"
+                  style={{ gap: 9, background: 'transparent' }}
+                  onClick={() => setProfileMenuOpen(open => !open)}
+                  aria-haspopup="menu"
+                  aria-expanded={profileMenuOpen}
+                >
+                  <Avatar name={userName} size={34} />
+                  <div className="col" style={{ lineHeight: 1.2 }}>
+                    <span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{userName}</span>
+                    <span className="faint nw" style={{ fontSize: 11.5 }}>{orgName}</span>
+                  </div>
+                  <Icon name="arrow" size={11} color="var(--faint)" style={{ transform: 'rotate(90deg)' }} />
+                </button>
+                {profileMenuOpen && (
+                  <div className="card profile-menu-dropdown" role="menu" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, minWidth: 180, padding: 6, zIndex: 40 }}>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="profile-menu-item"
+                      style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', padding: '9px 10px', borderRadius: 8, fontWeight: 700, fontSize: 13.5, textAlign: 'left', color: 'var(--ink-2)' }}
+                      onClick={() => { setProfileMenuOpen(false); goTo('/admin'); }}
+                    >
+                      <Icon name="sliders" size={16} color="var(--muted)" /> Admin panel
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
