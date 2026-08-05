@@ -8,6 +8,7 @@ import Icon from '../../../components/ui/Icon';
 import RouteSkeleton from '../../../components/ui/RouteSkeleton';
 import { useFirstLoad } from '../../../hooks/useFirstLoad';
 import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
+import { useSetup } from '../../../providers/SetupProvider';
 
 const HELP_LINKS = [
   { href: '/support', label: 'Support tickets', ico: 'inbox' },
@@ -39,6 +40,7 @@ const requestOptions = () => (
 );
 
 export default function SettingsPage() {
+  const { startTour } = useSetup();
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -517,6 +519,25 @@ export default function SettingsPage() {
               <p className="muted" style={{ marginTop: 12, fontSize: 12.5, lineHeight: 1.45 }}>
                 Redis must be running for delayed email sequence jobs and inbox polling.
               </p>
+            </section>
+
+            <section className="card" style={{ padding: 18, borderRadius: 8 }}>
+              <div className="row" style={{ gap: 8, fontWeight: 800, fontSize: 13 }}>
+                <Icon name="play" size={16} color="var(--g-700)" />
+                Guided tour
+              </div>
+              <p className="muted" style={{ marginTop: 8, fontSize: 12.5, lineHeight: 1.5 }}>
+                Replay the walkthrough of the dashboard, AI agent, prospects, campaigns, inbox, meetings,
+                and analytics. Useful when someone new joins your team, or to revisit a section you skipped.
+              </p>
+              <div className="col" style={{ gap: 8, marginTop: 12 }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => startTour({ restart: true })}>
+                  <Icon name="play" size={14} /> Restart tour
+                </button>
+                <Link href="/setup" className="btn btn-ghost btn-sm">
+                  <Icon name="checkCircle" size={14} /> Open setup checklist
+                </Link>
+              </div>
             </section>
 
             <section className="card" style={{ padding: 18, borderRadius: 8 }}>

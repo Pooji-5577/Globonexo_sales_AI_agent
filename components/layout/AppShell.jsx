@@ -11,6 +11,7 @@ const NAV_GROUPS = [
     label: null,
     items: [
       { id: 'dashboard', label: 'Dashboard', ico: 'grid' },
+      { id: 'setup', label: 'Get set up', ico: 'checkCircle' },
       { id: 'agent', label: 'AI Agent', ico: 'spark' },
     ]
   },
@@ -92,6 +93,15 @@ export default function AppShell({ children }) {
     setMobileNavOpen(false);
     setProfileMenuOpen(false);
   }, [pathname]);
+
+  // The product tour anchors several steps to sidebar items. On a narrow
+  // viewport those only exist inside the mobile drawer, so the tour asks for it
+  // to be opened rather than falling back to a targetless card.
+  useEffect(() => {
+    const handleTourNav = (event) => setMobileNavOpen(Boolean(event.detail?.open));
+    window.addEventListener('gnx:tour:nav', handleTourNav);
+    return () => window.removeEventListener('gnx:tour:nav', handleTourNav);
+  }, []);
 
   useEffect(() => {
     if (!profileMenuOpen) return undefined;
@@ -185,7 +195,7 @@ export default function AppShell({ children }) {
               {g.items.map(n => {
                 const active = activeTab === n.id;
                 return (
-                  <button key={n.id} onClick={() => goTo('/' + n.id)} style={{
+                  <button key={n.id} data-tour={`nav-${n.id}`} onClick={() => goTo('/' + n.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 10, height: 40, padding: '0 10px', width: '100%',
                     borderRadius: 10, fontWeight: 700, fontSize: 14, textAlign: 'left',
                     color: active ? '#06231a' : 'var(--ink-2)',
@@ -211,6 +221,7 @@ export default function AppShell({ children }) {
                   <button
                     key={n.id}
                     type="button"
+                    data-tour={`nav-${n.id}`}
                     className={`app-shell-mobile-item ${active ? 'is-active' : ''}`}
                     onClick={() => goTo('/' + n.id)}
                   >
