@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Script from "next/script";
 import RouteSkeleton from "../../../components/ui/RouteSkeleton";
 import BillingPeriodToggle from "../../../components/billing/BillingPeriodToggle";
+import BillingViewToggle from "../../../components/billing/BillingViewToggle";
 import PlanCard from "../../../components/billing/PlanCard";
+import Icon from "../../../components/ui/Icon";
 import { useFirstLoad } from "../../../hooks/useFirstLoad";
 import useBillingCheckout from "../../../hooks/useBillingCheckout";
 import api from "../../../lib/api";
@@ -20,11 +22,13 @@ export default function BillingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [annual, setAnnual] = useState(true);
+  const [activeView, setActiveView] = useState('current');
   const [usage, setUsage] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const showSkeleton = useFirstLoad(loading);
+  const initializedView = useRef(false);
 
   const loadBillingData = useCallback(async () => {
     const [usageRes, historyRes] = await Promise.allSettled([
@@ -56,8 +60,18 @@ export default function BillingPage() {
   const canManageBilling = usage?.canManageBilling !== false;
   const currentPlanId = usage?.plan ?? 'starter';
   const currentPlanConfig = PLAN_CONFIG.find((p) => p.id === currentPlanId) ?? PLAN_CONFIG[0];
+  const currentPlanPrice = subscription?.billingPeriod === 'annual' ? currentPlanConfig.annualMonthly : currentPlanConfig.monthly;
   const selectedBillingPeriod = annual ? 'annual' : 'monthly';
   const requiredNotice = searchParams.get('required') === '1';
+
+  // Send users with no active plan straight to Explore, but only once —
+  // afterwards let them freely switch back to "Plan you're in".
+  useEffect(() => {
+    if (!loading && !initializedView.current) {
+      initializedView.current = true;
+      if (!hasEntitlement) setActiveView('explore');
+    }
+  }, [loading, hasEntitlement]);
   const statusLabel = useMemo(() => ({
     active: 'Active',
     past_due: 'Payment retry in progress',
@@ -137,7 +151,7 @@ export default function BillingPage() {
             <span className="badge" style={{ marginLeft: 10, background: hasEntitlement ? 'var(--g-50)' : '#fff8e6', color: hasEntitlement ? 'var(--g-700)' : '#8a5a00' }}>{statusLabel}</span>
           </p>
         </div>
-        <BillingPeriodToggle annual={annual} onChange={setAnnual} />
+        <BillingViewToggle view={activeView} onChange={setActiveView} />
       </div>
 
       {(requiredNotice || status === 'payment_required') && (
@@ -165,84 +179,157 @@ export default function BillingPage() {
         </div>
       )}
 
-      <div className="card billing-usage-card" data-tour="billing-usage" style={{ padding: 24, marginBottom: 28 }}>
-        <div className="row spread" style={{ marginBottom: 18 }}>
-          <div style={{ fontWeight: 800, fontSize: 15 }}>Current usage</div>
-          {hasEntitlement && canManageBilling && !subscription?.cancelAtCycleEnd && (
-            <button className="btn btn-ghost btn-sm" onClick={handleCancel} disabled={busy === 'cancel'}>{busy === 'cancel' ? 'Scheduling…' : 'Cancel at period end'}</button>
-          )}
-        </div>
-        <div className="billing-usage-grid">
-          {[
-            { k: 'Emails sent this month', v: usage?.emailsSentThisMonth ?? 0, max: currentPlanConfig.emailCap },
-            { k: 'Seats used', v: usage?.seatsUsed ?? 0, max: currentPlanConfig.seats ?? 1 },
-            { k: 'Active campaigns', v: usage?.activeCampaigns ?? 0, max: null },
-          ].map((item) => (
-            <div key={item.k}>
-              <div className="row spread" style={{ marginBottom: 10 }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)' }}>{item.k}</span>
-                <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{item.v}{item.max ? ` / ${item.max}` : ' / ∞'}</span>
+      {activeView === 'current' ? (
+        <>
+          <div className="billing-current-stack">
+            {hasEntitlement ? (
+              <div className="card billing-current-plan-card" style={{ padding: 24 }}>
+                <div className="billing-current-plan-head">
+                  <div>
+                    <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+                      <div className="display" style={{ fontSize: 22 }}>{currentPlanConfig.name}</div>
+                      <span className="badge" style={{ background: hasEntitlement ? 'var(--g-50)' : '#fff8e6', color: hasEntitlement ? 'var(--g-700)' : '#8a5a00' }}>{statusLabel}</span>
+                    </div>
+                    <p className="muted" style={{ fontSize: 13.5, marginTop: 5 }}>{currentPlanConfig.desc}</p>
+                  </div>
+                  <div>
+                    <span className="display" style={{ fontSize: 32 }}>${currentPlanPrice}</span>
+                    <span className="muted" style={{ fontSize: 13, marginLeft: 4 }}>/mo</span>
+                    <div className="muted" style={{ fontSize: 12.5, marginTop: 2, textTransform: 'capitalize' }}>{subscription?.billingPeriod ?? 'monthly'} billing</div>
+                  </div>
+                </div>
+
+                <div className="billing-current-features">
+                  {currentPlanConfig.feats.map((feature) => (
+                    <div key={feature} className="row" style={{ gap: 7, alignItems: 'center' }}>
+                      <Icon name="check" size={14} color="var(--g-500)" stroke={2.5} />
+                      <span style={{ fontSize: 13.5, fontWeight: 600 }}>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="billing-current-actions">
+                  <p className="muted" style={{ fontSize: 13 }}>
+                    {subscription?.cancelAtCycleEnd
+                      ? <>Access ends {formatDate(subscription.currentPeriodEnd)}</>
+                      : subscription?.currentPeriodEnd
+                        ? <>Renews {formatDate(subscription.currentPeriodEnd)}</>
+                        : null}
+                  </p>
+                  <div className="row" style={{ gap: 10 }}>
+                    {canManageBilling && !subscription?.cancelAtCycleEnd && (
+                      <button className="btn btn-ghost btn-sm" onClick={handleCancel} disabled={busy === 'cancel'}>{busy === 'cancel' ? 'Scheduling…' : 'Cancel at period end'}</button>
+                    )}
+                    <button className="btn btn-dark btn-sm" onClick={() => setActiveView('explore')}>Change plan</button>
+                  </div>
+                </div>
               </div>
-              <div style={{ height: 9, background: 'var(--bg-2)', borderRadius: 99 }}>
-                <div style={{ height: '100%', width: (item.max ? Math.min((item.v / item.max) * 100, 100) : 10) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
+            ) : (
+              <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                <p className="muted" style={{ fontSize: 14 }}>You don&apos;t have an active plan yet.</p>
+                <button className="btn btn-primary btn-sm" style={{ marginTop: 14 }} onClick={() => setActiveView('explore')}>Explore plans</button>
               </div>
+            )}
+
+            <div className="card billing-usage-card" data-tour="billing-usage" style={{ padding: 24 }}>
+              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Current usage</div>
+              <div className="billing-usage-grid">
+                {[
+                  { k: 'Emails sent this month', v: usage?.emailsSentThisMonth ?? 0, max: currentPlanConfig.emailCap },
+                  { k: 'Seats used', v: usage?.seatsUsed ?? 0, max: currentPlanConfig.seats ?? 1 },
+                  { k: 'Active campaigns', v: usage?.activeCampaigns ?? 0, max: null },
+                ].map((item) => (
+                  <div key={item.k}>
+                    <div className="row spread" style={{ marginBottom: 10 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)' }}>{item.k}</span>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{item.v}{item.max ? ` / ${item.max}` : ' / ∞'}</span>
+                    </div>
+                    <div style={{ height: 9, background: 'var(--bg-2)', borderRadius: 99 }}>
+                      <div style={{ height: '100%', width: (item.max ? Math.min((item.v / item.max) * 100, 100) : 10) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="billing-usage-summary">
+                <div>
+                  <span className="muted">Email credits left</span>
+                  <strong>{Math.max((currentPlanConfig.emailCap ?? 0) - (usage?.emailsSentThisMonth ?? 0), 0).toLocaleString()}</strong>
+                </div>
+                <div>
+                  <span className="muted">Open seats</span>
+                  <strong>{Math.max((currentPlanConfig.seats ?? 1) - (usage?.seatsUsed ?? 0), 0)}</strong>
+                </div>
+                <div>
+                  <span className="muted">Campaign limit</span>
+                  <strong>Unlimited</strong>
+                </div>
+              </div>
+              <p className="muted" style={{ fontSize: 13, lineHeight: 1.55, marginTop: 18 }}>
+                Usage resets at the start of each billing month. Seat counts update as teammates are added or removed.
+              </p>
+              {!canManageBilling && <p className="muted" style={{ fontSize: 13, marginTop: 18 }}>Only the organization billing manager can start, change, or cancel a subscription.</p>}
             </div>
-          ))}
-        </div>
-        {!canManageBilling && <p className="muted" style={{ fontSize: 13, marginTop: 18 }}>Only the organization billing manager can start, change, or cancel a subscription.</p>}
-      </div>
-
-      <div className="billing-plan-grid" style={{ marginBottom: 28 }}>
-        {PLAN_CONFIG.map((plan) => {
-          const isCurrent = hasEntitlement && plan.id === currentPlanId;
-          // The "Current plan" ribbon wins the top strip when both apply.
-          const showPopular = plan.id === MOST_POPULAR_PLAN_ID && !isCurrent;
-          const sameSelection = isCurrent && selectedBillingPeriod === subscription?.billingPeriod;
-          const actionDisabled = !canManageBilling || sameSelection || busy === plan.id || (status === 'past_due' && isCurrent);
-          const actionLabel = busy === plan.id
-            ? 'Please wait…'
-            : sameSelection
-              ? 'Current plan'
-              : !hasEntitlement
-                ? 'Choose plan'
-                : plan.id === currentPlanId
-                  ? 'Change billing period'
-                  : 'Change plan';
-          return (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              annual={annual}
-              isCurrent={isCurrent}
-              showPopular={showPopular}
-              actionLabel={actionLabel}
-              actionDisabled={actionDisabled}
-              ghostAction={sameSelection}
-              onAction={handlePlanAction}
-            />
-          );
-        })}
-      </div>
-
-      <div className="card" style={{ padding: 24 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Billing history</div>
-        {history.length === 0 ? (
-          <p className="muted" style={{ fontSize: 14 }}>No charges yet.</p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
-              <thead><tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
-                <th style={{ padding: '6px 8px', fontWeight: 700 }}>Date</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Plan</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Period</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Amount</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Status</th>
-              </tr></thead>
-              <tbody>{history.map((item) => (
-                <tr key={item.id} style={{ borderTop: '1px solid var(--line-2)' }}>
-                  <td style={{ padding: '8px' }}>{formatDate(item.created_at)}</td><td style={{ padding: '8px', textTransform: 'capitalize' }}>{item.plan_id}</td><td style={{ padding: '8px', textTransform: 'capitalize' }}>{item.billing_period}</td><td style={{ padding: '8px' }}>${(item.amount / 100).toFixed(2)} {item.currency}</td><td style={{ padding: '8px', textTransform: 'capitalize' }}>{item.status}</td>
-                </tr>
-              ))}</tbody>
-            </table>
           </div>
-        )}
-      </div>
+
+          <div className="card" style={{ padding: 24 }}>
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Billing history</div>
+            {history.length === 0 ? (
+              <p className="muted" style={{ fontSize: 14 }}>No charges yet.</p>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+                  <thead><tr style={{ textAlign: 'left', color: 'var(--muted)' }}>
+                    <th style={{ padding: '6px 8px', fontWeight: 700 }}>Date</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Plan</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Period</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Amount</th><th style={{ padding: '6px 8px', fontWeight: 700 }}>Status</th>
+                  </tr></thead>
+                  <tbody>{history.map((item) => (
+                    <tr key={item.id} style={{ borderTop: '1px solid var(--line-2)' }}>
+                      <td style={{ padding: '8px' }}>{formatDate(item.created_at)}</td><td style={{ padding: '8px', textTransform: 'capitalize' }}>{item.plan_id}</td><td style={{ padding: '8px', textTransform: 'capitalize' }}>{item.billing_period}</td><td style={{ padding: '8px' }}>${(item.amount / 100).toFixed(2)} {item.currency}</td><td style={{ padding: '8px', textTransform: 'capitalize' }}>{item.status}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="row" style={{ justifyContent: 'flex-end', marginBottom: 20 }}>
+            <BillingPeriodToggle annual={annual} onChange={setAnnual} />
+          </div>
+
+          <div className="billing-plan-grid">
+            {PLAN_CONFIG.map((plan) => {
+              const isCurrent = hasEntitlement && plan.id === currentPlanId;
+              // The "Current plan" ribbon wins the top strip when both apply.
+              const showPopular = plan.id === MOST_POPULAR_PLAN_ID && !isCurrent;
+              const sameSelection = isCurrent && selectedBillingPeriod === subscription?.billingPeriod;
+              const actionDisabled = !canManageBilling || sameSelection || busy === plan.id || (status === 'past_due' && isCurrent);
+              const actionLabel = busy === plan.id
+                ? 'Please wait…'
+                : sameSelection
+                  ? 'Current plan'
+                  : !hasEntitlement
+                    ? 'Choose plan'
+                    : plan.id === currentPlanId
+                      ? 'Change billing period'
+                      : 'Change plan';
+              return (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  annual={annual}
+                  isCurrent={isCurrent}
+                  showPopular={showPopular}
+                  actionLabel={actionLabel}
+                  actionDisabled={actionDisabled}
+                  ghostAction={sameSelection}
+                  onAction={handlePlanAction}
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
