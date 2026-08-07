@@ -6,6 +6,7 @@ import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
 import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
+import DraftReview from "../../../../components/campaigns/DraftReview";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -394,6 +395,8 @@ export default function CampaignDetailPage() {
               <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Timezone</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.timezone}</span></div>
             </div>
           </div>
+
+          {emailEnabled && <DraftReview campaignId={campaign.id} onChanged={load} />}
 
           <div className="card table-shell" data-tour="campaign-leads">
             <div className="filter-bar">
