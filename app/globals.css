@@ -4214,7 +4214,15 @@ canvas {
 .setup-step-cta { white-space: nowrap; }
 
 /* ---- Product tour ---- */
-.tour-root { position: fixed; inset: 0; z-index: 1200; }
+/*
+ * This wrapper spans the full viewport. Even with the scrim and spotlight
+ * below set to pointer-events: none, an ancestor with the CSS default of
+ * pointer-events: auto still intercepts every click and keystroke across its
+ * whole box — that swallowed clicks on the real page everywhere, not just
+ * outside the spotlight. The wrapper opts out here, and only the popover
+ * (the one thing that should actually be clickable) opts back in below.
+ */
+.tour-root { position: fixed; inset: 0; z-index: 1200; pointer-events: none; }
 
 /*
  * The scrim only catches clicks when a step has no anchor (a centred step) —
@@ -4258,6 +4266,7 @@ canvas {
 
 .tour-popover {
   position: fixed;
+  pointer-events: auto;
   max-width: calc(100vw - 24px);
   background: var(--surface);
   border-radius: 14px;
