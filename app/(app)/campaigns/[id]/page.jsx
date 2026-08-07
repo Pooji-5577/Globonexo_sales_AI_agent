@@ -345,7 +345,7 @@ export default function CampaignDetailPage() {
         </div>
         <div className="row" style={{ gap: 8 }}>
           {(campaign.status === "draft" || campaign.status === "paused") && (
-            <button className="btn btn-primary btn-sm" onClick={handleLaunch} disabled={launching}>
+            <button className="btn btn-primary btn-sm" data-tour="campaign-launch" onClick={handleLaunch} disabled={launching}>
               {launching ? "Launching..." : "Launch campaign"}
             </button>
           )}
@@ -395,7 +395,7 @@ export default function CampaignDetailPage() {
             </div>
           </div>
 
-          <div className="card table-shell">
+          <div className="card table-shell" data-tour="campaign-leads">
             <div className="filter-bar">
               <div>
                 <strong style={{ fontSize: 14 }}>Campaign leads</strong>

@@ -451,7 +451,7 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            <section className="card" style={{ padding: 24, borderRadius: 8 }}>
+            <section className="card" data-tour="settings-email" style={{ padding: 24, borderRadius: 8 }}>
               <div className="row spread" style={{ gap: 16, marginBottom: 18, alignItems: 'flex-start' }}>
                 <div className="row" style={{ gap: 10, minWidth: 0 }}>
                   <span style={{ width: 36, height: 36, borderRadius: 10, background: smtpConnection?.active ? 'var(--g-50)' : 'var(--bg-2)', display: 'grid', placeItems: 'center', color: smtpConnection?.active ? 'var(--g-700)' : 'var(--ink-2)', flex: 'none' }}>
@@ -547,6 +547,14 @@ export default function SettingsPage() {
                 </div>
                 <p style={{ margin: '10px 2px 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
                   {SMTP_PRESETS[smtpPreset].note}
+                  {smtpPreset === 'gmail' && (
+                    <>
+                      {' '}
+                      <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--g-700)', fontWeight: 800 }}>
+                        Generate a Google app password
+                      </a>
+                    </>
+                  )}
                 </p>
               </div>
 
