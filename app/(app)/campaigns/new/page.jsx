@@ -102,7 +102,7 @@ function migrateIcpSource(savedForm) {
 
 function Field({ label, children, hint, ...rest }) {
   return (
-    <label className="field" {...rest}>
+    <label className="field campaign-new-field" {...rest}>
       <span>{label}</span>
       {children}
       {hint && <span style={{ fontSize: 12.5, color: "var(--faint)", lineHeight: 1.45 }}>{hint}</span>}
@@ -429,8 +429,8 @@ export default function NewCampaignPage() {
   };
 
   return (
-    <form className="col" onSubmit={submit} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-      <div className="row spread" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff", gap: 16 }}>
+    <form className="col campaign-new-form" onSubmit={submit} style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+      <div className="row spread campaign-new-topbar" style={{ padding: "16px 24px", borderBottom: "1px solid var(--line)", flex: "none", background: "#fff", gap: 16 }}>
         <div className="row" style={{ gap: 12, minWidth: 0 }}>
           <button type="button" className="btn btn-ghost btn-sm" style={{ width: 40, padding: 0 }} onClick={() => router.push("/campaigns")} aria-label="Back to campaigns">
             <Icon name="arrowLeft" size={17} />
@@ -459,7 +459,7 @@ export default function NewCampaignPage() {
         </div>
       )}
 
-      <div className="scroll grow" style={{ minHeight: 0, padding: 24, scrollBehavior: "smooth" }}>
+      <div className="scroll grow campaign-new-scroll" style={{ minHeight: 0, padding: 24, scrollBehavior: "smooth" }}>
         <div
           className="row spread"
           style={{
@@ -493,10 +493,10 @@ export default function NewCampaignPage() {
             ))}
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) 340px", gap: 18, alignItems: "start" }}>
+        <div className="campaign-new-layout" style={{ display: "grid", gridTemplateColumns: "minmax(0,1.25fr) 340px", gap: 18, alignItems: "start" }}>
           <div className="col" style={{ gap: 14 }}>
             <section ref={setupRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
-              <div className="row" style={{ gap: 10, marginBottom: 18 }}>
+              <div className="row campaign-new-section-head" style={{ gap: 10, marginBottom: 18 }}>
                 <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
                   <Icon name="send" size={18} />
                 </span>
@@ -519,7 +519,7 @@ export default function NewCampaignPage() {
                 </Field>
 
                 <Field label="Channel" data-tour="campaign-channel" hint="Pick one or both. Running both sends the email sequence and places calls from the same campaign.">
-                  <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+                  <div className="row campaign-new-channel-grid" style={{ gap: 10, flexWrap: "wrap" }}>
                     {[
                       { value: "email", label: "Email", icon: "mail", help: "Outbound sequence", active: emailEnabled },
                       { value: "voice", label: "Voice", icon: "phone", help: "AI or manual calling", active: voiceEnabled },
@@ -541,7 +541,7 @@ export default function NewCampaignPage() {
                               : channelFrom(emailEnabled, !voiceEnabled);
                             if (!isOnlySelection) set("channel", next);
                           }}
-                          className="card row"
+                          className="card row campaign-new-channel-card"
                           style={{
                             flex: "1 1 220px",
                             minHeight: 78,
@@ -603,7 +603,7 @@ export default function NewCampaignPage() {
             </section>
 
             <section ref={controlsRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
-              <div className="row" style={{ gap: 10, marginBottom: 18 }}>
+              <div className="row campaign-new-section-head" style={{ gap: 10, marginBottom: 18 }}>
                 <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)" }}>
                   <Icon name="sliders" size={18} />
                 </span>
@@ -613,7 +613,7 @@ export default function NewCampaignPage() {
                 </div>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
+              <div className="campaign-new-controls-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
                 <Field label="Maximum leads">
                   <input className="input" type="number" min="1" max="10000" value={form.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
                 </Field>
@@ -656,8 +656,8 @@ export default function NewCampaignPage() {
             </section>
 
             {emailEnabled && (
-              <section ref={emailSequenceRef} data-tour="campaign-sequence" className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
-                <div className="row" style={{ gap: 10, marginBottom: 18 }}>
+              <section ref={emailSequenceRef} data-tour="campaign-sequence" className="card campaign-new-email-section" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
+                <div className="row campaign-new-section-head" style={{ gap: 10, marginBottom: 18 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--g-50)", display: "grid", placeItems: "center", color: "var(--g-700)" }}>
                     <Icon name="mail" size={18} />
                   </span>
@@ -672,8 +672,8 @@ export default function NewCampaignPage() {
 
                 <div className="col" style={{ gap: 16 }}>
                   {steps.map((step, index) => (
-                    <div key={step.uid} style={{ padding: 16, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--line)" }}>
-                      <div className="row spread" style={{ marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
+                    <div key={step.uid} className="campaign-new-step-card" style={{ padding: 16, borderRadius: 8, background: "var(--bg)", border: "1px solid var(--line)" }}>
+                      <div className="row spread campaign-new-step-head" style={{ marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
                         <div className="row" style={{ gap: 8 }}>
                           <span style={{ width: 26, height: 26, borderRadius: 8, background: "var(--g-100)", display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, color: "var(--g-700)", flex: "none" }}>
                             {index + 1}
@@ -682,7 +682,7 @@ export default function NewCampaignPage() {
                             {index === 0 ? "Initial email" : `Follow-up ${index}`}
                           </span>
                         </div>
-                        <div className="row" style={{ gap: 6 }}>
+                        <div className="row campaign-new-delay" style={{ gap: 6 }}>
                           <span className="faint" style={{ fontSize: 12.5, fontWeight: 700 }}>Delay:</span>
                           <input
                             className="input"
@@ -752,8 +752,8 @@ export default function NewCampaignPage() {
               </section>
             )}
 
-            <section ref={assignLeadsRef} className="card" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
-              <div className="row spread" style={{ marginBottom: 14 }}>
+            <section ref={assignLeadsRef} className="card campaign-new-assign-section" style={{ padding: 18, borderRadius: 8, scrollMarginTop: 16 }}>
+              <div className="row spread campaign-new-assign-head" style={{ marginBottom: 14 }}>
                 <div className="row" style={{ gap: 10 }}>
                   <span style={{ width: 34, height: 34, borderRadius: 10, background: "var(--bg-2)", display: "grid", placeItems: "center", color: "var(--ink-2)" }}>
                     <Icon name="users" size={18} />
@@ -818,8 +818,8 @@ export default function NewCampaignPage() {
                 />
               </div>
 
-              <div style={{ border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <div className="campaign-new-leads-table-shell" style={{ border: "1px solid var(--line)", borderRadius: 8, overflow: "hidden", maxHeight: 320, overflowY: "auto" }}>
+                <table className="campaign-new-leads-table" style={{ width: "100%", borderCollapse: "collapse" }}>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--line)", background: "var(--bg)" }}>
                       <th style={{ padding: "8px 12px", width: 36 }}>
@@ -869,7 +869,7 @@ export default function NewCampaignPage() {
             </section>
           </div>
 
-          <aside className="card" style={{ padding: 18, borderRadius: 8, position: "sticky", top: 0 }}>
+          <aside className="card campaign-new-summary" style={{ padding: 18, borderRadius: 8, position: "sticky", top: 0 }}>
             <div className="row" style={{ gap: 10 }}>
               <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--g-700)", gap: 2, flex: "none" }}>
                 {emailEnabled && <Icon name="mail" size={form.channel === "both" ? 14 : 19} />}
@@ -894,7 +894,7 @@ export default function NewCampaignPage() {
               ...(emailEnabled ? [["Sequence steps", `${steps.filter(s => s.subjectTemplate || s.bodyPromptContext).length} of ${steps.length} configured`]] : []),
               ["Leads selected", selectedLeadIds.size],
             ].map(([label, value]) => (
-              <div key={label} className="row spread" style={{ gap: 14, padding: "9px 0", borderBottom: "1px solid var(--line-2)" }}>
+              <div key={label} className="row spread campaign-new-summary-row" style={{ gap: 14, padding: "9px 0", borderBottom: "1px solid var(--line-2)" }}>
                 <span className="faint" style={{ fontSize: 12.5, fontWeight: 800 }}>{label}</span>
                 <span style={{ fontSize: 13, fontWeight: 800, textAlign: "right" }}>{value}</span>
               </div>
