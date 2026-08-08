@@ -18,7 +18,7 @@ const groups = [
       },
       {
         q: "How long does setup take?",
-        a: "Most teams are live in under an hour. You complete onboarding so the agent learns your offer and ideal customer, connect Gmail for sending, build a lead list, and launch a campaign. First meetings typically land within two to four weeks.",
+        a: "Most teams are live in under an hour. You complete onboarding so the agent learns your offer and ideal customer, connect Gmail or a custom SMTP + IMAP mailbox for sending and replies, build a lead list, and launch a campaign. First meetings typically land within two to four weeks.",
       },
       {
         q: "Do I need a technical person to set it up?",
@@ -73,11 +73,11 @@ const groups = [
     items: [
       {
         q: "Which email providers are supported?",
-        a: "Gmail is supported today through a secure OAuth connection used for sending campaign email and reading campaign replies.",
+        a: "Gmail is supported through secure OAuth, and other mail providers can connect through SMTP for sending and IMAP for reading campaign replies.",
       },
       {
         q: "What does the product integrate with?",
-        a: "Gmail for email, Apollo for lead sourcing and enrichment, Retell for AI voice calls, Razorpay for billing, Supabase for authentication and data, and PostHog for product analytics.",
+        a: "Gmail or custom SMTP + IMAP for email, Apollo for lead sourcing and enrichment, Retell for AI voice calls, Google Calendar for booking, Razorpay for billing, Supabase for authentication and data, and PostHog for product analytics.",
       },
       {
         q: "Do voice campaigns come with every plan?",

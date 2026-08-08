@@ -38,6 +38,88 @@ function KpiCard({ item }) {
   );
 }
 
+function OnboardingPreparationCard({ preparation, onOpenCampaign, onOpenProspects }) {
+  if (!preparation?.status || preparation.status === "idle") return null;
+
+  const target = Number(preparation.targetEnriched || 10);
+  const enriched = Number(preparation.enriched || 0);
+  const attached = Number(preparation.attached || preparation.candidatesFound || 0);
+  const attempts = Number(preparation.candidatesAttempted || 0);
+  const rejected = Number(preparation.rejected || 0);
+  const progress = enriched >= target
+    ? 100
+    : Math.min(99, Math.round((enriched / Math.max(target, 1)) * 100));
+
+  // A run that found some leads but not the full target is 'partial', not a
+  // failure: Apollo may simply not hold ten verified people matching this ICP.
+  // Reporting that plainly beats raising an alarm the customer cannot action.
+  const partial = preparation.status === "partial" || (preparation.status === "attention" && enriched > 0);
+  const ready = (preparation.status === "ready" || preparation.status === "completed") && enriched >= target;
+  const attention = preparation.status === "attention" && enriched === 0;
+
+  const title = ready
+    ? "Your first audience is ready"
+    : partial
+      ? `Found ${enriched} of ${target} leads`
+      : attention
+        ? "Your first audience needs attention"
+        : "Preparing your first audience";
+
+  const detail = ready
+    ? "Apollo found your verified prospects and the agent is writing their emails."
+    : partial
+      ? `Apollo had ${enriched} verified contact${enriched === 1 ? "" : "s"} matching this profile${rejected > 0 ? `, and ${rejected} more were filtered out as unreachable or shared inboxes` : ""}. You can broaden the profile for more.`
+      : attention
+        ? preparation.error || "Apollo found nobody matching this profile. Broaden the titles, industries, or regions in Prospects and try again."
+        : "GNX is searching Apollo and enriching the audience in the background. You can keep working.";
+
+  return (
+    <div className="card" data-tour="dashboard-preparation" style={{ padding: 18, marginBottom: 18, borderRadius: 8, background: ready ? "linear-gradient(160deg,#fff,#f4fdf8)" : "#fff" }}>
+      <div className="row spread" style={{ gap: 14, alignItems: "flex-start" }}>
+        <div className="row" style={{ gap: 11, alignItems: "flex-start" }}>
+          <span style={{ width: 34, height: 34, borderRadius: 10, display: "grid", placeItems: "center", flex: "none", background: attention ? "#fff7ed" : "var(--g-50)", color: attention ? "#c2410c" : "var(--g-700)" }}>
+            <Icon name={attention ? "bell" : ready ? "checkCircle" : "spark"} size={18} />
+          </span>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{title}</div>
+            <p className="muted" style={{ fontSize: 12.5, lineHeight: 1.45, marginTop: 3, maxWidth: 680 }}>{detail}</p>
+          </div>
+        </div>
+        <span className="chip" style={{ color: attention ? "#9a3412" : ready ? "var(--g-700)" : "var(--ink-2)", background: attention ? "#fff7ed" : ready ? "var(--g-50)" : "var(--bg-2)" }}>
+          {preparation.status === "preparing" ? "In progress" : preparation.status.charAt(0).toUpperCase() + preparation.status.slice(1)}
+        </span>
+      </div>
+
+      <div style={{ height: 8, borderRadius: 999, background: "var(--bg-2)", overflow: "hidden", marginTop: 15 }}>
+        <div style={{ width: `${progress}%`, height: "100%", borderRadius: 999, background: attention ? "#f97316" : "var(--g-600)", transition: "width .25s ease" }} />
+      </div>
+      <div className="row spread" style={{ marginTop: 9, gap: 12, flexWrap: "wrap" }}>
+        <span className="faint" style={{ fontSize: 12, fontWeight: 800 }}>{enriched}/{target} qualified</span>
+        <div className="row" style={{ gap: 16 }}>
+          <span className="faint" style={{ fontSize: 12 }}>Reviewed {attached}</span>
+          {/* Rejections are shown rather than hidden: a shortfall the customer
+              can see the reason for is a targeting insight, where a silent one
+              just looks like the product underdelivering. */}
+          {rejected > 0 && <span className="faint" style={{ fontSize: 12 }}>Filtered out {rejected}</span>}
+          <span className="faint" style={{ fontSize: 12 }}>Searched {attempts}</span>
+        </div>
+      </div>
+
+      {(ready || partial || attention) && (
+        <button
+          className={ready || partial ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"}
+          type="button"
+          style={{ marginTop: 13 }}
+          onClick={ready || partial ? onOpenCampaign : onOpenProspects}
+        >
+          {ready || partial ? "Review your emails" : "Refine audience"}{" "}
+          <Icon name="arrow" size={14} color={ready || partial ? "#06231a" : "currentColor"} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function formatMeetingTime(value) {
   const meetingDate = new Date(value);
   if (Number.isNaN(meetingDate.getTime())) return "Time to be confirmed";
@@ -116,6 +198,7 @@ function NextMeetingCard({ meeting, onViewMeetings }) {
 export default function DashboardPage() {
   const router = useRouter();
   const [data, setData] = useState(null);
+  const [onboardingPreparation, setOnboardingPreparation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const showSkeleton = useFirstLoad(loading);
@@ -125,6 +208,36 @@ export default function DashboardPage() {
       .then(res => setData(res.data))
       .catch(() => setError("Dashboard data could not be loaded."))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer;
+
+    const loadPreparation = async () => {
+      try {
+        const { data: nextPreparation } = await api.get("/onboarding/preparation/current");
+        if (cancelled) return;
+        setOnboardingPreparation(nextPreparation || null);
+
+        const target = Number(nextPreparation?.targetEnriched || 50);
+        const enriched = Number(nextPreparation?.enriched || 0);
+        const stillPreparing = nextPreparation?.status === "queued"
+          || nextPreparation?.status === "preparing"
+          || (enriched < target && nextPreparation?.status !== "attention" && nextPreparation?.status !== "ready");
+        if (stillPreparing) timer = window.setTimeout(loadPreparation, 5000);
+      } catch {
+        // The dashboard should remain usable if preparation status is
+        // temporarily unavailable; the campaign and other dashboard data are
+        // independent of this background indicator.
+      }
+    };
+
+    loadPreparation();
+    return () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+    };
   }, []);
 
   const kpis = data?.kpis ?? {};
@@ -170,6 +283,12 @@ export default function DashboardPage() {
           {error}
         </div>
       )}
+
+      <OnboardingPreparationCard
+        preparation={onboardingPreparation}
+        onOpenCampaign={() => router.push(`/campaigns/${onboardingPreparation?.campaignId}`)}
+        onOpenProspects={() => router.push("/prospects")}
+      />
 
       <SetupChecklist variant="compact" />
 

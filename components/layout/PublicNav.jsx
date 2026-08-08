@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useAuth } from "../../hooks/useAuth";
 import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
 
@@ -9,6 +10,7 @@ import Icon from "../ui/Icon";
 // onSignIn: pass on the homepage for the smart returning-user redirect; otherwise Sign in links to /login
 export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, loading } = useAuth();
   const dark = variant === "dark";
 
   const handleScroll = (id) => {
@@ -44,14 +46,22 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
       </nav>
 
       <div className="site-nav-actions">
-        {onSignIn ? (
-          <button className="public-link" onClick={onSignIn}>Sign in</button>
-        ) : (
-          <Link className="public-link" href="/login">Sign in</Link>
-        )}
-        <Link className="btn btn-primary btn-sm" href="/signup">
-          Choose a plan <Icon name="arrow" size={16} color="#06231a" />
-        </Link>
+        {!loading && user ? (
+          <Link className="btn btn-primary btn-sm" href="/dashboard">
+            Back to dashboard <Icon name="arrow" size={16} color="#06231a" />
+          </Link>
+        ) : !loading ? (
+          <>
+            {onSignIn ? (
+              <button className="public-link" onClick={onSignIn}>Sign in</button>
+            ) : (
+              <Link className="public-link" href="/login">Sign in</Link>
+            )}
+            <Link className="btn btn-primary btn-sm" href="/signup">
+              Choose a plan <Icon name="arrow" size={16} color="#06231a" />
+            </Link>
+          </>
+        ) : null}
       </div>
 
       <button
@@ -72,12 +82,20 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
           <Link href="/pricing" onClick={() => setMobileOpen(false)}>Pricing</Link>
 
           <div className="site-nav-mobile-actions">
-            {onSignIn ? (
-              <button className="btn btn-ghost btn-lg" onClick={() => { onSignIn(); setMobileOpen(false); }}>Sign in</button>
-            ) : (
-              <Link className="btn btn-ghost btn-lg" href="/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
-            )}
-            <Link className="btn btn-primary btn-lg" href="/signup" onClick={() => setMobileOpen(false)}>Choose a plan</Link>
+            {!loading && user ? (
+              <Link className="btn btn-primary btn-lg" href="/dashboard" onClick={() => setMobileOpen(false)}>
+                Back to dashboard
+              </Link>
+            ) : !loading ? (
+              <>
+                {onSignIn ? (
+                  <button className="btn btn-ghost btn-lg" onClick={() => { onSignIn(); setMobileOpen(false); }}>Sign in</button>
+                ) : (
+                  <Link className="btn btn-ghost btn-lg" href="/login" onClick={() => setMobileOpen(false)}>Sign in</Link>
+                )}
+                <Link className="btn btn-primary btn-lg" href="/signup" onClick={() => setMobileOpen(false)}>Choose a plan</Link>
+              </>
+            ) : null}
           </div>
         </div>
       )}

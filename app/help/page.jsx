@@ -16,7 +16,7 @@ const categories = [
     topics: [
       "Setting up your organization and inviting teammates",
       "Answering onboarding so the agent understands your offer",
-      "Connecting Gmail for sending and reply tracking",
+      "Connecting Gmail or custom SMTP + IMAP for sending and reply tracking",
       "Launching your first campaign end to end",
     ],
   },

@@ -386,17 +386,10 @@ export default function SetupCopilot() {
                     <div className="copilot-connections">
                       <ConnectionRow
                         icon="mail"
-                        name="Gmail"
+                        name="Email account"
                         state={integrations.gmail}
                         required={emailOn}
                         onFix={() => { close(); router.push("/settings"); }}
-                      />
-                      <ConnectionRow
-                        icon="calendar"
-                        name="Google Calendar"
-                        state={integrations.calendar}
-                        required={false}
-                        onFix={() => { close(); router.push("/calendar"); }}
                       />
                       {voiceOn ? (
                         <ConnectionRow

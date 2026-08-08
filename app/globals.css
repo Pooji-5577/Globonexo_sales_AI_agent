@@ -2889,6 +2889,9 @@ canvas {
   .page-actions {
     justify-content: flex-start;
   }
+  .campaign-detail-toolbar > * {
+    width: 100%;
+  }
   .support-layout {
     overflow-y: auto;
   }
@@ -4214,24 +4217,40 @@ canvas {
 .setup-step-cta { white-space: nowrap; }
 
 /* ---- Product tour ---- */
-.tour-root { position: fixed; inset: 0; z-index: 1200; }
+/*
+ * This wrapper spans the full viewport. Even with the scrim and spotlight
+ * below set to pointer-events: none, an ancestor with the CSS default of
+ * pointer-events: auto still intercepts every click and keystroke across its
+ * whole box — that swallowed clicks on the real page everywhere, not just
+ * outside the spotlight. The wrapper opts out here, and only the popover
+ * (the one thing that should actually be clickable) opts back in below.
+ */
+.tour-root { position: fixed; inset: 0; z-index: 1200; pointer-events: none; }
 
 /*
- * The scrim is only a click-catcher while a step has an anchor: the spotlight's
- * ring shadow below does the dimming, which leaves the highlighted element
- * completely sharp and unfiltered. Stacking a full-page backdrop-filter here as
- * well would blur the very thing the step is pointing at.
+ * The scrim only catches clicks when a step has no anchor (a centred step) —
+ * that's the only time "click outside to skip" makes sense. Once a step has a
+ * real spotlighted element, the scrim must let every click and keystroke
+ * through untouched, so the customer can actually use the control being
+ * pointed at rather than have the tour swallow the interaction and close.
+ * The spotlight's ring shadow below does the dimming in that case, which also
+ * leaves the highlighted element completely sharp and unfiltered — stacking a
+ * full-page backdrop-filter here as well would blur the very thing the step
+ * is pointing at.
  */
 .tour-scrim {
   position: absolute;
   inset: 0;
   background: transparent;
+  pointer-events: none;
   animation: tour-fade .2s ease both;
 }
-/* No anchor to cut out (a centred step), so the scrim itself dims the page. */
+/* No anchor to cut out (a centred step), so the scrim itself dims the page
+   and is the only thing there to click through to skip. */
 .tour-scrim.is-dimmed {
   background: rgba(10, 23, 18, .55);
   backdrop-filter: blur(2px);
+  pointer-events: auto;
 }
 @keyframes tour-fade { from { opacity: 0; } to { opacity: 1; } }
 
@@ -4250,6 +4269,7 @@ canvas {
 
 .tour-popover {
   position: fixed;
+  pointer-events: auto;
   max-width: calc(100vw - 24px);
   background: var(--surface);
   border-radius: 14px;
@@ -4291,6 +4311,19 @@ canvas {
   margin-top: 10px;
   padding: 9px 11px;
   background: var(--g-50);
+  border-radius: 8px;
+}
+
+.tour-locked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #9a3412;
+  margin-top: 10px;
+  padding: 8px 11px;
+  background: #fff7ed;
   border-radius: 8px;
 }
 

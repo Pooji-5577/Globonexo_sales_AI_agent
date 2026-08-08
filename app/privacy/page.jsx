@@ -12,7 +12,7 @@ const sections = [
   },
   {
     title: "2. Connected Services",
-    body: "If you connect Gmail, Razorpay, Apollo, Retell, Supabase, PostHog, or other providers, we process the information needed to provide the requested workflow, such as sending emails, reading campaign replies, processing payments, enriching leads, and logging product events.",
+    body: "If you connect Gmail, a custom SMTP/IMAP mailbox, Razorpay, Apollo, Retell, Supabase, PostHog, or other providers, we process the information needed to provide the requested workflow, such as sending emails, reading campaign replies, processing payments, enriching leads, and logging product events.",
   },
   {
     title: "2a. Google User Data",
@@ -21,6 +21,10 @@ const sections = [
   {
     title: "2b. Limited Use of Google User Data",
     body: "GNX Sales' use and transfer of information received from Google APIs to any other app will adhere to the Google API Services User Data Policy (https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements. We do not sell Google user data, do not use it for advertising, do not transfer it except as necessary to provide or improve the features you requested, to comply with applicable law, or as part of a merger or acquisition, and do not use it to develop, improve, or train generalized AI or machine learning models. Human access to Google user data is limited to what you explicitly permit, what is needed for security purposes such as investigating abuse, to comply with applicable law, or where the data is aggregated and anonymized.",
+  },
+  {
+    title: "2c. Custom Email Credentials",
+    body: "If you choose a custom email provider, GNX Sales uses the SMTP credentials to send campaign messages and the IMAP credentials to poll the connected inbox for replies to those messages. Custom SMTP and IMAP passwords are encrypted before they are stored. We do not use them for Google Calendar access, and you can disconnect the mailbox from Settings at any time.",
   },
   {
     title: "3. How We Use Information",

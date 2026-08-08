@@ -7,9 +7,11 @@ import Aurora from "../components/ui/Aurora";
 import Icon from "../components/ui/Icon";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
+import { useAuth } from "../hooks/useAuth";
 
 export default function LandingPage() {
   const router = useRouter();
+  const { user, loading } = useAuth();
 
   const steps = [
     { icon: 'target', title: 'Find & qualify', text: 'Scans millions of signals to find your ideal buyers and qualify them automatically.' },
@@ -74,10 +76,18 @@ export default function LandingPage() {
               </h1>
               <p>Finds buyers, writes outreach, handles replies, and books meetings while your team focuses on closing.</p>
               <div className="landing-hero-actions">
-                <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
-                  Start with a paid plan <Icon name="arrow" size={18} color="#06231a" />
-                </button>
-                <button className="landing-outline-btn" onClick={handleSignIn}>Sign in</button>
+                {!loading && user ? (
+                  <button className="btn btn-primary btn-lg" onClick={() => router.push('/dashboard')}>
+                    Back to dashboard <Icon name="arrow" size={18} color="#06231a" />
+                  </button>
+                ) : !loading ? (
+                  <>
+                    <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
+                      Start with a paid plan <Icon name="arrow" size={18} color="#06231a" />
+                    </button>
+                    <button className="landing-outline-btn" onClick={handleSignIn}>Sign in</button>
+                  </>
+                ) : null}
               </div>
               <div className="landing-assurances">
                 <span><Icon name="check" size={15} color="var(--g-300)" /> Monthly or annual billing</span>
@@ -169,8 +179,9 @@ export default function LandingPage() {
           <div className="landing-usecase-head">
             <h3>How GNX Sales uses your Google account data</h3>
             <p>
-              Connecting Gmail is optional and takes one click in Settings. When you connect it, GNX Sales requests
-              only the permissions below, and uses each one for a single purpose in the product.
+              Connecting Gmail is optional and takes one click in Settings. You can also use a custom SMTP + IMAP
+              mailbox. When you connect Gmail, GNX Sales requests only the permissions below, and uses each one for
+              a single purpose in the product.
             </p>
           </div>
 
@@ -238,10 +249,18 @@ export default function LandingPage() {
             <p>Choose a paid plan, connect your inbox, and get your outbound workflow moving.</p>
           </div>
           <div className="landing-cta-actions">
-            <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
-              Choose a plan <Icon name="arrow" size={18} color="#06231a" />
-            </button>
-            <Link className="landing-outline-btn" href="/pricing">View pricing</Link>
+            {!loading && user ? (
+              <button className="btn btn-primary btn-lg" onClick={() => router.push('/dashboard')}>
+                Back to dashboard <Icon name="arrow" size={18} color="#06231a" />
+              </button>
+            ) : !loading ? (
+              <>
+                <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
+                  Choose a plan <Icon name="arrow" size={18} color="#06231a" />
+                </button>
+                <Link className="landing-outline-btn" href="/pricing">View pricing</Link>
+              </>
+            ) : null}
           </div>
         </section>
 

@@ -6,6 +6,7 @@ import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
 import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
+import DraftReview from "../../../../components/campaigns/DraftReview";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -329,23 +330,23 @@ export default function CampaignDetailPage() {
         </div>
       )}
 
-      <div className="row spread page-toolbar">
+      <div className="row spread page-toolbar campaign-detail-toolbar">
         <div className="row" style={{ gap: 12, minWidth: 0 }}>
           <button className="btn btn-ghost btn-sm" type="button" style={{ width: 40, padding: 0 }} onClick={() => router.push("/campaigns")} aria-label="Back to campaigns">
             <Icon name="arrowLeft" size={16} />
           </button>
           <div style={{ minWidth: 0 }}>
             <h1 className="display page-title ellip">{campaign.name}</h1>
-            <div className="row" style={{ gap: 8, marginTop: 6 }}>
+            <div className="row" style={{ gap: 8, marginTop: 6, flexWrap: "wrap" }}>
               <StatusBadge status={campaign.status} />
               <ChannelBadge channel={campaign.channel} />
               <span className="faint" style={{ fontSize: 12 }}>Created {formatDate(campaign.createdAt)}</span>
             </div>
           </div>
         </div>
-        <div className="row" style={{ gap: 8 }}>
+        <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
           {(campaign.status === "draft" || campaign.status === "paused") && (
-            <button className="btn btn-primary btn-sm" onClick={handleLaunch} disabled={launching}>
+            <button className="btn btn-primary btn-sm" data-tour="campaign-launch" onClick={handleLaunch} disabled={launching}>
               {launching ? "Launching..." : "Launch campaign"}
             </button>
           )}
@@ -395,7 +396,9 @@ export default function CampaignDetailPage() {
             </div>
           </div>
 
-          <div className="card table-shell">
+          {emailEnabled && <DraftReview campaignId={campaign.id} onChanged={load} />}
+
+          <div className="card table-shell" data-tour="campaign-leads">
             <div className="filter-bar">
               <div>
                 <strong style={{ fontSize: 14 }}>Campaign leads</strong>
