@@ -87,7 +87,7 @@ describe("integration state rendering", () => {
 
   it("marks a provider that needs reconnecting as needing attention", () => {
     mockSetup({
-      steps: [step("calendar", { status: "blocked", detail: "Google Calendar needs to be reconnected." })],
+      steps: [step("retell", { status: "blocked", detail: "The voice number needs to be reconnected." })],
     });
     render(<SetupChecklist />);
 
