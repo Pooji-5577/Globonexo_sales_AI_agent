@@ -2889,6 +2889,9 @@ canvas {
   .page-actions {
     justify-content: flex-start;
   }
+  .campaign-detail-toolbar > * {
+    width: 100%;
+  }
   .support-layout {
     overflow-y: auto;
   }
