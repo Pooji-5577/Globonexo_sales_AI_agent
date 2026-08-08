@@ -56,12 +56,13 @@ const categories = [
   {
     icon: "phone",
     title: "Voice campaigns",
-    body: "Run AI voice outreach alongside email.",
+    body: "Run outbound campaigns and an optional inbound AI receptionist.",
     topics: [
       "Configuring a voice agent and call script",
       "Call disclosure and consent requirements",
       "Reviewing transcripts and call outcomes",
       "Following up by email after a call",
+      "Enabling inbound calls, caller identification, and daily minute caps",
     ],
   },
   {

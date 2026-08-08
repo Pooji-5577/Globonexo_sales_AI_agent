@@ -11,6 +11,7 @@ const STATUS_STYLES = {
   completed:   { label: "Completed",   bg: "var(--g-50)",  color: "var(--g-700)", dot: "var(--g-500)" },
   failed:      { label: "Failed",      bg: "#fee2e2",      color: "#991b1b",      dot: "#ef4444" },
   voicemail:   { label: "Voicemail",   bg: "#f3f4f6",      color: "#374151",      dot: "#9ca3af" },
+  rejected:    { label: "Rejected",    bg: "#f3f4f6",      color: "#374151",      dot: "#9ca3af" },
 };
 
 const DISPOSITION_STYLES = {
@@ -22,7 +23,7 @@ const DISPOSITION_STYLES = {
   no_answer:       { label: "No Answer",       bg: "#f3f4f6",      color: "#374151" },
 };
 
-const FILTERS = ["all", "completed", "in_progress", "failed", "voicemail"];
+const FILTERS = ["all", "completed", "in_progress", "failed", "voicemail", "rejected"];
 
 const FILTER_LABELS = {
   all: "All",
@@ -30,6 +31,7 @@ const FILTER_LABELS = {
   in_progress: "In Progress",
   failed: "Failed",
   voicemail: "Voicemail",
+  rejected: "Rejected",
 };
 
 const EMPTY_STATE_COPY = {
@@ -38,6 +40,7 @@ const EMPTY_STATE_COPY = {
   in_progress: { title: "No calls in progress",      body: "Calls will appear here the moment they start dialing." },
   failed:      { title: "No failed calls",           body: "Nice — nothing has failed to connect." },
   voicemail:   { title: "No voicemails yet",         body: "Calls that hit voicemail will show up here." },
+  rejected:    { title: "No rejected calls",         body: "Calls declined by inbound safety and budget rules will show up here." },
 };
 
 function StatCard({ label, value, icon, tone }) {
@@ -191,7 +194,7 @@ export default function CallsPage() {
       <div className="row spread" style={{ flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Call History</h1>
-          <p className="faint" style={{ fontSize: 13, marginTop: 4 }}>Outcomes, transcripts, and recordings from every voice call.</p>
+          <p className="faint" style={{ fontSize: 13, marginTop: 4 }}>Inbound and outbound outcomes. Privacy-protected inbound calls do not retain transcripts or recordings.</p>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
           {loading ? "Refreshing…" : "Refresh"}
@@ -255,7 +258,7 @@ export default function CallsPage() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ background: "var(--bg-2)" }}>
-                  {["Lead", "Campaign", "Status", "Outcome", "Duration", "Date", ""].map((h, i) => (
+                  {["Lead", "Direction", "Campaign", "Status", "Outcome", "Duration", "Date", ""].map((h, i) => (
                     <th key={i} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -265,8 +268,9 @@ export default function CallsPage() {
                   <tr key={call.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--line-2)" }}>
                     <td style={{ padding: "12px 16px" }}>
                       <div style={{ fontWeight: 500 }}>{leadName(call.leads)}</div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{call.leads?.company || call.to_number}</div>
+                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{call.leads?.company || (call.direction === "inbound" ? call.from_number : call.to_number)}</div>
                     </td>
+                    <td style={{ padding: "12px 16px", textTransform: "capitalize", color: "var(--muted)" }}>{call.direction || "outbound"}</td>
                     <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{call.campaigns?.name || "—"}</td>
                     <td style={{ padding: "12px 16px" }}><StatusBadge status={call.status} /></td>
                     <td style={{ padding: "12px 16px" }}><DispositionBadge disposition={call.disposition} status={call.status} /></td>
@@ -274,14 +278,18 @@ export default function CallsPage() {
                     <td style={{ padding: "12px 16px", color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(call.created_at)}</td>
                     <td style={{ padding: "12px 16px" }}>
                       <div className="row" style={{ gap: 6 }}>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setTranscript(call)}
-                          style={{ fontSize: 11 }}
-                        >
-                          Transcript
-                        </button>
-                        {call.status === "failed" && (
+                        {call.direction === "inbound" ? (
+                          <span title="Inbound recordings and transcripts are not retained" style={{ fontSize: 11, color: "var(--faint)", whiteSpace: "nowrap" }}>Privacy protected</span>
+                        ) : (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setTranscript(call)}
+                            style={{ fontSize: 11 }}
+                          >
+                            Transcript
+                          </button>
+                        )}
+                        {call.status === "failed" && call.direction !== "inbound" && (
                           <button
                             className="btn btn-outline btn-sm"
                             onClick={() => handleRetry(call.id)}

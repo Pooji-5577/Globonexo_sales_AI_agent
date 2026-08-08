@@ -35,6 +35,7 @@ const plans = [
       "3 users and 3 AI agents",
       "Up to 5,000 outbound emails/month",
       "AI voice campaigns via Retell",
+      "Inbound AI receptionist: 20 connected minutes/day",
       "Campaign analytics and hot lead tracking",
       "Priority onboarding support",
     ],
@@ -49,6 +50,7 @@ const plans = [
     features: [
       "10 users and 10 AI agents",
       "Up to 20,000 outbound emails/month",
+      "Inbound AI receptionist: 60 connected minutes/day",
       "Advanced send caps and approval controls",
       "Admin, support, and impersonation tools",
       "Dedicated launch review",

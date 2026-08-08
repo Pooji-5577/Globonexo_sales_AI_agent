@@ -118,6 +118,18 @@ export default function SettingsPage() {
   const [phoneNumbers, setPhoneNumbers] = useState([]);
   const [phoneLoading, setPhoneLoading] = useState(true);
   const [phoneRetrying, setPhoneRetrying] = useState(false);
+  const [inbound, setInbound] = useState({
+    enabled: false,
+    available: false,
+    planId: 'starter',
+    planDailyMinuteLimit: 0,
+    dailyMinuteLimit: 1,
+    maxCallDurationSeconds: 1200,
+    phoneReady: false,
+    agentReady: false,
+  });
+  const [inboundLoading, setInboundLoading] = useState(true);
+  const [inboundBusy, setInboundBusy] = useState(false);
   const [systemStatus, setSystemStatus] = useState({
     backend: { running: false },
     redis: { connected: false },
@@ -170,6 +182,11 @@ export default function SettingsPage() {
       .then(({ data }) => setPhoneNumbers(Array.isArray(data) ? data : []))
       .catch(() => setPhoneNumbers([]))
       .finally(() => setPhoneLoading(false));
+
+    api.get('/voice/inbound', requestOptions())
+      .then(({ data }) => setInbound(current => ({ ...current, ...data })))
+      .catch(() => undefined)
+      .finally(() => setInboundLoading(false));
   }, []);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -354,6 +371,27 @@ export default function SettingsPage() {
       setError(err.response?.data?.error || 'Retell could not provision the number. You can retry again or contact support.');
     } finally {
       setPhoneRetrying(false);
+    }
+  };
+
+  const saveInboundSettings = async (enabled = inbound.enabled) => {
+    setError('');
+    setSuccess(false);
+    setInboundBusy(true);
+    try {
+      const { data } = await api.put('/voice/inbound', {
+        enabled,
+        dailyMinuteLimit: Math.min(
+          inbound.planDailyMinuteLimit,
+          Math.max(1, Number(inbound.dailyMinuteLimit) || inbound.planDailyMinuteLimit),
+        ),
+      });
+      setInbound(current => ({ ...current, ...data }));
+      setSuccess(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update inbound calling.');
+    } finally {
+      setInboundBusy(false);
     }
   };
 
@@ -871,6 +909,66 @@ export default function SettingsPage() {
                       {phoneRetrying ? 'Retrying...' : failedPhone ? 'Retry provisioning' : 'Provision included number'}
                     </button>
                     {failedPhone && <span className="faint" style={{ fontSize: 12 }}>If it fails again, contact Support with the time of the attempt.</span>}
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 16,
+                  padding: 16,
+                  border: `1px solid ${inbound.enabled ? 'var(--g-100)' : 'var(--line)'}`,
+                  borderRadius: 10,
+                  background: inbound.enabled ? 'var(--g-50)' : 'var(--bg-2)',
+                }}
+              >
+                <div className="row spread" style={{ gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div className="col" style={{ gap: 5, minWidth: 0, flex: 1 }}>
+                    <span style={{ fontWeight: 800, fontSize: 13.5 }}>Inbound AI receptionist</span>
+                    <span style={{ color: 'var(--muted)', fontSize: 12.5, lineHeight: 1.45 }}>
+                      {inboundLoading
+                        ? 'Checking inbound availability...'
+                        : !inbound.available
+                          ? 'Inbound calling is available on Growth and Scale plans.'
+                          : inbound.enabled
+                            ? `Enabled on ${inbound.phoneNumber || activePhone?.phone_number}. Unknown callers are capped at ${inbound.dailyMinuteLimit} connected minutes per day; recognized leads are still answered after the cap.`
+                            : 'Off by default. Enabling creates a separate organisation-wide inbound agent; it never uses an outbound campaign prompt.'}
+                    </span>
+                    <span style={{ color: 'var(--faint)', fontSize: 11.5, lineHeight: 1.45 }}>
+                      Every call starts with an AI disclosure. Calls end after 20 minutes. Inbound recordings and transcripts are not retained.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className={'btn btn-sm ' + (inbound.enabled ? 'btn-ghost' : 'btn-primary')}
+                    disabled={inboundLoading || inboundBusy || (!inbound.enabled && (!inbound.available || !phoneReady))}
+                    onClick={() => saveInboundSettings(!inbound.enabled)}
+                    style={{ flex: 'none' }}
+                  >
+                    {inboundBusy ? 'Working...' : inbound.enabled ? 'Disable inbound' : 'Enable inbound calls'}
+                  </button>
+                </div>
+
+                {inbound.available && (
+                  <div className="row" style={{ gap: 10, alignItems: 'center', marginTop: 14, flexWrap: 'wrap' }}>
+                    <label htmlFor="inbound-daily-limit" style={{ fontSize: 12.5, fontWeight: 700 }}>Unknown-caller daily cap</label>
+                    <input
+                      id="inbound-daily-limit"
+                      className="input"
+                      type="number"
+                      min="1"
+                      max={inbound.planDailyMinuteLimit}
+                      value={inbound.dailyMinuteLimit}
+                      disabled={inboundBusy}
+                      onChange={event => setInbound(current => ({ ...current, dailyMinuteLimit: event.target.value }))}
+                      style={{ width: 86, height: 34 }}
+                    />
+                    <span className="faint" style={{ fontSize: 12 }}>minutes/day (plan maximum: {inbound.planDailyMinuteLimit})</span>
+                    {inbound.enabled && (
+                      <button type="button" className="btn btn-ghost btn-sm" disabled={inboundBusy} onClick={() => saveInboundSettings(true)}>
+                        Save cap
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

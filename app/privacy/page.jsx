@@ -15,6 +15,10 @@ const sections = [
     body: "If you connect Gmail, a custom SMTP/IMAP mailbox, Razorpay, Apollo, Retell, Supabase, PostHog, or other providers, we process the information needed to provide the requested workflow, such as sending emails, reading campaign replies, processing payments, enriching leads, and logging product events.",
   },
   {
+    title: "2d. Inbound AI Calls",
+    body: "When an organization enables inbound AI calling, we use the incoming phone number and caller-confirmed details to identify the caller, route the call, prevent abuse, and record structured outcomes such as duration, identity status, disposition, and meeting or follow-up requests. Inbound calls begin with an AI disclosure. GNX Sales configures these inbound calls not to retain recordings, transcripts, or provider call logs.",
+  },
+  {
     title: "2a. Google User Data",
     body: "Connecting a Google account is optional. When you connect Gmail, we request three permissions and use each for one purpose: gmail.send to send the outreach emails and follow-ups you have approved from your own Gmail account; gmail.readonly to read the message threads GNX Sales started on your behalf so we can detect prospect replies, cancel scheduled follow-ups, and show the conversation in your Inbox view; and userinfo.email to identify which Google account is connected. We store OAuth access and refresh tokens so campaigns can continue running, along with the message metadata and reply content needed for the features above. We do not read unrelated mail in your mailbox. You can disconnect Google at any time from Settings, which deletes the stored tokens, and you can revoke access from your Google Account permissions page at https://myaccount.google.com/permissions.",
   },
@@ -53,5 +57,5 @@ const sections = [
 ];
 
 export default function PrivacyPage() {
-  return <LegalPage title="Privacy Policy" updated="June 19, 2026" sections={sections} />;
+  return <LegalPage title="Privacy Policy" updated="August 8, 2026" sections={sections} />;
 }
