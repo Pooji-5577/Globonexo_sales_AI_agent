@@ -4125,6 +4125,167 @@ canvas {
   }
 }
 
+.pipeline-stage-container-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(290px, 1fr));
+  gap: 14px;
+  padding: 18px;
+  background: var(--bg);
+  overflow-x: auto;
+  align-items: start;
+}
+.pipeline-stage-container {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255,255,255,.78);
+  box-shadow: var(--sh-xs);
+}
+.pipeline-stage-container-head {
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px;
+  color: var(--ink-2);
+}
+.pipeline-stage-container-head strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+.pipeline-stage-container-head > span {
+  flex: none;
+  min-width: 28px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: #fff;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+.pipeline-card-stack {
+  display: grid;
+  gap: 10px;
+}
+.pipeline-lead-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 14px;
+  padding: 18px;
+  background: var(--bg);
+}
+.pipeline-lead-card {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--sh-sm);
+  transition: transform .12s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.pipeline-lead-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--g-200);
+  box-shadow: var(--sh-md);
+}
+.pipeline-lead-card-head {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.pipeline-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.pipeline-hot-badge {
+  flex: none;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid #fed7aa;
+  border-radius: var(--r-pill);
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 900;
+}
+.pipeline-intent-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--bg);
+}
+.pipeline-intent-panel .pipeline-intent-label,
+.pipeline-intent-panel .pipeline-intent-hot {
+  margin-top: 0;
+}
+.pipeline-intent-panel strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+.pipeline-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 2px;
+}
+.pipeline-card-actions .mini-action {
+  min-height: 34px;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink-2);
+  font-size: 12px;
+}
+.pipeline-card-actions .mini-action:hover {
+  border-color: var(--g-200);
+  background: var(--g-50);
+  color: var(--g-700);
+}
+
+@media (max-width: 1180px) {
+  .pipeline-lead-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .pipeline-lead-card-grid {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+  .pipeline-stage-container-grid {
+    padding: 14px;
+  }
+  .pipeline-stage-container {
+    padding: 10px;
+  }
+  .pipeline-lead-card {
+    padding: 13px;
+  }
+}
+
 /* ============================================================
    Guided setup — checklist, product tour, and Setup Copilot
    ============================================================ */
