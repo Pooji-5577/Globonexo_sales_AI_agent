@@ -18,7 +18,7 @@ export default function CelebratePage() {
           </div>
           <h1 id="celebrate-title" className="display">Your sales workspace is ready.</h1>
           <p>
-            Your onboarding details are saved and your first campaign draft is created. GNX will prepare the first 50 Apollo leads in the background while you explore the workspace.
+            Your onboarding details are saved and your first campaign draft is created. GNX is finding up to 10 verified leads in the background and writing their emails, while you explore the workspace.
           </p>
 
           <div className="celebrate-actions">
@@ -57,7 +57,7 @@ export default function CelebratePage() {
           </div>
           <div className="celebrate-metrics">
             <div><strong>1</strong><span>Draft campaign</span></div>
-            <div><strong>50</strong><span>Leads preparing</span></div>
+            <div><strong>10</strong><span>Leads preparing</span></div>
             <div><strong>Now</strong><span>Workspace ready</span></div>
           </div>
         </aside>

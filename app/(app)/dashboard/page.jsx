@@ -41,25 +41,37 @@ function KpiCard({ item }) {
 function OnboardingPreparationCard({ preparation, onOpenCampaign, onOpenProspects }) {
   if (!preparation?.status || preparation.status === "idle") return null;
 
-  const target = Number(preparation.targetEnriched || 50);
+  const target = Number(preparation.targetEnriched || 10);
   const enriched = Number(preparation.enriched || 0);
   const attached = Number(preparation.attached || preparation.candidatesFound || 0);
   const attempts = Number(preparation.candidatesAttempted || 0);
+  const rejected = Number(preparation.rejected || 0);
   const progress = enriched >= target
     ? 100
     : Math.min(99, Math.round((enriched / Math.max(target, 1)) * 100));
-  const ready = preparation.status === "ready" && enriched >= target;
-  const attention = preparation.status === "attention";
+
+  // A run that found some leads but not the full target is 'partial', not a
+  // failure: Apollo may simply not hold ten verified people matching this ICP.
+  // Reporting that plainly beats raising an alarm the customer cannot action.
+  const partial = preparation.status === "partial" || (preparation.status === "attention" && enriched > 0);
+  const ready = (preparation.status === "ready" || preparation.status === "completed") && enriched >= target;
+  const attention = preparation.status === "attention" && enriched === 0;
+
   const title = ready
     ? "Your first audience is ready"
-    : attention
-      ? "Your first audience needs attention"
-      : "Preparing your first audience";
+    : partial
+      ? `Found ${enriched} of ${target} leads`
+      : attention
+        ? "Your first audience needs attention"
+        : "Preparing your first audience";
+
   const detail = ready
-    ? "Apollo has prepared the enriched prospects for your first campaign."
-    : attention
-      ? preparation.error || "Refine the ICP in Prospects and retry the audience preparation."
-      : "GNX is searching Apollo and enriching the audience in the background. You can keep working.";
+    ? "Apollo found your verified prospects and the agent is writing their emails."
+    : partial
+      ? `Apollo had ${enriched} verified contact${enriched === 1 ? "" : "s"} matching this profile${rejected > 0 ? `, and ${rejected} more were filtered out as unreachable or shared inboxes` : ""}. You can broaden the profile for more.`
+      : attention
+        ? preparation.error || "Apollo found nobody matching this profile. Broaden the titles, industries, or regions in Prospects and try again."
+        : "GNX is searching Apollo and enriching the audience in the background. You can keep working.";
 
   return (
     <div className="card" data-tour="dashboard-preparation" style={{ padding: 18, marginBottom: 18, borderRadius: 8, background: ready ? "linear-gradient(160deg,#fff,#f4fdf8)" : "#fff" }}>
@@ -82,16 +94,26 @@ function OnboardingPreparationCard({ preparation, onOpenCampaign, onOpenProspect
         <div style={{ width: `${progress}%`, height: "100%", borderRadius: 999, background: attention ? "#f97316" : "var(--g-600)", transition: "width .25s ease" }} />
       </div>
       <div className="row spread" style={{ marginTop: 9, gap: 12, flexWrap: "wrap" }}>
-        <span className="faint" style={{ fontSize: 12, fontWeight: 800 }}>{enriched}/{target} enriched</span>
+        <span className="faint" style={{ fontSize: 12, fontWeight: 800 }}>{enriched}/{target} qualified</span>
         <div className="row" style={{ gap: 16 }}>
-          <span className="faint" style={{ fontSize: 12 }}>Attached {attached}</span>
-          <span className="faint" style={{ fontSize: 12 }}>Attempts {attempts}</span>
+          <span className="faint" style={{ fontSize: 12 }}>Reviewed {attached}</span>
+          {/* Rejections are shown rather than hidden: a shortfall the customer
+              can see the reason for is a targeting insight, where a silent one
+              just looks like the product underdelivering. */}
+          {rejected > 0 && <span className="faint" style={{ fontSize: 12 }}>Filtered out {rejected}</span>}
+          <span className="faint" style={{ fontSize: 12 }}>Searched {attempts}</span>
         </div>
       </div>
 
-      {(ready || attention) && (
-        <button className={ready ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"} type="button" style={{ marginTop: 13 }} onClick={ready ? onOpenCampaign : onOpenProspects}>
-          {ready ? "Review first campaign" : "Refine audience"} <Icon name="arrow" size={14} color={ready ? "#06231a" : "currentColor"} />
+      {(ready || partial || attention) && (
+        <button
+          className={ready || partial ? "btn btn-primary btn-sm" : "btn btn-ghost btn-sm"}
+          type="button"
+          style={{ marginTop: 13 }}
+          onClick={ready || partial ? onOpenCampaign : onOpenProspects}
+        >
+          {ready || partial ? "Review your emails" : "Refine audience"}{" "}
+          <Icon name="arrow" size={14} color={ready || partial ? "#06231a" : "currentColor"} />
         </button>
       )}
     </div>
@@ -160,9 +182,9 @@ function NextMeetingCard({ meeting, onViewMeetings }) {
           {attendeeDetail ? <span className="faint" style={{ fontSize: 12 }}>{attendeeDetail}</span> : null}
         </div>
       </div>
-      {meeting.joinUrl ? (
-        <a className="btn btn-primary btn-sm btn-block" style={{ marginTop: 14 }} href={meeting.joinUrl} target="_blank" rel="noreferrer">
-          <Icon name="play" size={14} color="#06231a" /> Join call
+      {meeting.attendeePhone ? (
+        <a className="btn btn-primary btn-sm btn-block" style={{ marginTop: 14 }} href={`tel:${meeting.attendeePhone}`}>
+          <Icon name="phone" size={14} color="#06231a" /> Call {attendee.name || "Guest"}
         </a>
       ) : (
         <button className="btn btn-ghost btn-sm btn-block" type="button" style={{ marginTop: 14 }} onClick={onViewMeetings}>
@@ -355,7 +377,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <NextMeetingCard meeting={nextMeeting} onViewMeetings={() => router.push("/meetings")} />
+          <NextMeetingCard meeting={nextMeeting} onViewMeetings={() => router.push("/calendar")} />
         </div>
       </div>
     </div>

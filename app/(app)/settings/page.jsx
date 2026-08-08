@@ -44,15 +44,51 @@ const EMPTY_SMTP_FORM = {
   displayName: '',
   smtpHost: '',
   smtpPort: '587',
-  smtpSecure: false,
   smtpUsername: '',
   smtpPassword: '',
   imapHost: '',
   imapPort: '993',
-  imapSecure: true,
-  imapUsername: '',
-  imapPassword: '',
 };
+
+const SMTP_PRESETS = {
+  gmail: {
+    label: 'Gmail',
+    description: 'Use Gmail SMTP + IMAP with an app password.',
+    values: {
+      smtpHost: 'smtp.gmail.com',
+      smtpPort: '587',
+      imapHost: 'imap.gmail.com',
+      imapPort: '993',
+    },
+    note: 'For this preset, use a Google app password—not your normal Google account password. For one-click Google OAuth, use the Gmail OAuth connection below.',
+  },
+  outlook: {
+    label: 'Outlook',
+    description: 'Use Outlook.com SMTP + IMAP settings.',
+    values: {
+      smtpHost: 'smtp-mail.outlook.com',
+      smtpPort: '587',
+      imapHost: 'outlook.office365.com',
+      imapPort: '993',
+    },
+    note: 'Outlook.com may require IMAP to be enabled and Modern Auth/OAuth2. This password form works only when your mailbox allows SMTP/IMAP password or app-password authentication.',
+  },
+  custom: {
+    label: 'Custom',
+    description: 'Enter your provider’s SMTP and IMAP settings.',
+    values: {
+      smtpHost: '',
+      smtpPort: '587',
+      imapHost: '',
+      imapPort: '993',
+    },
+    note: 'We test both connections before saving. IMAP uses the same username and password as SMTP — use provider-specific app passwords where your mail host requires them; never paste a Google Calendar password here.',
+  },
+};
+
+/** SMTP 465 and IMAP 143 are the only ports where the convention flips. */
+const inferSmtpSecure = port => String(port) === '465';
+const inferImapSecure = port => String(port) !== '143';
 
 export default function SettingsPage() {
   const { startTour } = useSetup();
@@ -75,7 +111,8 @@ export default function SettingsPage() {
   const [smtpLoading, setSmtpLoading] = useState(true);
   const [smtpBusy, setSmtpBusy] = useState(false);
   const [smtpStatus, setSmtpStatus] = useState({ connections: [] });
-  const [smtpForm, setSmtpForm] = useState(EMPTY_SMTP_FORM);
+  const [smtpPreset, setSmtpPreset] = useState('gmail');
+  const [smtpForm, setSmtpForm] = useState({ ...EMPTY_SMTP_FORM, ...SMTP_PRESETS.gmail.values });
   const [voiceAgentId, setVoiceAgentId] = useState(null);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [phoneNumbers, setPhoneNumbers] = useState([]);
@@ -136,9 +173,30 @@ export default function SettingsPage() {
   }, []);
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-  const setSmtp = (field) => (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setSmtpForm((f) => ({ ...f, [field]: value }));
+  // The username almost always matches the sending address, so it tracks the
+  // email field automatically — the customer can still overwrite it directly
+  // if their provider genuinely uses something else.
+  const setSmtpEmail = (e) => {
+    const email = e.target.value;
+    setSmtpForm((f) => ({
+      ...f,
+      email,
+      smtpUsername: !f.smtpUsername || f.smtpUsername === f.email ? email : f.smtpUsername,
+    }));
+  };
+  const setSmtp = (field) => (e) => setSmtpForm((f) => ({ ...f, [field]: e.target.value }));
+
+  const applySmtpPreset = (presetKey) => {
+    const preset = SMTP_PRESETS[presetKey] || SMTP_PRESETS.custom;
+    setSmtpPreset(presetKey);
+    setSmtpForm((f) => ({
+      ...f,
+      ...preset.values,
+      smtpUsername: f.email,
+      smtpPassword: '',
+    }));
+    setError('');
+    setSuccess(false);
   };
 
   const refreshSmtpStatus = async () => {
@@ -203,12 +261,19 @@ export default function SettingsPage() {
     setSuccess(false);
     setSmtpBusy(true);
     try {
+      // IMAP always authenticates with the same credentials as SMTP for every
+      // provider this form supports — asking twice was pure friction, not a
+      // real capability. Secure is inferred from the port instead of a toggle.
       const { data } = await api.post('/smtp/connect', {
         ...smtpForm,
         smtpPort: Number(smtpForm.smtpPort),
+        smtpSecure: inferSmtpSecure(smtpForm.smtpPort),
         imapPort: Number(smtpForm.imapPort),
+        imapSecure: inferImapSecure(smtpForm.imapPort),
+        imapUsername: smtpForm.smtpUsername,
+        imapPassword: smtpForm.smtpPassword,
       });
-      setSmtpForm((formState) => ({ ...formState, smtpPassword: '', imapPassword: '' }));
+      setSmtpForm((formState) => ({ ...formState, smtpPassword: '' }));
       await refreshSmtpStatus();
       setGmailStatus((status) => ({ ...status, active: false }));
       setSuccess(true);
@@ -375,15 +440,15 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            <section className="card" style={{ padding: 24, borderRadius: 8 }}>
+            <section className="card" data-tour="settings-email" style={{ padding: 24, borderRadius: 8 }}>
               <div className="row spread" style={{ gap: 16, marginBottom: 18, alignItems: 'flex-start' }}>
                 <div className="row" style={{ gap: 10, minWidth: 0 }}>
                   <span style={{ width: 36, height: 36, borderRadius: 10, background: smtpConnection?.active ? 'var(--g-50)' : 'var(--bg-2)', display: 'grid', placeItems: 'center', color: smtpConnection?.active ? 'var(--g-700)' : 'var(--ink-2)', flex: 'none' }}>
                     <Icon name="send" size={18} />
                   </span>
                   <div>
-                    <h2 style={{ fontSize: 16, fontWeight: 800 }}>Custom SMTP + IMAP</h2>
-                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>SMTP sends outbound email; IMAP polls the inbox for replies.</p>
+                    <h2 style={{ fontSize: 16, fontWeight: 800 }}>SMTP + IMAP mailbox</h2>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Choose a provider preset or enter your own server details. SMTP sends outbound email; IMAP polls replies.</p>
                   </div>
                 </div>
                 <span
@@ -427,47 +492,92 @@ export default function SettingsPage() {
                 </div>
               )}
 
+              <div style={{ marginBottom: 18 }}>
+                <div
+                  role="tablist"
+                  aria-label="Email provider presets"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                    gap: 8,
+                    padding: 5,
+                    border: '1px solid var(--line)',
+                    borderRadius: 10,
+                    background: 'var(--bg-2)',
+                  }}
+                >
+                  {Object.entries(SMTP_PRESETS).map(([presetKey, preset]) => {
+                    const selected = smtpPreset === presetKey;
+                    return (
+                      <button
+                        key={presetKey}
+                        type="button"
+                        role="tab"
+                        aria-selected={selected}
+                        onClick={() => applySmtpPreset(presetKey)}
+                        style={{
+                          border: `1px solid ${selected ? 'var(--g-200)' : 'transparent'}`,
+                          borderRadius: 8,
+                          background: selected ? 'var(--bg)' : 'transparent',
+                          color: selected ? 'var(--ink)' : 'var(--muted)',
+                          padding: '10px 12px',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                          boxShadow: selected ? '0 2px 8px rgba(24, 57, 45, 0.08)' : 'none',
+                        }}
+                      >
+                        <span style={{ display: 'block', fontSize: 13.5, fontWeight: 900 }}>{preset.label}</span>
+                        <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, lineHeight: 1.35, color: selected ? 'var(--muted)' : 'var(--faint)' }}>
+                          {preset.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ margin: '10px 2px 0', fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.5 }}>
+                  {SMTP_PRESETS[smtpPreset].note}
+                  {smtpPreset === 'gmail' && (
+                    <>
+                      {' '}
+                      <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--g-700)', fontWeight: 800 }}>
+                        Generate a Google app password
+                      </a>
+                    </>
+                  )}
+                </p>
+              </div>
+
               <div className="col" style={{ gap: 16 }}>
                 <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
-                  <Field label="Sending email" type="email" value={smtpForm.email} onChange={setSmtp('email')} placeholder="you@company.com" autoComplete="email" />
+                  <Field
+                    label="Sending email"
+                    type="email"
+                    value={smtpForm.email}
+                    onChange={setSmtpEmail}
+                    placeholder={smtpPreset === 'gmail' ? 'you@gmail.com' : smtpPreset === 'outlook' ? 'you@outlook.com' : 'you@company.com'}
+                    autoComplete="email"
+                  />
                   <Field label="Display name" value={smtpForm.displayName} onChange={setSmtp('displayName')} placeholder="Your name or company" autoComplete="organization" />
                 </div>
 
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 900, marginBottom: 10 }}>SMTP sending</p>
-                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: 14 }}>
-                    <Field label="SMTP host" value={smtpForm.smtpHost} onChange={setSmtp('smtpHost')} placeholder="smtp.yourprovider.com" autoComplete="off" />
-                    <Field label="Port" type="number" value={smtpForm.smtpPort} onChange={setSmtp('smtpPort')} placeholder="587" autoComplete="off" />
-                  </div>
-                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginTop: 14 }}>
-                    <Field label="SMTP username" value={smtpForm.smtpUsername} onChange={setSmtp('smtpUsername')} placeholder="Usually your email" autoComplete="username" />
-                    <Field label="SMTP password / app password" type="password" toggle value={smtpForm.smtpPassword} onChange={setSmtp('smtpPassword')} autoComplete="new-password" />
-                  </div>
-                  <label className="row" style={{ gap: 8, marginTop: 12, fontSize: 12.5, color: 'var(--muted)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={smtpForm.smtpSecure} onChange={setSmtp('smtpSecure')} style={{ accentColor: 'var(--g-500)' }} />
-                    Use secure SMTP (usually port 465; leave off for STARTTLS on port 587)
-                  </label>
+                <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: 14 }}>
+                  <Field label="SMTP host" value={smtpForm.smtpHost} onChange={setSmtp('smtpHost')} placeholder={SMTP_PRESETS[smtpPreset].values.smtpHost || 'smtp.yourprovider.com'} autoComplete="off" />
+                  <Field label="Port" type="number" value={smtpForm.smtpPort} onChange={setSmtp('smtpPort')} placeholder="587" autoComplete="off" />
+                </div>
+                <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
+                  <Field label="SMTP username" value={smtpForm.smtpUsername} onChange={setSmtp('smtpUsername')} placeholder="Usually your email" autoComplete="username" />
+                  <Field label="SMTP password / app password" type="password" toggle value={smtpForm.smtpPassword} onChange={setSmtp('smtpPassword')} autoComplete="new-password" />
                 </div>
 
-                <div>
-                  <p style={{ fontSize: 13, fontWeight: 900, marginBottom: 10 }}>IMAP reply polling</p>
-                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: 14 }}>
-                    <Field label="IMAP host" value={smtpForm.imapHost} onChange={setSmtp('imapHost')} placeholder="imap.yourprovider.com" autoComplete="off" />
-                    <Field label="Port" type="number" value={smtpForm.imapPort} onChange={setSmtp('imapPort')} placeholder="993" autoComplete="off" />
-                  </div>
-                  <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginTop: 14 }}>
-                    <Field label="IMAP username" value={smtpForm.imapUsername} onChange={setSmtp('imapUsername')} placeholder="Usually your email" autoComplete="username" />
-                    <Field label="IMAP password / app password" type="password" toggle value={smtpForm.imapPassword} onChange={setSmtp('imapPassword')} autoComplete="new-password" />
-                  </div>
-                  <label className="row" style={{ gap: 8, marginTop: 12, fontSize: 12.5, color: 'var(--muted)', cursor: 'pointer' }}>
-                    <input type="checkbox" checked={smtpForm.imapSecure} onChange={setSmtp('imapSecure')} style={{ accentColor: 'var(--g-500)' }} />
-                    Use secure IMAP (usually port 993)
-                  </label>
+                <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 120px', gap: 14 }}>
+                  <Field label="IMAP host" value={smtpForm.imapHost} onChange={setSmtp('imapHost')} placeholder={SMTP_PRESETS[smtpPreset].values.imapHost || 'imap.yourprovider.com'} autoComplete="off" />
+                  <Field label="Port" type="number" value={smtpForm.imapPort} onChange={setSmtp('imapPort')} placeholder="993" autoComplete="off" />
                 </div>
+                <span style={{ fontSize: 12, color: 'var(--faint)' }}>IMAP reply polling uses the same username and password as SMTP above.</span>
 
                 <div className="row spread" style={{ gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 12.5, color: 'var(--muted)', lineHeight: 1.45, maxWidth: 520 }}>
-                    We test both connections before saving. Use provider-specific app passwords where your mail host requires them; never paste a Google Calendar password here.
+                    The selected preset only fills server settings. Enter the mailbox address and password/app password, then test before saving.
                   </span>
                   <button type="button" className="btn btn-primary btn-sm" onClick={connectSmtp} disabled={smtpBusy || smtpLoading} style={{ flex: 'none' }}>
                     <Icon name="check" size={15} color="#06231a" />
@@ -584,8 +694,8 @@ export default function SettingsPage() {
                     <Icon name="google" size={18} />
                   </span>
                   <div>
-                    <h2 style={{ fontSize: 16, fontWeight: 800 }}>Gmail Connection</h2>
-                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Gmail can send campaigns and poll replies through Google OAuth.</p>
+                    <h2 style={{ fontSize: 16, fontWeight: 800 }}>Gmail OAuth Connection</h2>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Use one-click Google OAuth instead of entering Gmail SMTP and IMAP credentials.</p>
                   </div>
                 </div>
                 <span

@@ -391,13 +391,6 @@ export default function SetupCopilot() {
                         required={emailOn}
                         onFix={() => { close(); router.push("/settings"); }}
                       />
-                      <ConnectionRow
-                        icon="calendar"
-                        name="Google Calendar"
-                        state={integrations.calendar}
-                        required={false}
-                        onFix={() => { close(); router.push("/meetings"); }}
-                      />
                       {voiceOn ? (
                         <ConnectionRow
                           icon="phone"
