@@ -16,6 +16,25 @@ const STATUS_STYLES = {
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const FALLBACK_TIMEZONES = [
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "Europe/London",
+  "Asia/Kolkata",
+];
+
+// Full IANA list where supported (Chrome/Edge/Firefox/Node 18+), so orgs
+// aren't limited to a hand-picked shortlist. Falls back gracefully if not.
+const TIMEZONES = (() => {
+  try {
+    return Intl.supportedValuesOf("timeZone");
+  } catch {
+    return FALLBACK_TIMEZONES;
+  }
+})();
+
 function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -163,14 +182,12 @@ function SettingsPanel({ settings, onSave, saving }) {
 
         <div className="field">
           <label>Timezone</label>
-          <input
-            className="input"
-            type="text"
-            value={form.timezone}
-            onChange={(e) => set("timezone")(e.target.value)}
-            placeholder="America/New_York"
-          />
-          <span style={{ fontSize: 11.5, color: "var(--faint)" }}>IANA timezone name. Slot times are spoken to leads in this timezone.</span>
+          <select className="input" value={form.timezone} onChange={(e) => set("timezone")(e.target.value)}>
+            {(TIMEZONES.includes(form.timezone) ? TIMEZONES : [form.timezone, ...TIMEZONES]).map((zone) => (
+              <option key={zone} value={zone}>{zone}</option>
+            ))}
+          </select>
+          <span style={{ fontSize: 11.5, color: "var(--faint)" }}>Slot times are spoken to leads in this timezone.</span>
         </div>
 
         <div className="row" style={{ gap: 10 }}>
