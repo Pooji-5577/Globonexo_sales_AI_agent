@@ -62,13 +62,17 @@ const DEFAULT_MANUAL_LEAD = {
   linkedinUrl: "",
 };
 
-const FALLBACK_TIMEZONES = [
+// Curated shortlist covering the regions this tool's orgs actually operate
+// in - the full ~400-zone IANA list was overwhelming in a plain dropdown.
+const TIMEZONES = [
   "America/New_York",
   "America/Chicago",
   "America/Denver",
   "America/Los_Angeles",
   "Europe/London",
+  "Europe/Berlin",
   "Asia/Kolkata",
+  "Australia/Sydney",
 ];
 
 const DRAFT_STORAGE_KEY = "globonexo:new-campaign-draft";
@@ -135,10 +139,6 @@ export default function NewCampaignPage() {
   const setupReady = form.name.trim().length >= 3;
   const emailEnabled = usesEmail(form.channel);
   const voiceEnabled = usesVoice(form.channel);
-  const timezones = useMemo(() => {
-    try { return Intl.supportedValuesOf("timeZone"); } catch { return FALLBACK_TIMEZONES; }
-  }, []);
-
   useEffect(() => {
     api.get("/leads")
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
@@ -639,7 +639,7 @@ export default function NewCampaignPage() {
 
                 <Field label="Display timezone" hint="Schedules run in each lead's local timezone. This controls how firm dates appear to you.">
                   <select className="input" value={form.timezone} onChange={event => set("timezone", event.target.value)}>
-                    {(timezones.includes(form.timezone) ? timezones : [form.timezone, ...timezones]).map(zone => (
+                    {(TIMEZONES.includes(form.timezone) ? TIMEZONES : [form.timezone, ...TIMEZONES]).map(zone => (
                       <option key={zone} value={zone}>{zone}</option>
                     ))}
                   </select>
