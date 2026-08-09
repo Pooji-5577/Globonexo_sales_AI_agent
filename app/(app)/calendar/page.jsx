@@ -16,24 +16,18 @@ const STATUS_STYLES = {
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-const FALLBACK_TIMEZONES = [
+// Curated shortlist covering the regions this tool's orgs actually operate
+// in - the full ~400-zone IANA list was overwhelming in a plain dropdown.
+const TIMEZONES = [
   "America/New_York",
   "America/Chicago",
   "America/Denver",
   "America/Los_Angeles",
   "Europe/London",
+  "Europe/Berlin",
   "Asia/Kolkata",
+  "Australia/Sydney",
 ];
-
-// Full IANA list where supported (Chrome/Edge/Firefox/Node 18+), so orgs
-// aren't limited to a hand-picked shortlist. Falls back gracefully if not.
-const TIMEZONES = (() => {
-  try {
-    return Intl.supportedValuesOf("timeZone");
-  } catch {
-    return FALLBACK_TIMEZONES;
-  }
-})();
 
 function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
