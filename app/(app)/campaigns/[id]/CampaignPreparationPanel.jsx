@@ -7,6 +7,12 @@ import Icon from "../../../../components/ui/Icon";
 const ACTIVE_PREPARATION = new Set(["not_started", "preparing"]);
 const ACTIVE_SIMULATION = new Set(["queued", "running", "repairing"]);
 
+function preparationLog(event, details = {}) {
+  // Browser breadcrumbs are intentionally limited to state/counter data.
+  // Do not log prospect identity, generated copy, or research contents.
+  console.info(`[campaign] ${event}`, { at: new Date().toISOString(), ...details });
+}
+
 function formatCountdown(target, now) {
   if (!target) return null;
   const remaining = Math.max(0, new Date(target).getTime() - now);
@@ -47,11 +53,13 @@ function SalesAgentTestModal({ campaignId, onClose }) {
         ]);
         if (cancelled) return;
         setSessionId(response.data.sessionId);
+        preparationLog("customer_test_session_started", { campaignId, sessionId: response.data.sessionId, agentVersion: response.data.agentVersion });
         const client = new RetellWebClient();
         clientRef.current = client;
-        client.on("call_started", () => setState("connected"));
-        client.on("call_ended", () => setState("ended"));
+        client.on("call_started", () => { preparationLog("customer_test_call_connected", { campaignId }); setState("connected"); });
+        client.on("call_ended", () => { preparationLog("customer_test_call_ended", { campaignId }); setState("ended"); });
         client.on("error", message => {
+          preparationLog("customer_test_call_failed", { campaignId, error: typeof message === "string" ? message : "browser_call_error" });
           setError(typeof message === "string" ? message : "The browser voice test failed.");
           setState("error");
         });
@@ -82,6 +90,7 @@ function SalesAgentTestModal({ campaignId, onClose }) {
       rating,
       feedback: feedback.trim() || undefined,
     });
+    preparationLog("customer_test_feedback_submitted", { campaignId, sessionId, rating });
     onClose();
   };
 
@@ -135,14 +144,34 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now());
   const [testing, setTesting] = useState(false);
+  const lastStatusLogRef = useRef("");
 
   const load = useCallback(async () => {
     try {
       const response = await api.get(`/campaigns/${campaignId}/preparation`);
       setData(response.data);
+      const statusKey = [
+        response.data?.campaign?.preparation_status,
+        response.data?.campaign?.retell_simulation_status,
+        response.data?.campaign?.acquisition_status,
+        response.data?.campaign?.preparation_progress,
+        response.data?.readinessCounts?.ready ?? 0,
+      ].join("|");
+      if (statusKey !== lastStatusLogRef.current) {
+        lastStatusLogRef.current = statusKey;
+        preparationLog("preparation_status_changed", {
+          campaignId,
+          preparationStatus: response.data?.campaign?.preparation_status,
+          simulationStatus: response.data?.campaign?.retell_simulation_status,
+          acquisitionStatus: response.data?.campaign?.acquisition_status,
+          progress: response.data?.campaign?.preparation_progress,
+          ready: response.data?.readinessCounts?.ready ?? 0,
+        });
+      }
       setError("");
       onChanged?.(response.data);
     } catch (err) {
+      preparationLog("preparation_status_load_failed", { campaignId, error: err?.response?.data?.error || "request_failed" });
       setError(err?.response?.data?.error || "Could not load campaign preparation.");
     }
   }, [campaignId, onChanged]);
@@ -167,6 +196,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
     setBusy(true);
     try {
       await api.post(`/campaigns/${campaignId}/prepare`);
+      preparationLog("preparation_requested", { campaignId });
       await load();
     } catch (err) {
       setError(err?.response?.data?.error || "Could not start campaign preparation.");
@@ -179,6 +209,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
     setBusy(true);
     try {
       await api.post(`/campaigns/${campaignId}/voice-agent/simulations/retry`);
+      preparationLog("simulation_retry_requested", { campaignId });
       await load();
     } catch (err) {
       setError(err?.response?.data?.error || "Could not restart agent simulations.");
