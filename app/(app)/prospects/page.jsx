@@ -9,6 +9,22 @@ import Spinner from "../../../components/ui/Spinner";
 import { cleanText, isValidEmail, normalizeUrl } from "../../../lib/validation";
 
 const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
+const TITLE_OPTIONS = ["Founder", "Co-Founder", "Owner", "CEO", "Chief Revenue Officer", "Chief Sales Officer", "VP Sales", "VP Revenue", "Head of Sales", "Head of Revenue", "Sales Director", "Revenue Operations Director"];
+const LOCATION_OPTIONS = ["United States", "United Kingdom", "Canada", "Australia", "India", "Germany", "France", "Netherlands", "Singapore", "United Arab Emirates"];
+const SENIORITY_OPTIONS = [
+  { value: "owner", label: "Owner" }, { value: "founder", label: "Founder" },
+  { value: "c_suite", label: "C-Suite" }, { value: "partner", label: "Partner" },
+  { value: "vp", label: "VP" }, { value: "head", label: "Head" },
+  { value: "director", label: "Director" }, { value: "manager", label: "Manager" },
+  { value: "senior", label: "Senior" }, { value: "entry", label: "Entry" },
+  { value: "intern", label: "Intern" },
+];
+const TECHNOLOGY_OPTIONS = [
+  { value: "salesforce", label: "Salesforce" }, { value: "hubspot", label: "HubSpot" },
+  { value: "marketo", label: "Marketo" }, { value: "outreach", label: "Outreach" },
+  { value: "salesloft", label: "Salesloft" }, { value: "intercom", label: "Intercom" },
+  { value: "stripe", label: "Stripe" }, { value: "shopify", label: "Shopify" },
+];
 const STAGE_OPTIONS = ["all", "new", "queued", "contacted", "engaged", "meeting_booked", "not_interested", "unsubscribed"];
 const SOURCE_OPTIONS = ["all", "apollo", "csv", "manual"];
 const SORT_OPTIONS = [
@@ -52,6 +68,32 @@ const DEFAULT_MANUAL_LEAD = {
 
 function splitList(value) {
   return value.split(",").map(item => item.trim()).filter(Boolean);
+}
+
+function MultiSelect({ label, options, value, onChange, placeholder, required = false }) {
+  const selectedLabels = options.filter(option => value.includes(typeof option === "string" ? option : option.value))
+    .map(option => typeof option === "string" ? option : option.label);
+  return (
+    <label className="field apollo-filter-field">
+      <span>{label}{required ? " *" : ""}</span>
+      <details className="apollo-multiselect">
+        <summary>{selectedLabels.length ? `${selectedLabels.slice(0, 2).join(", ")}${selectedLabels.length > 2 ? ` +${selectedLabels.length - 2}` : ""}` : placeholder}</summary>
+        <div className="apollo-option-menu">
+          {options.map(option => {
+            const optionValue = typeof option === "string" ? option : option.value;
+            const optionLabel = typeof option === "string" ? option : option.label;
+            return (
+              <label key={optionValue} className="apollo-option">
+                <input type="checkbox" checked={value.includes(optionValue)} onChange={() => onChange(value.includes(optionValue) ? value.filter(item => item !== optionValue) : [...value, optionValue])} />
+                <span>{optionLabel}</span>
+              </label>
+            );
+          })}
+          {value.length ? <button type="button" className="apollo-clear" onClick={() => onChange([])}>Clear selection</button> : null}
+        </div>
+      </details>
+    </label>
+  );
 }
 
 function parseCsv(text) {
@@ -284,10 +326,22 @@ export default function ProspectsPage() {
   const [tab, setTab] = useState("table");
   const [campaigns, setCampaigns] = useState([]);
   const [campaignId, setCampaignId] = useState("");
-  const [titles, setTitles] = useState("VP Sales, Head of Revenue");
-  const [locations, setLocations] = useState("United States");
+  const [titles, setTitles] = useState(["VP Sales", "Head of Revenue"]);
+  const [customTitles, setCustomTitles] = useState("");
+  const [seniorities, setSeniorities] = useState(["vp", "head"]);
+  const [locations, setLocations] = useState(["United States"]);
+  const [customLocations, setCustomLocations] = useState("");
+  const [organizationLocations, setOrganizationLocations] = useState([]);
   const [companySizes, setCompanySizes] = useState(["51,200", "201,500"]);
   const [keywords, setKeywords] = useState("B2B SaaS");
+  const [domains, setDomains] = useState("");
+  const [technologies, setTechnologies] = useState([]);
+  const [hiringTitles, setHiringTitles] = useState("");
+  const [includeSimilarTitles, setIncludeSimilarTitles] = useState(true);
+  const [revenueMin, setRevenueMin] = useState("");
+  const [revenueMax, setRevenueMax] = useState("");
+  const [leadLimit, setLeadLimit] = useState(25);
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [leads, setLeads] = useState([]);
   const [csvLeads, setCsvLeads] = useState([]);
   const [leadLoading, setLeadLoading] = useState(true);
@@ -349,7 +403,7 @@ export default function ProspectsPage() {
     revealed: leads.filter(lead => Boolean(lead.email)).length,
   }), [leads]);
 
-  const canSearch = useMemo(() => splitList(titles).length > 0 || splitList(locations).length > 0 || keywords.trim().length > 0, [titles, locations, keywords]);
+  const canSearch = useMemo(() => Boolean(campaignId) && (titles.length > 0 || customTitles.trim() || seniorities.length > 0 || locations.length > 0 || customLocations.trim() || companySizes.length > 0 || keywords.trim()), [campaignId, titles, customTitles, seniorities, locations, customLocations, companySizes, keywords]);
   const revealableLeads = useMemo(
     () => filteredLeads.filter(lead => lead.source === "apollo" && !lead.email),
     [filteredLeads]
@@ -363,20 +417,26 @@ export default function ProspectsPage() {
     setError("");
     setNotice("");
     try {
-      const { data } = await api.post("/leads/apollo-search", {
-        campaignId: campaignId || undefined,
-        titles: splitList(titles),
-        locations: splitList(locations),
+      const { data } = await api.post("/apollo/import", {
+        campaignId,
+        titles: [...new Set([...titles, ...splitList(customTitles)])],
+        includeSimilarTitles,
+        seniorities,
+        locations: [...new Set([...locations, ...splitList(customLocations)])],
+        organizationLocations,
+        organizationDomains: splitList(domains),
         companySizes,
+        technologyUids: technologies,
+        hiringJobTitles: splitList(hiringTitles),
+        revenueMin: revenueMin === "" ? undefined : Number(revenueMin),
+        revenueMax: revenueMax === "" ? undefined : Number(revenueMax),
         keywords,
-        page: 1,
-        perPage: 25,
+        limit: leadLimit,
+        candidateCap: Math.min(500, Math.max(50, leadLimit * 5)),
       });
-      setNotice(`${data?.inserted ?? 0} Apollo leads saved${data?.skipped ? `, ${data.skipped} already existed` : ""}.`);
-      refreshLeads();
-      setTab("table");
+      setNotice(`Apollo import queued${data?.jobId ? ` as job ${data.jobId}` : ""}. Search, enrichment, and campaign checks will continue in the background.`);
     } catch (err) {
-      setError(err?.response?.data?.error || "Apollo search failed. Check APOLLO_API_KEY on the backend.");
+      setError(err?.response?.data?.error || "Apollo import could not be started. Check the filters and Apollo connection.");
     } finally {
       setLoading(false);
     }
@@ -708,23 +768,26 @@ export default function ProspectsPage() {
               <span><Icon name="search" size={18} /></span>
               <div>
                 <h2>Apollo search</h2>
-                <p className="faint">Search saves real Apollo leads to `/api/leads/apollo-search`.</p>
+                <p className="faint">Choose a campaign and audience. We search Apollo, enrich each match, and only admit contactable leads.</p>
               </div>
             </div>
+            <div className="apollo-required-note">Required setup</div>
             <div className="form-grid">
-              <label className="field"><span>Job titles</span><input className="input" value={titles} onChange={event => setTitles(event.target.value)} /></label>
-              <label className="field"><span>Locations</span><input className="input" value={locations} onChange={event => setLocations(event.target.value)} /></label>
-              <label className="field"><span>Keywords</span><input className="input" value={keywords} onChange={event => setKeywords(event.target.value)} /></label>
               <label className="field">
-                <span>Attach to campaign</span>
+                <span>Campaign *</span>
                 <select className="input" value={campaignId} onChange={event => setCampaignId(event.target.value)}>
-                  <option value="">No campaign yet</option>
-                  {campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
+                  <option value="">Select a campaign</option>
+                  {campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name} · {campaign.channel || "email"}</option>)}
                 </select>
               </label>
+              <MultiSelect label="Job titles" options={TITLE_OPTIONS} value={titles} onChange={setTitles} placeholder="Select job titles" required />
+              <MultiSelect label="Management level" options={SENIORITY_OPTIONS} value={seniorities} onChange={setSeniorities} placeholder="Select seniority" required />
+              <MultiSelect label="People locations" options={LOCATION_OPTIONS} value={locations} onChange={setLocations} placeholder="Select locations" required />
+              <label className="field"><span>Other job titles</span><input className="input" value={customTitles} onChange={event => setCustomTitles(event.target.value)} placeholder="Add custom titles, comma separated" /></label>
+              <label className="field"><span>Other people locations</span><input className="input" value={customLocations} onChange={event => setCustomLocations(event.target.value)} placeholder="Add cities or regions, comma separated" /></label>
             </div>
             <div className="field" style={{ marginTop: 14 }}>
-              <span>Company size</span>
+              <span>Company size *</span>
               <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
                 {COMPANY_SIZE_OPTIONS.map(size => (
                   <button key={size} type="button" className="btn btn-ghost btn-sm" onClick={() => toggleSize(size)} style={{ height: 32, padding: "0 11px", fontSize: 12, background: companySizes.includes(size) ? "var(--g-50)" : "#fff", borderColor: companySizes.includes(size) ? "var(--g-300)" : "var(--line)" }}>
@@ -733,10 +796,33 @@ export default function ProspectsPage() {
                 ))}
               </div>
             </div>
+            <label className="apollo-checkbox-row">
+              <input type="checkbox" checked={includeSimilarTitles} onChange={event => setIncludeSimilarTitles(event.target.checked)} />
+              Include people with similar job titles
+            </label>
+
+            <button className="btn btn-ghost btn-sm apollo-more-button" type="button" onClick={() => setShowMoreFilters(value => !value)}>
+              <Icon name="sliders" size={14} /> {showMoreFilters ? "Hide additional filters" : "More Apollo filters"}
+            </button>
+
+            {showMoreFilters ? (
+              <div className="apollo-more-panel">
+                <div className="form-grid">
+                  <label className="field"><span>Keywords</span><input className="input" value={keywords} onChange={event => setKeywords(event.target.value)} placeholder="B2B SaaS, fintech, logistics" /></label>
+                  <MultiSelect label="Company HQ locations" options={LOCATION_OPTIONS} value={organizationLocations} onChange={setOrganizationLocations} placeholder="Select company locations" />
+                  <label className="field"><span>Company domains</span><input className="input" value={domains} onChange={event => setDomains(event.target.value)} placeholder="acme.com, example.com" /></label>
+                  <MultiSelect label="Technologies used" options={TECHNOLOGY_OPTIONS} value={technologies} onChange={setTechnologies} placeholder="Select technologies" />
+                  <label className="field"><span>Companies hiring for</span><input className="input" value={hiringTitles} onChange={event => setHiringTitles(event.target.value)} placeholder="Account Executive, SDR" /></label>
+                  <label className="field"><span>Annual revenue (minimum)</span><input className="input" type="number" min="0" value={revenueMin} onChange={event => setRevenueMin(event.target.value)} placeholder="1000000" /></label>
+                  <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={revenueMax} onChange={event => setRevenueMax(event.target.value)} placeholder="50000000" /></label>
+                  <label className="field"><span>Leads to prepare</span><select className="input" value={leadLimit} onChange={event => setLeadLimit(Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
+                </div>
+              </div>
+            ) : null}
             <div className="row spread source-actions">
-              <span className="faint">Email visibility depends on your Apollo plan.</span>
+              <span className="faint">Email campaigns require an enriched email; voice campaigns require an enriched callable phone.</span>
               <button className="btn btn-primary btn-sm" type="submit" disabled={!canSearch || loading}>
-                <Icon name="search" size={15} color="#06231a" /> {loading ? "Searching..." : "Search Apollo"}
+                <Icon name="search" size={15} color="#06231a" /> {loading ? "Starting import..." : "Find and prepare leads"}
               </button>
             </div>
           </form>
