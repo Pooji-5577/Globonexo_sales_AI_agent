@@ -20,7 +20,7 @@ const DEFAULT_FORM = {
   timezone: "America/New_York",
   allowedWeekdays: [1, 2, 3, 4, 5],
   leadPreparationWeekdays: [0, 6],
-  weeklyQualifiedLeadTarget: 50,
+  weeklyQualifiedLeadTarget: 25,
   voicePermissionConfirmed: false,
   maxCallAttempts: 3,
 };
@@ -65,16 +65,48 @@ const DEFAULT_MANUAL_LEAD = {
 };
 
 const DEFAULT_AUTOMATIC_AUDIENCE = {
-  titles: "VP Sales, Head of Revenue",
-  locations: "United States",
+  titles: ["VP Sales", "Head of Revenue"],
+  customTitles: "",
+  locations: ["United States"],
+  customLocations: "",
   seniorities: ["vp", "head"],
   companySizes: ["51,200", "201,500"],
   includeSimilarTitles: true,
+  keywords: "",
+  organizationLocations: [],
+  domains: "",
+  technologies: [],
+  hiringTitles: "",
+  revenueMin: "",
+  revenueMax: "",
 };
 const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
 const COMPANY_SIZE_LABELS = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"];
-const SENIORITY_OPTIONS = [["owner", "Owner"], ["founder", "Founder"], ["c_suite", "C-Suite"], ["vp", "VP"], ["head", "Head"], ["director", "Director"], ["manager", "Manager"]];
+const TITLE_OPTIONS = ["Founder", "Co-Founder", "Owner", "CEO", "Chief Revenue Officer", "Chief Sales Officer", "VP Sales", "VP Revenue", "Head of Sales", "Head of Revenue", "Sales Director", "Revenue Operations Director"];
+const LOCATION_OPTIONS = ["United States", "United Kingdom", "Canada", "Australia", "India", "Germany", "France", "Netherlands", "Singapore", "United Arab Emirates"];
+const SENIORITY_OPTIONS = [["owner", "Owner"], ["founder", "Founder"], ["c_suite", "C-Suite"], ["partner", "Partner"], ["vp", "VP"], ["head", "Head"], ["director", "Director"], ["manager", "Manager"], ["senior", "Senior"], ["entry", "Entry"], ["intern", "Intern"]];
+const TECHNOLOGY_OPTIONS = [["salesforce", "Salesforce"], ["hubspot", "HubSpot"], ["marketo", "Marketo"], ["outreach", "Outreach"], ["salesloft", "Salesloft"], ["intercom", "Intercom"], ["stripe", "Stripe"], ["shopify", "Shopify"]];
 const splitTargetList = value => value.split(",").map(item => item.trim()).filter(Boolean);
+
+function CampaignApolloMultiSelect({ label, options, value, onChange, placeholder, required = false }) {
+  const selectedLabels = options.filter(option => value.includes(Array.isArray(option) ? option[0] : option)).map(option => Array.isArray(option) ? option[1] : option);
+  return (
+    <label className="field apollo-filter-field">
+      <span>{label}{required ? " *" : ""}</span>
+      <details className="apollo-multiselect">
+        <summary>{selectedLabels.length ? `${selectedLabels.slice(0, 2).join(", ")}${selectedLabels.length > 2 ? ` +${selectedLabels.length - 2}` : ""}` : placeholder}</summary>
+        <div className="apollo-option-menu">
+          {options.map(option => {
+            const optionValue = Array.isArray(option) ? option[0] : option;
+            const optionLabel = Array.isArray(option) ? option[1] : option;
+            return <label key={optionValue} className="apollo-option"><input type="checkbox" checked={value.includes(optionValue)} onChange={() => onChange(value.includes(optionValue) ? value.filter(item => item !== optionValue) : [...value, optionValue])} /><span>{optionLabel}</span></label>;
+          })}
+          {value.length ? <button type="button" className="apollo-clear" onClick={() => onChange([])}>Clear selection</button> : null}
+        </div>
+      </details>
+    </label>
+  );
+}
 
 // Curated shortlist covering the regions this tool's orgs actually operate
 // in - the full ~400-zone IANA list was overwhelming in a plain dropdown.
@@ -152,6 +184,7 @@ export default function NewCampaignPage() {
   const [manualLeadError, setManualLeadError] = useState("");
   const [leadSource, setLeadSource] = useState("automatic");
   const [automaticAudience, setAutomaticAudience] = useState(DEFAULT_AUTOMATIC_AUDIENCE);
+  const [showAutomaticMoreFilters, setShowAutomaticMoreFilters] = useState(false);
   const setupReady = form.name.trim().length >= 3;
   const emailEnabled = usesEmail(form.channel);
   const voiceEnabled = usesVoice(form.channel);
@@ -379,8 +412,8 @@ export default function NewCampaignPage() {
       errors.push("Weekly qualified lead target must be at least 1.");
     }
     if (leadSource === "automatic") {
-      if (splitTargetList(automaticAudience.titles).length === 0) errors.push("Add at least one target job title for automatic lead generation.");
-      if (splitTargetList(automaticAudience.locations).length === 0) errors.push("Add at least one target location for automatic lead generation.");
+      if (automaticAudience.titles.length === 0 && splitTargetList(automaticAudience.customTitles).length === 0) errors.push("Add at least one target job title for automatic lead generation.");
+      if (automaticAudience.locations.length === 0 && splitTargetList(automaticAudience.customLocations).length === 0) errors.push("Add at least one target location for automatic lead generation.");
       if (automaticAudience.companySizes.length === 0) errors.push("Select at least one company size for automatic lead generation.");
     }
     if (voiceEnabled && !form.voicePermissionConfirmed) {
@@ -440,11 +473,18 @@ export default function NewCampaignPage() {
         // hands qualified leads into preparation, research, and AI drafting.
         await api.post("/apollo/import", {
           campaignId,
-          titles: splitTargetList(automaticAudience.titles),
-          locations: splitTargetList(automaticAudience.locations),
+          titles: [...automaticAudience.titles, ...splitTargetList(automaticAudience.customTitles)],
+          locations: [...automaticAudience.locations, ...splitTargetList(automaticAudience.customLocations)],
           seniorities: automaticAudience.seniorities,
           companySizes: automaticAudience.companySizes,
           includeSimilarTitles: automaticAudience.includeSimilarTitles,
+          organizationLocations: automaticAudience.organizationLocations,
+          organizationDomains: splitTargetList(automaticAudience.domains),
+          technologyUids: automaticAudience.technologies,
+          hiringJobTitles: splitTargetList(automaticAudience.hiringTitles),
+          revenueMin: automaticAudience.revenueMin === "" ? undefined : Number(automaticAudience.revenueMin),
+          revenueMax: automaticAudience.revenueMax === "" ? undefined : Number(automaticAudience.revenueMax),
+          keywords: automaticAudience.keywords,
           limit: Math.min(100, Number(form.weeklyQualifiedLeadTarget)),
         });
       } else {
@@ -857,31 +897,43 @@ export default function NewCampaignPage() {
                     <strong style={{ fontSize: 14 }}>Automatic Apollo audience</strong>
                     <p className="faint" style={{ fontSize: 12.5, marginTop: 3 }}>GNX searches, deduplicates, enriches, and only admits leads with the contact method required by this campaign.</p>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12 }}>
-                    <Field label="Job titles *"><input className="input" value={automaticAudience.titles} onChange={event => setAutomaticAudience(current => ({ ...current, titles: event.target.value }))} placeholder="VP Sales, Head of Revenue" /></Field>
-                    <Field label="People locations *"><input className="input" value={automaticAudience.locations} onChange={event => setAutomaticAudience(current => ({ ...current, locations: event.target.value }))} placeholder="United States, Canada" /></Field>
+                  <div className="form-grid">
+                    <CampaignApolloMultiSelect label="Job titles" options={TITLE_OPTIONS} value={automaticAudience.titles} onChange={titles => setAutomaticAudience(current => ({ ...current, titles }))} placeholder="Select job titles" required />
+                    <CampaignApolloMultiSelect label="Management level" options={SENIORITY_OPTIONS} value={automaticAudience.seniorities} onChange={seniorities => setAutomaticAudience(current => ({ ...current, seniorities }))} placeholder="Select seniority" required />
+                    <CampaignApolloMultiSelect label="People locations" options={LOCATION_OPTIONS} value={automaticAudience.locations} onChange={locations => setAutomaticAudience(current => ({ ...current, locations }))} placeholder="Select locations" required />
+                    <label className="field"><span>Other job titles</span><input className="input" value={automaticAudience.customTitles} onChange={event => setAutomaticAudience(current => ({ ...current, customTitles: event.target.value }))} placeholder="Add custom titles, comma separated" /></label>
+                    <label className="field"><span>Other people locations</span><input className="input" value={automaticAudience.customLocations} onChange={event => setAutomaticAudience(current => ({ ...current, customLocations: event.target.value }))} placeholder="Add cities or regions, comma separated" /></label>
                   </div>
-                  <div style={{ marginTop: 12 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>Management level</span>
-                    <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                      {SENIORITY_OPTIONS.map(([value, label]) => {
-                        const active = automaticAudience.seniorities.includes(value);
-                        return <button key={value} type="button" className={active ? "chip active" : "chip"} onClick={() => setAutomaticAudience(current => ({ ...current, seniorities: active ? current.seniorities.filter(item => item !== value) : [...current.seniorities, value] }))}>{label}</button>;
-                      })}
-                    </div>
-                  </div>
-                  <div style={{ marginTop: 14 }}>
+                  <div className="field" style={{ marginTop: 14 }}>
                     <span style={{ fontSize: 13, fontWeight: 700 }}>Company size *</span>
                     <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 8 }}>
                       {COMPANY_SIZE_OPTIONS.map((value, index) => {
                         const active = automaticAudience.companySizes.includes(value);
-                        return <button key={value} type="button" className={active ? "chip active" : "chip"} onClick={() => setAutomaticAudience(current => ({ ...current, companySizes: active ? current.companySizes.filter(item => item !== value) : [...current.companySizes, value] }))}>{COMPANY_SIZE_LABELS[index]} employees</button>;
+                        return <button key={value} type="button" className="btn btn-ghost btn-sm" style={{ height: 32, padding: "0 11px", fontSize: 12, background: active ? "var(--g-50)" : "#fff", borderColor: active ? "var(--g-300)" : "var(--line)" }} onClick={() => setAutomaticAudience(current => ({ ...current, companySizes: active ? current.companySizes.filter(item => item !== value) : [...current.companySizes, value] }))}>{COMPANY_SIZE_LABELS[index]} employees</button>;
                       })}
                     </div>
                   </div>
-                  <label className="row" style={{ gap: 8, marginTop: 14, fontSize: 12.5, color: "var(--muted)" }}>
+                  <label className="apollo-checkbox-row">
                     <input type="checkbox" checked={automaticAudience.includeSimilarTitles} onChange={event => setAutomaticAudience(current => ({ ...current, includeSimilarTitles: event.target.checked }))} /> Include people with similar job titles
                   </label>
+
+                  <button className="btn btn-ghost btn-sm apollo-more-button" type="button" onClick={() => setShowAutomaticMoreFilters(value => !value)}>
+                    <Icon name="sliders" size={14} /> {showAutomaticMoreFilters ? "Hide additional filters" : "More Apollo filters"}
+                  </button>
+                  {showAutomaticMoreFilters ? (
+                    <div className="apollo-more-panel">
+                      <div className="form-grid">
+                        <label className="field"><span>Keywords</span><input className="input" value={automaticAudience.keywords} onChange={event => setAutomaticAudience(current => ({ ...current, keywords: event.target.value }))} placeholder="B2B SaaS, fintech, logistics" /></label>
+                        <CampaignApolloMultiSelect label="Company HQ locations" options={LOCATION_OPTIONS} value={automaticAudience.organizationLocations} onChange={organizationLocations => setAutomaticAudience(current => ({ ...current, organizationLocations }))} placeholder="Select company locations" />
+                        <label className="field"><span>Company domains</span><input className="input" value={automaticAudience.domains} onChange={event => setAutomaticAudience(current => ({ ...current, domains: event.target.value }))} placeholder="acme.com, example.com" /></label>
+                        <CampaignApolloMultiSelect label="Technologies used" options={TECHNOLOGY_OPTIONS} value={automaticAudience.technologies} onChange={technologies => setAutomaticAudience(current => ({ ...current, technologies }))} placeholder="Select technologies" />
+                        <label className="field"><span>Companies hiring for</span><input className="input" value={automaticAudience.hiringTitles} onChange={event => setAutomaticAudience(current => ({ ...current, hiringTitles: event.target.value }))} placeholder="Account Executive, SDR" /></label>
+                        <label className="field"><span>Annual revenue (minimum)</span><input className="input" type="number" min="0" value={automaticAudience.revenueMin} onChange={event => setAutomaticAudience(current => ({ ...current, revenueMin: event.target.value }))} placeholder="1000000" /></label>
+                        <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={automaticAudience.revenueMax} onChange={event => setAutomaticAudience(current => ({ ...current, revenueMax: event.target.value }))} placeholder="50000000" /></label>
+                        <label className="field"><span>Leads to prepare</span><select className="input" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
+                      </div>
+                    </div>
+                  ) : null}
                   <p className="faint" style={{ fontSize: 12.5, marginTop: 14 }}>{emailEnabled ? "Only leads with an enriched email will enter this campaign." : "Only leads with an enriched callable phone will enter this campaign."}</p>
                 </div>
               ) : <>
