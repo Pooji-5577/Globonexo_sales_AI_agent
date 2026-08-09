@@ -85,7 +85,12 @@ function leadStatusStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
-function CampaignLeadRow({ lead, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
+function formatScheduled(value, timezone) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat("en", { timeZone: timezone || undefined, month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(new Date(value));
+}
+
+function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
   const hasPhone = Boolean(lead.phone?.trim());
@@ -109,6 +114,14 @@ function CampaignLeadRow({ lead, showEmail, showPhone, isAiVoice, actionKey, onE
       {showEmail && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.email || "Not revealed"}</span></td>}
       {showPhone && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.phone || "No phone"}</span></td>}
       <td><span className="badge" style={leadStatusStyle(status)}>{LEAD_STATUS_LABELS[status] || status.replace(/_/g, " ")}</span></td>
+      <td>
+        {attempt ? (
+          <div className="col" style={{ gap: 2 }}>
+            <strong style={{ fontSize: 12.5 }}>{attempt.scheduled_at ? formatScheduled(attempt.scheduled_at, displayTimezone) : "Not scheduled"}</strong>
+            <span className="faint" style={{ fontSize: 11.5 }}>{attempt.blocked_reason ? attempt.blocked_reason.replace(/_/g, " ") : `${attempt.status} · ${attempt.lead_timezone || "timezone required"}`}</span>
+          </div>
+        ) : <span className="faint" style={{ fontSize: 12 }}>Not scheduled</span>}
+      </td>
       <td>
         <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
           {showEmail && (
@@ -156,6 +169,7 @@ export default function CampaignDetailPage() {
   const [launching, setLaunching] = useState(false);
   const [pausing, setPausing] = useState(false);
   const [actionKey, setActionKey] = useState("");
+  const [schedule, setSchedule] = useState([]);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -167,12 +181,14 @@ export default function CampaignDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [campaignRes, leadsRes] = await Promise.all([
+      const [campaignRes, leadsRes, scheduleRes] = await Promise.all([
         api.get(`/campaigns/${id}`),
         api.get("/leads", { params: { campaignId: id, perPage: 500 } }),
+        api.get(`/campaigns/${id}/schedule`),
       ]);
       setCampaign(campaignRes.data);
       setLeads(Array.isArray(leadsRes.data?.items) ? leadsRes.data.items : leadsRes.data ?? []);
+      setSchedule(Array.isArray(scheduleRes.data?.items) ? scheduleRes.data.items : []);
     } catch (err) {
       setError(err?.response?.data?.error ?? "Failed to load campaign.");
     } finally {
@@ -285,6 +301,13 @@ export default function CampaignDetailPage() {
       ["Sent", stats.sent ?? 0],
     ];
   }, [campaign, leads.length]);
+  const nextAttemptByLead = useMemo(() => {
+    const map = new Map();
+    for (const attempt of schedule) {
+      if (!map.has(attempt.lead_id) && ["planned", "scheduled", "processing", "calling", "paused", "blocked", "rescheduling"].includes(attempt.status)) map.set(attempt.lead_id, attempt);
+    }
+    return map;
+  }, [schedule]);
 
   if (loading) {
     return (
@@ -318,6 +341,7 @@ export default function CampaignDetailPage() {
     ...(emailEnabled ? [{ header: "Email", width: dualChannel ? "18%" : "22%" }] : []),
     ...(voiceEnabled ? [{ header: "Phone", width: dualChannel ? "14%" : "22%" }] : []),
     { header: "Status", width: dualChannel ? "11%" : "14%" },
+    { header: "Next outreach", width: "19%" },
     { header: "Action", width: dualChannel ? "20%" : "16%" },
     { header: "Location", width: dualChannel ? "12%" : "14%" },
   ];
@@ -391,8 +415,9 @@ export default function CampaignDetailPage() {
                   <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Calls / hour</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.callCadencePerHour ?? 5}</span></div>
                 </>
               )}
-              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Business hours</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.businessHoursStart} - {campaign.businessHoursEnd}</span></div>
-              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Timezone</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.timezone}</span></div>
+              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Lead-local hours</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.businessHoursStart} - {campaign.businessHoursEnd}</span></div>
+              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Display timezone</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.timezone}</span></div>
+              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Contact days</span><span style={{ fontSize: 14, fontWeight: 700 }}>{(campaign.allowedWeekdays ?? [1,2,3,4,5]).map(day => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]).join(", ")}</span></div>
             </div>
           </div>
 
@@ -417,7 +442,7 @@ export default function CampaignDetailPage() {
                   {leads.length === 0 ? (
                     <tr><td colSpan={leadColumns.length} className="table-empty">No leads are attached to this campaign.</td></tr>
                   ) : leads.map(lead => (
-                    <CampaignLeadRow key={lead.id} lead={lead} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
+                    <CampaignLeadRow key={lead.id} lead={lead} attempt={nextAttemptByLead.get(lead.id)} displayTimezone={campaign.timezone} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
                   ))}
                 </tbody>
               </table>

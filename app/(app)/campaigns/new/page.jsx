@@ -18,6 +18,9 @@ const DEFAULT_FORM = {
   businessHoursStart: "09:00",
   businessHoursEnd: "17:00",
   timezone: "America/New_York",
+  allowedWeekdays: [1, 2, 3, 4, 5],
+  voicePermissionConfirmed: false,
+  maxCallAttempts: 3,
 };
 
 // The backend accepts 1-10 steps. Step numbers are derived from list position
@@ -59,7 +62,7 @@ const DEFAULT_MANUAL_LEAD = {
   linkedinUrl: "",
 };
 
-const TIMEZONES = [
+const FALLBACK_TIMEZONES = [
   "America/New_York",
   "America/Chicago",
   "America/Denver",
@@ -70,15 +73,14 @@ const TIMEZONES = [
 
 const DRAFT_STORAGE_KEY = "globonexo:new-campaign-draft";
 
-// The campaign stores one channel value, but the picker is a multi-select:
-// "both" means the email sequence and the calling cadence run side by side.
-const usesEmail = channel => channel === "email" || channel === "both";
-const usesVoice = channel => channel === "voice" || channel === "both";
-
-function channelFrom(email, voice) {
-  if (email && voice) return "both";
-  return voice ? "voice" : "email";
-}
+const usesEmail = channel => channel === "email";
+const usesVoice = channel => channel === "voice";
+const WEEKDAYS = [
+  { value: 0, label: "S", title: "Sunday" }, { value: 1, label: "M", title: "Monday" },
+  { value: 2, label: "T", title: "Tuesday" }, { value: 3, label: "W", title: "Wednesday" },
+  { value: 4, label: "Th", title: "Thursday" }, { value: 5, label: "F", title: "Friday" },
+  { value: 6, label: "Sa", title: "Saturday" },
+];
 
 function parseCadenceDelays(cadence) {
   if (!cadence) return null;
@@ -133,6 +135,9 @@ export default function NewCampaignPage() {
   const setupReady = form.name.trim().length >= 3;
   const emailEnabled = usesEmail(form.channel);
   const voiceEnabled = usesVoice(form.channel);
+  const timezones = useMemo(() => {
+    try { return Intl.supportedValuesOf("timeZone"); } catch { return FALLBACK_TIMEZONES; }
+  }, []);
 
   useEffect(() => {
     api.get("/leads")
@@ -276,13 +281,6 @@ export default function NewCampaignPage() {
       return;
     }
 
-    // On a dual-channel campaign a lead only needs to be reachable on one of
-    // the two - the email sequence and the call list each skip what they can't use.
-    if (form.channel === "both" && !email && !phone) {
-      setManualLeadError("Add an email address or a phone number so this lead is reachable on at least one channel.");
-      return;
-    }
-
     if (form.channel === "email" && !email) {
       setManualLeadError("Email campaigns need an email address for manual leads.");
       return;
@@ -324,11 +322,8 @@ export default function NewCampaignPage() {
   };
 
   const scrollToSection = useCallback((ref, { forceEmail = false } = {}) => {
-    // Jumping to the email sequence turns the email channel on rather than
-    // replacing the selection - a voice campaign stays a voice campaign, it
-    // just gains the sequence too.
     if (forceEmail && !usesEmail(form.channel)) {
-      setForm(current => ({ ...current, channel: channelFrom(true, usesVoice(current.channel)) }));
+      setForm(current => ({ ...current, channel: "email" }));
       setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
       return;
     }
@@ -358,9 +353,15 @@ export default function NewCampaignPage() {
     if (form.businessHoursStart >= form.businessHoursEnd) {
       errors.push("Business hours end time must be after start time.");
     }
+    if (!Array.isArray(form.allowedWeekdays) || form.allowedWeekdays.length === 0) {
+      errors.push("Select at least one lead-local contact day.");
+    }
+    if (voiceEnabled && !form.voicePermissionConfirmed) {
+      errors.push("Confirm your organization is permitted to make automated calls to these contacts.");
+    }
 
     return errors;
-  }, [form]);
+  }, [form, voiceEnabled]);
 
   const submit = async event => {
     event.preventDefault();
@@ -518,29 +519,21 @@ export default function NewCampaignPage() {
                   />
                 </Field>
 
-                <Field label="Channel" data-tour="campaign-channel" hint="Pick one or both. Running both sends the email sequence and places calls from the same campaign.">
+                <Field label="Channel" data-tour="campaign-channel" hint="Each campaign uses one channel so timing, eligibility, reporting, and stop rules stay clear.">
                   <div className="row campaign-new-channel-grid" style={{ gap: 10, flexWrap: "wrap" }}>
                     {[
                       { value: "email", label: "Email", icon: "mail", help: "Outbound sequence", active: emailEnabled },
                       { value: "voice", label: "Voice", icon: "phone", help: "AI or manual calling", active: voiceEnabled },
                     ].map(option => {
                       const { active } = option;
-                      // At least one channel has to stay on, so the last
-                      // selected card is not deselectable.
-                      const isOnlySelection = active && form.channel !== "both";
                       return (
                         <button
                           key={option.value}
                           type="button"
-                          role="checkbox"
+                          role="radio"
                           aria-checked={active}
                           aria-label={`${option.label} channel`}
-                          onClick={() => {
-                            const next = option.value === "email"
-                              ? channelFrom(!emailEnabled, voiceEnabled)
-                              : channelFrom(emailEnabled, !voiceEnabled);
-                            if (!isOnlySelection) set("channel", next);
-                          }}
+                          onClick={() => set("channel", option.value)}
                           className="card row campaign-new-channel-card"
                           style={{
                             flex: "1 1 220px",
@@ -549,7 +542,7 @@ export default function NewCampaignPage() {
                             gap: 12,
                             borderRadius: 8,
                             textAlign: "left",
-                            cursor: isOnlySelection ? "default" : "pointer",
+                            cursor: "pointer",
                             borderColor: active ? "var(--g-400)" : "var(--line)",
                             background: active ? "var(--g-50)" : "#fff",
                             boxShadow: active ? "0 0 0 4px var(--ring)" : "var(--sh-sm)",
@@ -582,11 +575,6 @@ export default function NewCampaignPage() {
                       );
                     })}
                   </div>
-                  {form.channel === "both" && (
-                    <span className="faint" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-                      Leads with an email get the sequence, leads with a phone number get called. Leads with both get both.
-                    </span>
-                  )}
                 </Field>
 
                 <Field label="Prompt notes" hint="Everything the sales agent should know about this campaign, including who you're targeting. Optional at draft stage — you can add this before launch.">
@@ -631,6 +619,12 @@ export default function NewCampaignPage() {
                 )}
 
                 {voiceEnabled && (
+                  <Field label="Maximum call attempts" hint="No-answer and voicemail retries stop after this many prospect attempts.">
+                    <input className="input" type="number" min="1" max="10" value={form.maxCallAttempts} onChange={event => set("maxCallAttempts", event.target.value)} />
+                  </Field>
+                )}
+
+                {voiceEnabled && (
                   <Field label="Voice mode">
                     <select className="input" value={form.voiceMode} onChange={event => set("voiceMode", event.target.value)}>
                       <option value="ai">AI caller</option>
@@ -639,19 +633,46 @@ export default function NewCampaignPage() {
                   </Field>
                 )}
 
-                <Field label="Timezone">
-                  <select className="input" value={form.timezone} onChange={event => set("timezone", event.target.value)}>
-                    {TIMEZONES.map(zone => <option key={zone} value={zone}>{zone}</option>)}
-                  </select>
+                <Field label="Display timezone" hint="Schedules run in each lead's local timezone. This controls how firm dates appear to you.">
+                  <input className="input" list="campaign-timezones" value={form.timezone} onChange={event => set("timezone", event.target.value)} placeholder="Search timezone" />
+                  <datalist id="campaign-timezones">
+                    {timezones.map(zone => <option key={zone} value={zone} />)}
+                  </datalist>
                 </Field>
 
-                <Field label="Start time">
+                <Field label="Lead-local start time">
                   <input className="input" type="time" value={form.businessHoursStart} onChange={event => set("businessHoursStart", event.target.value)} />
                 </Field>
 
-                <Field label="End time">
+                <Field label="Lead-local end time">
                   <input className="input" type="time" value={form.businessHoursEnd} onChange={event => set("businessHoursEnd", event.target.value)} />
                 </Field>
+
+                <Field label="Lead-local contact days" hint="Outreach runs only on highlighted days in each lead's timezone.">
+                  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                    {WEEKDAYS.map(day => {
+                      const active = form.allowedWeekdays.includes(day.value);
+                      return (
+                        <button key={day.value} type="button" aria-pressed={active} title={day.title}
+                          onClick={() => set("allowedWeekdays", active
+                            ? form.allowedWeekdays.filter(value => value !== day.value)
+                            : [...form.allowedWeekdays, day.value].sort())}
+                          style={{ width: 42, height: 38, borderRadius: 9, border: `1px solid ${active ? "var(--g-500)" : "var(--line)"}`, background: active ? "var(--g-600)" : "#fff", color: active ? "#fff" : "var(--ink)", fontWeight: 800, cursor: "pointer" }}>
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+
+                {voiceEnabled && (
+                  <Field label="Automated calling permission">
+                    <label className="row" style={{ gap: 10, alignItems: "flex-start", padding: 12, border: "1px solid var(--line)", borderRadius: 9, cursor: "pointer" }}>
+                      <input type="checkbox" checked={form.voicePermissionConfirmed} onChange={event => set("voicePermissionConfirmed", event.target.checked)} style={{ marginTop: 3 }} />
+                      <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>I confirm that my organization is permitted to make automated calls to these contacts and will follow applicable calling laws.</span>
+                    </label>
+                  </Field>
+                )}
               </div>
             </section>
 
@@ -784,7 +805,7 @@ export default function NewCampaignPage() {
                   <input className="input" placeholder="First name" value={manualLead.firstName} onChange={e => setManualLeadField("firstName", e.target.value)} maxLength={120} style={{ height: 40 }} />
                   <input className="input" placeholder="Last name" value={manualLead.lastName} onChange={e => setManualLeadField("lastName", e.target.value)} maxLength={120} style={{ height: 40 }} />
                   <input className="input" placeholder={form.channel === "voice" ? "Email (optional)" : "Email"} value={manualLead.email} onChange={e => setManualLeadField("email", e.target.value)} maxLength={240} style={{ height: 40 }} />
-                  <input className="input" placeholder={emailEnabled && form.channel !== "both" ? "Phone (optional)" : "Phone"} value={manualLead.phone} onChange={e => setManualLeadField("phone", e.target.value)} maxLength={80} style={{ height: 40 }} />
+                  <input className="input" placeholder={emailEnabled ? "Phone (optional)" : "Phone"} value={manualLead.phone} onChange={e => setManualLeadField("phone", e.target.value)} maxLength={80} style={{ height: 40 }} />
                   <input className="input" placeholder="Company" value={manualLead.company} onChange={e => setManualLeadField("company", e.target.value)} maxLength={160} style={{ height: 40 }} />
                   <input className="input" placeholder="Title" value={manualLead.title} onChange={e => setManualLeadField("title", e.target.value)} maxLength={160} style={{ height: 40 }} />
                   <input className="input" placeholder="Location (optional)" value={manualLead.location} onChange={e => setManualLeadField("location", e.target.value)} maxLength={160} style={{ height: 40 }} />
@@ -793,9 +814,7 @@ export default function NewCampaignPage() {
 
                 <div className="row spread" style={{ marginTop: 12, gap: 12, flexWrap: "wrap" }}>
                   <span className="faint" style={{ fontSize: 12.5 }}>
-                    {form.channel === "both"
-                      ? "Add an email, a phone number, or both - each channel skips leads it can't reach."
-                      : form.channel === "voice"
+                    {form.channel === "voice"
                         ? "Phone is required for voice campaigns."
                         : "Email is required for email campaigns."}
                   </span>
@@ -872,13 +891,13 @@ export default function NewCampaignPage() {
           <aside className="card campaign-new-summary" style={{ padding: 18, borderRadius: 8, position: "sticky", top: 0 }}>
             <div className="row" style={{ gap: 10 }}>
               <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--g-700)", gap: 2, flex: "none" }}>
-                {emailEnabled && <Icon name="mail" size={form.channel === "both" ? 14 : 19} />}
-                {voiceEnabled && <Icon name="phone" size={form.channel === "both" ? 14 : 19} />}
+                {emailEnabled && <Icon name="mail" size={19} />}
+                {voiceEnabled && <Icon name="phone" size={19} />}
               </span>
               <div className="col" style={{ minWidth: 0 }}>
                 <span style={{ fontWeight: 800, fontSize: 14 }} className="ellip">{form.name || "Untitled campaign"}</span>
                 <span className="faint" style={{ fontSize: 12.5 }}>
-                  {form.channel === "both" ? "Email + Voice campaign" : form.channel === "voice" ? "Voice campaign" : "Email campaign"} draft
+                  {form.channel === "voice" ? "Voice campaign" : "Email campaign"} draft
                 </span>
               </div>
             </div>
