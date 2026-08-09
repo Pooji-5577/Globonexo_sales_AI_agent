@@ -31,6 +31,7 @@ const DEFAULT_FORM = {
 const MIN_STEPS = 1;
 const MAX_STEPS = 10;
 const DEFAULT_FOLLOW_UP_DELAY_DAYS = 3;
+const VOICE_PERMISSION_ERROR = "Confirm your organization is permitted to make automated calls to these contacts.";
 
 // A deterministic counter (rather than a random id) keeps the server and
 // client renders identical during hydration.
@@ -166,6 +167,7 @@ export default function NewCampaignPage() {
   const router = useRouter();
   const setupRef = useRef(null);
   const controlsRef = useRef(null);
+  const voicePermissionRef = useRef(null);
   const emailSequenceRef = useRef(null);
   const assignLeadsRef = useRef(null);
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -185,9 +187,9 @@ export default function NewCampaignPage() {
   const [leadSource, setLeadSource] = useState("automatic");
   const [automaticAudience, setAutomaticAudience] = useState(DEFAULT_AUTOMATIC_AUDIENCE);
   const [showAutomaticMoreFilters, setShowAutomaticMoreFilters] = useState(false);
-  const setupReady = form.name.trim().length >= 3;
   const emailEnabled = usesEmail(form.channel);
   const voiceEnabled = usesVoice(form.channel);
+  const setupReady = form.name.trim().length >= 3 && (!voiceEnabled || form.voicePermissionConfirmed);
   useEffect(() => {
     api.get("/leads")
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
@@ -417,7 +419,7 @@ export default function NewCampaignPage() {
       if (automaticAudience.companySizes.length === 0) errors.push("Select at least one company size for automatic lead generation.");
     }
     if (voiceEnabled && !form.voicePermissionConfirmed) {
-      errors.push("Confirm your organization is permitted to make automated calls to these contacts.");
+      errors.push(VOICE_PERMISSION_ERROR);
     }
 
     return errors;
@@ -432,7 +434,12 @@ export default function NewCampaignPage() {
       setValidationErrors(errors);
       setError("");
       const hasSetupError = errors.some(message => message.includes("Campaign name"));
-      scrollToSection(hasSetupError ? setupRef : controlsRef);
+      const hasVoicePermissionError = errors[0] === VOICE_PERMISSION_ERROR;
+      const target = hasSetupError ? setupRef : hasVoicePermissionError ? voicePermissionRef : controlsRef;
+      target.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (hasVoicePermissionError) {
+        window.setTimeout(() => voicePermissionRef.current?.focus({ preventScroll: true }), 350);
+      }
       return;
     }
 
@@ -713,6 +720,27 @@ export default function NewCampaignPage() {
                   </Field>
                 )}
 
+                {voiceEnabled && (
+                  <div className="field campaign-new-field" style={{ gridColumn: "1 / -1" }}>
+                    <span>Automated calling permission</span>
+                    <label
+                      className="row"
+                      style={{ gap: 10, alignItems: "flex-start", padding: 14, border: `1px solid ${form.voicePermissionConfirmed ? "var(--g-500)" : "var(--line)"}`, borderRadius: 9, cursor: "pointer", background: form.voicePermissionConfirmed ? "var(--g-50)" : "#fff" }}
+                    >
+                      <input
+                        ref={voicePermissionRef}
+                        type="checkbox"
+                        checked={form.voicePermissionConfirmed}
+                        onChange={event => set("voicePermissionConfirmed", event.target.checked)}
+                        style={{ marginTop: 3, flex: "none" }}
+                      />
+                      <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                        I confirm that my organization is permitted to make automated calls to these contacts and will follow applicable calling laws.
+                      </span>
+                    </label>
+                  </div>
+                )}
+
                 <Field label="Display timezone" hint="Schedules run in each lead's local timezone. This controls how firm dates appear to you.">
                   <select className="input" value={form.timezone} onChange={event => set("timezone", event.target.value)}>
                     {(TIMEZONES.includes(form.timezone) ? TIMEZONES : [form.timezone, ...TIMEZONES]).map(zone => (
@@ -767,14 +795,6 @@ export default function NewCampaignPage() {
                   <input className="input" type="number" min="1" max="3500" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", event.target.value)} />
                 </Field>
 
-                {voiceEnabled && (
-                  <Field label="Automated calling permission">
-                    <label className="row" style={{ gap: 10, alignItems: "flex-start", padding: 12, border: "1px solid var(--line)", borderRadius: 9, cursor: "pointer" }}>
-                      <input type="checkbox" checked={form.voicePermissionConfirmed} onChange={event => set("voicePermissionConfirmed", event.target.checked)} style={{ marginTop: 3 }} />
-                      <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>I confirm that my organization is permitted to make automated calls to these contacts and will follow applicable calling laws.</span>
-                    </label>
-                  </Field>
-                )}
               </div>
             </section>
 
@@ -1081,7 +1101,9 @@ export default function NewCampaignPage() {
               <p style={{ marginTop: 6, fontSize: 12.5, lineHeight: 1.5, color: setupReady ? "var(--muted)" : "#9a3412" }}>
                 {setupReady
                   ? "Launch is available from the campaign list after the shell is created."
-                  : "Campaign name is required before saving this draft."}
+                  : form.name.trim().length < 3
+                    ? "Campaign name is required before saving this draft."
+                    : "Confirm automated calling permission before saving this Voice campaign."}
               </p>
             </div>
           </aside>
