@@ -19,6 +19,8 @@ const DEFAULT_FORM = {
   businessHoursEnd: "17:00",
   timezone: "America/New_York",
   allowedWeekdays: [1, 2, 3, 4, 5],
+  leadPreparationWeekdays: [0, 6],
+  weeklyQualifiedLeadTarget: 50,
   voicePermissionConfirmed: false,
   maxCallAttempts: 3,
 };
@@ -356,6 +358,12 @@ export default function NewCampaignPage() {
     if (!Array.isArray(form.allowedWeekdays) || form.allowedWeekdays.length === 0) {
       errors.push("Select at least one lead-local contact day.");
     }
+    if (!Array.isArray(form.leadPreparationWeekdays) || form.leadPreparationWeekdays.length === 0) {
+      errors.push("Select at least one lead preparation day.");
+    }
+    if (Number(form.weeklyQualifiedLeadTarget) < 1) {
+      errors.push("Weekly qualified lead target must be at least 1.");
+    }
     if (voiceEnabled && !form.voicePermissionConfirmed) {
       errors.push("Confirm your organization is permitted to make automated calls to these contacts.");
     }
@@ -390,16 +398,12 @@ export default function NewCampaignPage() {
 
       const campaignId = campaign.id;
 
-      // Steps with no subject and no body prompt have nothing for the AI to
-      // work from, so they're dropped rather than saved as empty sends. The
-      // remaining steps are renumbered to stay contiguous.
       const sequenceSteps = steps
-        .filter(step => step.subjectTemplate.trim() || step.bodyPromptContext.trim())
         .map((step, index) => ({
           stepNumber: index + 1,
           delayDays: step.delayDays,
-          subjectTemplate: step.subjectTemplate,
-          bodyPromptContext: step.bodyPromptContext,
+          subjectTemplate: "",
+          bodyPromptContext: "",
         }));
 
       if (usesEmail(form.channel) && sequenceSteps.length > 0) {
@@ -669,6 +673,27 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
+                <Field label="Lead preparation days" hint="Defaults to Saturday and Sunday. Apollo discovery, deduplication, enrichment, research, and AI drafting run on these days in the campaign timezone.">
+                  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                    {WEEKDAYS.map(day => {
+                      const active = form.leadPreparationWeekdays.includes(day.value);
+                      return (
+                        <button key={day.value} type="button" aria-pressed={active} title={day.title}
+                          onClick={() => set("leadPreparationWeekdays", active
+                            ? form.leadPreparationWeekdays.filter(value => value !== day.value)
+                            : [...form.leadPreparationWeekdays, day.value].sort())}
+                          style={{ width: 42, height: 38, borderRadius: 9, border: `1px solid ${active ? "var(--g-500)" : "var(--line)"}`, background: active ? "var(--g-600)" : "#fff", color: active ? "#fff" : "var(--ink)", fontWeight: 800, cursor: "pointer" }}>
+                          {day.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+
+                <Field label="Qualified leads per week" hint="The platform keeps moving through Apollo pages until this many contactable leads are prepared, or the audience is exhausted.">
+                  <input className="input" type="number" min="1" max="3500" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", event.target.value)} />
+                </Field>
+
                 {voiceEnabled && (
                   <Field label="Automated calling permission">
                     <label className="row" style={{ gap: 10, alignItems: "flex-start", padding: 12, border: "1px solid var(--line)", borderRadius: 9, cursor: "pointer" }}>
@@ -688,7 +713,7 @@ export default function NewCampaignPage() {
                   </span>
                   <div>
                     <h2 style={{ fontSize: 15, fontWeight: 800 }}>Email sequence</h2>
-                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Add between {MIN_STEPS} and {MAX_STEPS} steps with delays between each. Subjects and body prompts are templates for AI generation.</p>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Choose timing only. AI writes unique copy for every lead from their research and actual conversation history.</p>
                   </div>
                   <span className="chip" style={{ marginLeft: "auto", fontSize: 12, flex: "none" }}>
                     {steps.length} step{steps.length === 1 ? "" : "s"}
@@ -733,28 +758,11 @@ export default function NewCampaignPage() {
                         </div>
                       </div>
 
-                      <div className="col" style={{ gap: 10 }}>
-                        <Field label="Subject line template">
-                          <input
-                            className="input"
-                            placeholder={index === 0 ? "Quick question about {{company}}'s outbound" : "Re: following up on my last note"}
-                            value={step.subjectTemplate}
-                            onChange={e => updateStep(index, "subjectTemplate", e.target.value)}
-                            maxLength={500}
-                            style={{ height: 42 }}
-                          />
-                        </Field>
-                        <Field label="Body prompt context">
-                          <textarea
-                            className="input"
-                            placeholder={index === 0 ? "Introduce yourself, mention their role, reference a pain point..." : "Reference the previous email, add new value prop or social proof..."}
-                            value={step.bodyPromptContext}
-                            onChange={e => updateStep(index, "bodyPromptContext", e.target.value)}
-                            maxLength={4000}
-                            style={{ minHeight: 80, paddingTop: 12, resize: "vertical", lineHeight: 1.5 }}
-                          />
-                        </Field>
-                      </div>
+                      <p className="faint" style={{ fontSize: 12.5, lineHeight: 1.55 }}>
+                        {index === 0
+                          ? "Generated as soon as each lead finishes enrichment and research."
+                          : "Generated after the previous email is sent, using that email and the latest lead state. Any reply stops the sequence."}
+                      </p>
                     </div>
                   ))}
 
@@ -770,7 +778,7 @@ export default function NewCampaignPage() {
                     <span className="faint" style={{ fontSize: 12.5 }}>
                       {steps.length >= MAX_STEPS
                         ? `Maximum of ${MAX_STEPS} steps reached.`
-                        : "Leave a step blank to skip it, or remove it entirely."}
+                        : "Each follow-up is generated from the conversation state when it becomes due."}
                     </span>
                   </div>
                 </div>
@@ -911,10 +919,12 @@ export default function NewCampaignPage() {
             {[
               ["Max leads", form.maxLeads],
               ...(emailEnabled ? [["Daily cap", form.dailySendCap]] : []),
+              ["Weekly lead target", form.weeklyQualifiedLeadTarget],
+              ["Preparation days", WEEKDAYS.filter(day => form.leadPreparationWeekdays.includes(day.value)).map(day => day.label).join(", ") || "None"],
               ...(voiceEnabled ? [["Call cadence", `${form.callCadencePerHour}/hr`]] : []),
               ["Business hours", `${form.businessHoursStart} - ${form.businessHoursEnd}`],
               ["Timezone", form.timezone],
-              ...(emailEnabled ? [["Sequence steps", `${steps.filter(s => s.subjectTemplate || s.bodyPromptContext).length} of ${steps.length} configured`]] : []),
+              ...(emailEnabled ? [["Sequence steps", `${steps.length} timed touch${steps.length === 1 ? "" : "es"}`]] : []),
               ["Leads selected", selectedLeadIds.size],
             ].map(([label, value]) => (
               <div key={label} className="row spread campaign-new-summary-row" style={{ gap: 14, padding: "9px 0", borderBottom: "1px solid var(--line-2)" }}>

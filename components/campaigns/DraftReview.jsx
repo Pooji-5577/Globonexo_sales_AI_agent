@@ -170,14 +170,16 @@ export default function DraftReview({ campaignId, onChanged }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Generation is automatic and runs in the background, so the screen polls
-  // until it reaches a terminal state. Without this a customer arriving before
-  // it finishes would see an empty review screen and no reason why.
+  // Lead preparation is a streaming pipeline: another lead may finish after
+  // the latest generation run reached a terminal state. Keep the visible
+  // campaign review synchronized so each email appears while other leads are
+  // still enriching or researching, without requiring a page refresh.
   useEffect(() => {
-    if (!generation || generation.isTerminal) return undefined;
-    const timer = setTimeout(load, 4000);
-    return () => clearTimeout(timer);
-  }, [generation, load]);
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") load();
+    }, 4000);
+    return () => window.clearInterval(timer);
+  }, [load]);
 
   const run = async (action) => {
     setBusy(true);
@@ -213,7 +215,7 @@ export default function DraftReview({ campaignId, onChanged }) {
       <div className="card" style={{ padding: 16 }}>
         <div className="row spread" style={{ gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
           <div className="col" style={{ gap: 3 }}>
-            <strong style={{ fontSize: 14 }}>Emails for review</strong>
+            <strong style={{ fontSize: 14 }}>Generated emails · {messages.length} ready</strong>
             <span className="faint" style={{ fontSize: 12.5 }}>
               {generating
                 ? `Writing emails… ${generation.processedLeads ?? 0} of ${generation.totalLeads ?? 0} leads done.`
