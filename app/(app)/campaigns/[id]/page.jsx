@@ -7,6 +7,7 @@ import Icon from "../../../../components/ui/Icon";
 import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
 import DraftReview from "../../../../components/campaigns/DraftReview";
+import CampaignPreparationPanel from "./CampaignPreparationPanel";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -386,6 +387,8 @@ export default function CampaignDetailPage() {
 
       <div className="scroll grow app-page">
         <div className="col" style={{ gap: 16 }}>
+          <CampaignPreparationPanel campaignId={campaign.id} channel={campaign.channel} campaignStatus={campaign.status} />
+
           <div className="metric-grid">
             {metrics.map(([label, value]) => (
               <div key={label} className="metric-card">

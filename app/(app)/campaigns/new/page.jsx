@@ -412,6 +412,10 @@ export default function NewCampaignPage() {
         });
       }
 
+      // Preparation is a safe pre-launch pipeline: it may find, enrich,
+      // research, generate, and simulate, but it never contacts a prospect.
+      await api.post(`/campaigns/${campaignId}/prepare`);
+
       clearDraftStorage();
       router.push(`/campaigns/${campaignId}`);
     } catch (err) {
