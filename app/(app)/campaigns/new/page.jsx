@@ -638,10 +638,11 @@ export default function NewCampaignPage() {
                 )}
 
                 <Field label="Display timezone" hint="Schedules run in each lead's local timezone. This controls how firm dates appear to you.">
-                  <input className="input" list="campaign-timezones" value={form.timezone} onChange={event => set("timezone", event.target.value)} placeholder="Search timezone" />
-                  <datalist id="campaign-timezones">
-                    {timezones.map(zone => <option key={zone} value={zone} />)}
-                  </datalist>
+                  <select className="input" value={form.timezone} onChange={event => set("timezone", event.target.value)}>
+                    {(timezones.includes(form.timezone) ? timezones : [form.timezone, ...timezones]).map(zone => (
+                      <option key={zone} value={zone}>{zone}</option>
+                    ))}
+                  </select>
                 </Field>
 
                 <Field label="Lead-local start time">
