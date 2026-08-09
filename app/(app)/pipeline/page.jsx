@@ -20,7 +20,7 @@ function leadName(lead) {
   return lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unknown";
 }
 
-function LeadRow({ lead }) {
+function LeadCard({ lead }) {
   const name = leadName(lead);
   const score = lead.score ?? 0;
   const isHot = score >= 80 || lead.status === "engaged";
@@ -28,29 +28,69 @@ function LeadRow({ lead }) {
   const stage = STAGES.find(item => item.id === lead.status) || STAGES[0];
 
   return (
-    <div className="pipeline-lead-row">
-      <div className="pipeline-lead-person row">
-        <Avatar name={name} size={38} />
-        <div className="col pipeline-lead-copy">
-          <span className="pipeline-lead-name ellip">{name}</span>
-          <span className="pipeline-lead-company ellip">{lead.title ? `${lead.title} · ` : ""}{lead.company || "No company"}</span>
+    <article className="pipeline-lead-card">
+      <div className="pipeline-lead-card-head">
+        <div className="pipeline-lead-person row">
+          <Avatar name={name} size={44} />
+          <div className="col pipeline-lead-copy">
+            <span className="pipeline-lead-name ellip">{name}</span>
+            <span className="pipeline-lead-company ellip">{lead.title ? `${lead.title} · ` : ""}{lead.company || "No company"}</span>
+          </div>
         </div>
+        {isHot ? <span className="pipeline-hot-badge"><Icon name="flame" size={12} /> Hot</span> : null}
       </div>
-      <span className="pipeline-stage-badge"><span className="stage-dot" style={{ background: stage.tint }} />{stage.label}</span>
-      <div className="pipeline-intent-cell">
-        <div className="row" style={{ gap: 8 }}>
-          <div className="score-bar"><span style={{ width: `${Math.min(100, score)}%` }} /></div>
+
+      <div className="pipeline-card-meta">
+        <span className="pipeline-stage-badge"><span className="stage-dot" style={{ background: stage.tint }} />{stage.label}</span>
+        <span className="pipeline-source">{lead.source || "Manual"}</span>
+      </div>
+
+      <div className="pipeline-intent-panel">
+        <div className="row spread">
+          <span className={isHot ? "pipeline-intent-hot" : "pipeline-intent-label"}>
+            {isHot ? <Icon name="flame" size={13} /> : <Icon name="bolt" size={13} />} {signal}
+          </span>
           <strong>{score}</strong>
         </div>
-        <span className={isHot ? "pipeline-intent-hot" : "pipeline-intent-label"}>
-          {isHot ? <Icon name="flame" size={12} /> : <Icon name="bolt" size={12} />} {signal}
-        </span>
+        <div className="score-bar"><span style={{ width: `${Math.min(100, score)}%` }} /></div>
       </div>
-      <span className="pipeline-source">{lead.source || "Manual"}</span>
-      <div className="pipeline-row-actions">
+
+      <div className="pipeline-card-actions">
         <button className="mini-action" type="button"><Icon name="mail" size={14} /> Email</button>
         <button className="mini-action" type="button"><Icon name="calendar" size={14} /> Book</button>
       </div>
+    </article>
+  );
+}
+
+function StageContainer({ stage, leads }) {
+  return (
+    <section className="pipeline-stage-container">
+      <div className="pipeline-stage-container-head">
+        <div className="row" style={{ gap: 8, minWidth: 0 }}>
+          <span className="stage-dot" style={{ background: stage.tint }} />
+          <strong className="ellip">{stage.label}</strong>
+        </div>
+        <span>{leads.length}</span>
+      </div>
+      {leads.length === 0 ? (
+        <div className="pipeline-empty">
+          <Icon name="funnel" size={18} />
+          <span>No leads here</span>
+        </div>
+      ) : (
+        <div className="pipeline-card-stack">
+          {leads.map(lead => <LeadCard key={lead.id} lead={lead} />)}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function AllLeadsGrid({ leads }) {
+  return (
+    <div className="pipeline-lead-card-grid">
+      {leads.map(lead => <LeadCard key={lead.id} lead={lead} />)}
     </div>
   );
 }
@@ -98,6 +138,8 @@ export default function PipelinePage() {
     meetings: visibleLeads.filter(lead => lead.status === "meeting_booked").length,
     contacted: visibleLeads.filter(lead => ["contacted", "engaged", "meeting_booked"].includes(lead.status)).length,
   }), [visibleLeads]);
+
+  const displayedLeads = selectedStage === "all" ? visibleLeads : grouped[selectedStage] || [];
 
   if (showSkeleton) return <RouteSkeleton />;
 
@@ -158,23 +200,22 @@ export default function PipelinePage() {
               <span className="eyebrow">Lead list</span>
               <h2 className="display">Your active conversations</h2>
             </div>
-            <span className="chip subtle-chip">{visibleLeads.length} shown</span>
+            <span className="chip subtle-chip">{displayedLeads.length} shown</span>
           </div>
-          {visibleLeads.length === 0 ? (
+          {displayedLeads.length === 0 ? (
             <div className="pipeline-list-empty">
               <Icon name="search" size={22} color="var(--faint)" />
               <strong>No leads match these filters.</strong>
               <span>Try another search or view all stages.</span>
             </div>
           ) : (
-            <>
-              <div className="pipeline-list-labels">
-                <span>Lead</span><span>Stage</span><span>Intent</span><span>Source</span><span>Actions</span>
+            selectedStage === "all" ? (
+              <div className="pipeline-stage-container-grid">
+                {STAGES.map(stage => <StageContainer key={stage.id} stage={stage} leads={grouped[stage.id] || []} />)}
               </div>
-              <div className="pipeline-list-rows">
-                {visibleLeads.map(lead => <LeadRow key={lead.id} lead={lead} />)}
-              </div>
-            </>
+            ) : (
+              <AllLeadsGrid leads={displayedLeads} />
+            )
           )}
         </section>
       )}
