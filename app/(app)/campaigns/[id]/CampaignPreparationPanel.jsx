@@ -250,6 +250,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             {preparationStatus === "not_started" ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Starting…" : "Prepare campaign"}</button> : null}
+            {preparationStatus === "attention" ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
             {channel === "voice" && hasAgent ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}><Icon name="phone" size={14} /> Test Sales Agent</button> : null}
             {channel === "voice" && simulationStatus === "attention" ? <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={retrySimulations}>Retry simulations</button> : null}
           </div>
