@@ -244,7 +244,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             <div className="row" style={{ gap: 14, marginTop: 12, flexWrap: "wrap", fontSize: 12.5 }}>
               <span><strong>{ready}</strong> ready</span>
               {target ? <span><strong>{target}</strong> target prospects</span> : null}
-              {countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
+              {progress >= 100 && countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
               {data?.campaign?.acquisition_status === "audience_exhausted" ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
             </div>
           </div>

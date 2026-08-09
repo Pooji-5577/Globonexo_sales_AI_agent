@@ -64,6 +64,18 @@ const DEFAULT_MANUAL_LEAD = {
   linkedinUrl: "",
 };
 
+const DEFAULT_AUTOMATIC_AUDIENCE = {
+  titles: "VP Sales, Head of Revenue",
+  locations: "United States",
+  seniorities: ["vp", "head"],
+  companySizes: ["51,200", "201,500"],
+  includeSimilarTitles: true,
+};
+const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
+const COMPANY_SIZE_LABELS = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"];
+const SENIORITY_OPTIONS = [["owner", "Owner"], ["founder", "Founder"], ["c_suite", "C-Suite"], ["vp", "VP"], ["head", "Head"], ["director", "Director"], ["manager", "Manager"]];
+const splitTargetList = value => value.split(",").map(item => item.trim()).filter(Boolean);
+
 // Curated shortlist covering the regions this tool's orgs actually operate
 // in - the full ~400-zone IANA list was overwhelming in a plain dropdown.
 const TIMEZONES = [
@@ -138,6 +150,8 @@ export default function NewCampaignPage() {
   const [manualLead, setManualLead] = useState(DEFAULT_MANUAL_LEAD);
   const [addingManualLead, setAddingManualLead] = useState(false);
   const [manualLeadError, setManualLeadError] = useState("");
+  const [leadSource, setLeadSource] = useState("automatic");
+  const [automaticAudience, setAutomaticAudience] = useState(DEFAULT_AUTOMATIC_AUDIENCE);
   const setupReady = form.name.trim().length >= 3;
   const emailEnabled = usesEmail(form.channel);
   const voiceEnabled = usesVoice(form.channel);
@@ -364,12 +378,17 @@ export default function NewCampaignPage() {
     if (Number(form.weeklyQualifiedLeadTarget) < 1) {
       errors.push("Weekly qualified lead target must be at least 1.");
     }
+    if (leadSource === "automatic") {
+      if (splitTargetList(automaticAudience.titles).length === 0) errors.push("Add at least one target job title for automatic lead generation.");
+      if (splitTargetList(automaticAudience.locations).length === 0) errors.push("Add at least one target location for automatic lead generation.");
+      if (automaticAudience.companySizes.length === 0) errors.push("Select at least one company size for automatic lead generation.");
+    }
     if (voiceEnabled && !form.voicePermissionConfirmed) {
       errors.push("Confirm your organization is permitted to make automated calls to these contacts.");
     }
 
     return errors;
-  }, [form, voiceEnabled]);
+  }, [automaticAudience, form, leadSource, voiceEnabled]);
 
   const submit = async event => {
     event.preventDefault();
@@ -410,15 +429,28 @@ export default function NewCampaignPage() {
         await api.put(`/campaigns/${campaignId}/steps`, { steps: sequenceSteps });
       }
 
-      if (selectedLeadIds.size > 0) {
+      if (leadSource === "existing" && selectedLeadIds.size > 0) {
         await api.post(`/campaigns/${campaignId}/assign-leads`, {
           leadIds: Array.from(selectedLeadIds),
         });
       }
 
-      // Preparation is a safe pre-launch pipeline: it may find, enrich,
-      // research, generate, and simulate, but it never contacts a prospect.
-      await api.post(`/campaigns/${campaignId}/prepare`);
+      if (leadSource === "automatic") {
+        // Apollo discovery persists this audience on the campaign. Its worker
+        // hands qualified leads into preparation, research, and AI drafting.
+        await api.post("/apollo/import", {
+          campaignId,
+          titles: splitTargetList(automaticAudience.titles),
+          locations: splitTargetList(automaticAudience.locations),
+          seniorities: automaticAudience.seniorities,
+          companySizes: automaticAudience.companySizes,
+          includeSimilarTitles: automaticAudience.includeSimilarTitles,
+          limit: Math.min(100, Number(form.weeklyQualifiedLeadTarget)),
+        });
+      } else {
+        // Preparation is safe pre-launch work and never contacts a prospect.
+        await api.post(`/campaigns/${campaignId}/prepare`);
+      }
 
       clearDraftStorage();
       router.push(`/campaigns/${campaignId}`);
@@ -794,11 +826,65 @@ export default function NewCampaignPage() {
                   </span>
                   <div>
                     <h2 style={{ fontSize: 15, fontWeight: 800 }}>Assign leads</h2>
-                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>Select existing leads or add a lead manually.</p>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 2 }}>{leadSource === "automatic" ? "Define the audience and let GNX find qualified leads." : "Add a lead manually or select existing leads."}</p>
                   </div>
                 </div>
-                <span className="chip" style={{ fontSize: 12 }}>{selectedLeadIds.size} selected</span>
+                <div className="row" style={{ gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <div role="tablist" aria-label="Lead assignment mode" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", padding: 3, borderRadius: 999, background: "var(--bg-2)", border: "1px solid var(--line)", minWidth: 250 }}>
+                    {[{ value: "automatic", label: "Automatic" }, { value: "existing", label: "Manual" }].map(option => {
+                      const active = leadSource === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setLeadSource(option.value)}
+                          style={{ border: active ? "1px solid var(--g-300)" : "1px solid transparent", borderRadius: 999, background: active ? "#fff" : "transparent", color: active ? "var(--ink)" : "var(--muted)", padding: "8px 18px", fontSize: 13, fontWeight: 800, cursor: "pointer", boxShadow: active ? "0 1px 4px rgba(20,50,35,.08)" : "none" }}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {leadSource === "existing" ? <span className="chip" style={{ fontSize: 12 }}>{selectedLeadIds.size} selected</span> : null}
+                </div>
               </div>
+
+              {leadSource === "automatic" ? (
+                <div style={{ padding: 16, border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)" }}>
+                  <div style={{ marginBottom: 14 }}>
+                    <strong style={{ fontSize: 14 }}>Automatic Apollo audience</strong>
+                    <p className="faint" style={{ fontSize: 12.5, marginTop: 3 }}>GNX searches, deduplicates, enriches, and only admits leads with the contact method required by this campaign.</p>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 12 }}>
+                    <Field label="Job titles *"><input className="input" value={automaticAudience.titles} onChange={event => setAutomaticAudience(current => ({ ...current, titles: event.target.value }))} placeholder="VP Sales, Head of Revenue" /></Field>
+                    <Field label="People locations *"><input className="input" value={automaticAudience.locations} onChange={event => setAutomaticAudience(current => ({ ...current, locations: event.target.value }))} placeholder="United States, Canada" /></Field>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>Management level</span>
+                    <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                      {SENIORITY_OPTIONS.map(([value, label]) => {
+                        const active = automaticAudience.seniorities.includes(value);
+                        return <button key={value} type="button" className={active ? "chip active" : "chip"} onClick={() => setAutomaticAudience(current => ({ ...current, seniorities: active ? current.seniorities.filter(item => item !== value) : [...current.seniorities, value] }))}>{label}</button>;
+                      })}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 14 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>Company size *</span>
+                    <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                      {COMPANY_SIZE_OPTIONS.map((value, index) => {
+                        const active = automaticAudience.companySizes.includes(value);
+                        return <button key={value} type="button" className={active ? "chip active" : "chip"} onClick={() => setAutomaticAudience(current => ({ ...current, companySizes: active ? current.companySizes.filter(item => item !== value) : [...current.companySizes, value] }))}>{COMPANY_SIZE_LABELS[index]} employees</button>;
+                      })}
+                    </div>
+                  </div>
+                  <label className="row" style={{ gap: 8, marginTop: 14, fontSize: 12.5, color: "var(--muted)" }}>
+                    <input type="checkbox" checked={automaticAudience.includeSimilarTitles} onChange={event => setAutomaticAudience(current => ({ ...current, includeSimilarTitles: event.target.checked }))} /> Include people with similar job titles
+                  </label>
+                  <p className="faint" style={{ fontSize: 12.5, marginTop: 14 }}>{emailEnabled ? "Only leads with an enriched email will enter this campaign." : "Only leads with an enriched callable phone will enter this campaign."}</p>
+                </div>
+              ) : <>
 
               <div style={{ padding: 14, border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)", marginBottom: 14 }}>
                 <div className="row spread" style={{ gap: 12, marginBottom: 12, flexWrap: "wrap" }}>
@@ -898,6 +984,7 @@ export default function NewCampaignPage() {
               {filteredLeads.length > 100 && (
                 <p className="faint" style={{ fontSize: 12, marginTop: 8, textAlign: "center" }}>Showing first 100 of {filteredLeads.length} leads. Use search to narrow down.</p>
               )}
+              </>}
             </section>
           </div>
 
