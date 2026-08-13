@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
-import { latestPreparationEvents } from "../../../../lib/campaign-display";
+import { campaignPreparationEvents, shouldPollCampaignPreparation, simulationPresentation } from "../../../../lib/campaign-display";
 
-const ACTIVE_PREPARATION = new Set(["not_started", "preparing"]);
-const ACTIVE_SIMULATION = new Set(["queued", "running", "repairing"]);
 const ACTIVE_IMPORT = new Set(["queued", "searching", "candidates_found", "enriching", "waiting_for_enrichment"]);
 
 function preparationLog(event, details = {}) {
@@ -187,14 +185,14 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   useEffect(() => { load(); }, [load]);
 
   const preparationStatus = data?.campaign?.preparation_status ?? "not_started";
-  const simulationStatus = data?.campaign?.retell_simulation_status ?? "not_started";
+  const simulation = simulationPresentation(data);
+  const simulationStatus = simulation.status;
   const importStatus = data?.latestImport?.status ?? null;
   useEffect(() => {
-    const partialStillWorking = preparationStatus === "ready_partial" && Number(data?.campaign?.preparation_progress ?? 0) < 100;
-    if (!ACTIVE_PREPARATION.has(preparationStatus) && !partialStillWorking && !ACTIVE_SIMULATION.has(simulationStatus) && !ACTIVE_IMPORT.has(importStatus)) return undefined;
+    if (!shouldPollCampaignPreparation(data)) return undefined;
     const timer = window.setInterval(load, 8000);
     return () => window.clearInterval(timer);
-  }, [data?.campaign?.preparation_progress, importStatus, load, preparationStatus, simulationStatus]);
+  }, [data, load]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -227,7 +225,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
     }
   };
 
-  const latestRun = data?.simulation?.runs?.[0];
+  const latestRun = simulation.run;
   const importRun = data?.latestImport;
   const importIsActive = ACTIVE_IMPORT.has(importStatus);
   const preparationProgress = Number(data?.campaign?.preparation_progress ?? 0);
@@ -237,7 +235,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const ready = Number(data?.readinessCounts?.ready ?? 0);
   const target = Number(data?.campaign?.target_qualified_leads ?? 0);
   const countdown = formatCountdown(data?.campaign?.next_acquisition_at, now);
-  const events = useMemo(() => latestPreparationEvents(data?.events ?? []), [data?.events]);
+  const events = useMemo(() => campaignPreparationEvents(data), [data]);
   const hasAgent = Boolean(data?.campaign?.retell_staging_agent_id);
   const importFinishedEmpty = importRun?.isTerminal && Number(importRun.qualified ?? 0) === 0;
   const headline = importIsActive
@@ -332,6 +330,11 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             <p className="faint" style={{ fontSize: 12, marginTop: 5 }}>
               {data.simulation.repairs?.length ?? 0} targeted improvement{(data.simulation.repairs?.length ?? 0) === 1 ? "" : "s"} applied · Status: {simulationStatus.replace(/_/g, " ")}
             </p>
+            {simulation.failedScenario ? (
+              <p style={{ fontSize: 12, marginTop: 7, color: "var(--warning)", lineHeight: 1.45 }}>
+                <strong>{String(simulation.failedScenario).replace(/_/g, " ")}:</strong> {simulation.explanation || "Retell did not provide a result explanation."}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </section>
