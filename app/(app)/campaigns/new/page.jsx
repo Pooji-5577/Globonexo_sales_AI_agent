@@ -216,6 +216,7 @@ export default function NewCampaignPage() {
           locations: defaults.locations.length ? defaults.locations : current.locations,
           companySizes: defaults.companySizes.length ? defaults.companySizes : current.companySizes,
           industries: defaults.industries,
+          seniorities: defaults.seniorities.length ? defaults.seniorities : current.seniorities,
           keywordSuggestions: defaults.keywordSuggestions,
           keywords: defaults.keywords,
         }));
@@ -951,7 +952,7 @@ export default function NewCampaignPage() {
                     <CampaignApolloMultiSelect label="People locations" options={uniqueApolloValues([...LOCATION_OPTIONS, ...automaticAudience.locations])} value={automaticAudience.locations} onChange={locations => setAutomaticAudience(current => ({ ...current, locations }))} placeholder="Select locations" required />
                     <label className="field"><span>Other job titles</span><input className="input" value={automaticAudience.customTitles} onChange={event => setAutomaticAudience(current => ({ ...current, customTitles: event.target.value }))} placeholder="Add custom titles, comma separated" /></label>
                     <label className="field"><span>Other people locations</span><input className="input" value={automaticAudience.customLocations} onChange={event => setAutomaticAudience(current => ({ ...current, customLocations: event.target.value }))} placeholder="Add cities or regions, comma separated" /></label>
-                    <CampaignApolloMultiSelect label="Target industries" options={uniqueApolloValues([...INDUSTRY_OPTIONS, ...automaticAudience.industries])} value={automaticAudience.industries} onChange={industries => setAutomaticAudience(current => ({ ...current, industries, keywords: industries.join(", ") }))} placeholder="Select industries" required />
+                    <CampaignApolloMultiSelect label="Target industries" options={uniqueApolloValues([...INDUSTRY_OPTIONS, ...automaticAudience.industries])} value={automaticAudience.industries} onChange={industries => setAutomaticAudience(current => ({ ...current, industries }))} placeholder="Select industries" required />
                     <label className="field"><span>Other industries</span><input className="input" value={automaticAudience.customIndustries} onChange={event => setAutomaticAudience(current => ({ ...current, customIndustries: event.target.value }))} placeholder="Add custom industries, comma separated" /></label>
                   </div>
                   <div className="field" style={{ marginTop: 14 }}>
@@ -974,7 +975,7 @@ export default function NewCampaignPage() {
                   {showAutomaticMoreFilters ? (
                     <div className="apollo-more-panel">
                       <div className="form-grid">
-                        <label className="field"><span>Keywords</span><input className="input" value={automaticAudience.keywords} onChange={event => setAutomaticAudience(current => ({ ...current, keywords: event.target.value }))} placeholder="B2B SaaS, fintech, logistics" /></label>
+                        <label className="field"><span>Focused keyword (optional)</span><input className="input" value={automaticAudience.keywords} onChange={event => setAutomaticAudience(current => ({ ...current, keywords: event.target.value }))} placeholder="Choose one focused term, e.g. B2B SaaS" /></label>
                         <CampaignApolloMultiSelect label="Company HQ locations" options={LOCATION_OPTIONS} value={automaticAudience.organizationLocations} onChange={organizationLocations => setAutomaticAudience(current => ({ ...current, organizationLocations }))} placeholder="Select company locations" />
                         <label className="field"><span>Company domains</span><input className="input" value={automaticAudience.domains} onChange={event => setAutomaticAudience(current => ({ ...current, domains: event.target.value }))} placeholder="acme.com, example.com" /></label>
                         <CampaignApolloMultiSelect label="Technologies used" options={TECHNOLOGY_OPTIONS} value={automaticAudience.technologies} onChange={technologies => setAutomaticAudience(current => ({ ...current, technologies }))} placeholder="Select technologies" />
@@ -983,7 +984,7 @@ export default function NewCampaignPage() {
                         <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={automaticAudience.revenueMax} onChange={event => setAutomaticAudience(current => ({ ...current, revenueMax: event.target.value }))} placeholder="50000000" /></label>
                         <label className="field"><span>Leads to prepare</span><select className="input" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
                       </div>
-                      {automaticAudience.keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Onboarding suggestions</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{automaticAudience.keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" onClick={() => setAutomaticAudience(current => ({ ...current, keywords: uniqueApolloValues([...splitTargetList(current.keywords), keyword]).join(", ") }))}>{keyword}</button>)}</div></div> : null}
+                      {automaticAudience.keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. Apollo treats this as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{automaticAudience.keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: automaticAudience.keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setAutomaticAudience(current => ({ ...current, keywords: current.keywords === keyword ? "" : keyword }))}>{keyword}</button>)}</div></div> : null}
                     </div>
                   ) : null}
                   <div style={{ marginTop: 14, padding: 12, border: "1px solid var(--line)", borderRadius: 8, background: "#fff" }}>

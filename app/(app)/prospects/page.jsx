@@ -386,6 +386,7 @@ export default function ProspectsPage() {
           if (defaults.locations.length) setLocations(defaults.locations);
           if (defaults.companySizes.length) setCompanySizes(defaults.companySizes);
           setIndustries(defaults.industries);
+          if (defaults.seniorities.length) setSeniorities(defaults.seniorities);
           setKeywordSuggestions(defaults.keywordSuggestions);
           setKeywords(defaults.keywords);
         }
@@ -869,7 +870,7 @@ export default function ProspectsPage() {
               <MultiSelect label="People locations" options={uniqueApolloValues([...LOCATION_OPTIONS, ...locations])} value={locations} onChange={setLocations} placeholder="Select locations" required />
               <label className="field"><span>Other job titles</span><input className="input" value={customTitles} onChange={event => setCustomTitles(event.target.value)} placeholder="Add custom titles, comma separated" /></label>
               <label className="field"><span>Other people locations</span><input className="input" value={customLocations} onChange={event => setCustomLocations(event.target.value)} placeholder="Add cities or regions, comma separated" /></label>
-              <MultiSelect label="Target industries" options={uniqueApolloValues([...INDUSTRY_OPTIONS, ...industries])} value={industries} onChange={value => { setIndustries(value); setKeywords(value.join(", ")); }} placeholder="Select industries" required />
+              <MultiSelect label="Target industries" options={uniqueApolloValues([...INDUSTRY_OPTIONS, ...industries])} value={industries} onChange={setIndustries} placeholder="Select industries" required />
               <label className="field"><span>Other industries</span><input className="input" value={customIndustries} onChange={event => setCustomIndustries(event.target.value)} placeholder="Add custom industries, comma separated" /></label>
             </div>
             <div className="field" style={{ marginTop: 14 }}>
@@ -894,7 +895,7 @@ export default function ProspectsPage() {
             {showMoreFilters ? (
               <div className="apollo-more-panel">
                 <div className="form-grid">
-                  <label className="field"><span>Keywords</span><input className="input" value={keywords} onChange={event => setKeywords(event.target.value)} placeholder="B2B SaaS, fintech, logistics" /></label>
+                  <label className="field"><span>Focused keyword (optional)</span><input className="input" value={keywords} onChange={event => setKeywords(event.target.value)} placeholder="Choose one focused term, e.g. B2B SaaS" /></label>
                   <MultiSelect label="Company HQ locations" options={LOCATION_OPTIONS} value={organizationLocations} onChange={setOrganizationLocations} placeholder="Select company locations" />
                   <label className="field"><span>Company domains</span><input className="input" value={domains} onChange={event => setDomains(event.target.value)} placeholder="acme.com, example.com" /></label>
                   <MultiSelect label="Technologies used" options={TECHNOLOGY_OPTIONS} value={technologies} onChange={setTechnologies} placeholder="Select technologies" />
@@ -903,7 +904,7 @@ export default function ProspectsPage() {
                   <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={revenueMax} onChange={event => setRevenueMax(event.target.value)} placeholder="50000000" /></label>
                   <label className="field"><span>Leads to prepare</span><select className="input" value={leadLimit} onChange={event => setLeadLimit(Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
                 </div>
-                {keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Onboarding suggestions</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" onClick={() => setKeywords(current => uniqueApolloValues([...splitList(current), keyword]).join(", "))}>{keyword}</button>)}</div></div> : null}
+                {keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. Apollo treats this as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setKeywords(current => current === keyword ? "" : keyword)}>{keyword}</button>)}</div></div> : null}
               </div>
             ) : null}
             <div style={{ marginTop: 14, padding: 12, border: "1px solid var(--line)", borderRadius: 8, background: "#fff" }}>
