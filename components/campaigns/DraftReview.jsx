@@ -14,18 +14,21 @@
  * them, and a silently uncontacted lead is one the customer paid to enrich.
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../lib/api";
 import Icon from "../ui/Icon";
+import Avatar from "../ui/Avatar";
 import { formatScheduledInTimezone } from "../../lib/campaign-display";
 
-function StepChip({ stepNumber }) {
-  const labels = { 1: "First touch", 2: "Follow-up", 3: "Final follow-up" };
-  return (
-    <span className="chip" style={{ background: "var(--bg-2)", color: "var(--ink-2)", fontSize: 11 }}>
-      {labels[stepNumber] ?? `Step ${stepNumber}`}
-    </span>
-  );
+const STEP_LABELS = { 1: "First touch", 2: "Follow-up", 3: "Final follow-up" };
+
+function stepLabel(stepNumber) {
+  return STEP_LABELS[stepNumber] ?? `Follow-up ${stepNumber - 1}`;
+}
+
+function stepTiming(delayDays) {
+  if (!Number(delayDays)) return "Send immediately";
+  return `Send on Day ${delayDays}`;
 }
 
 function StatusChip({ status, approvedBy }) {
@@ -43,8 +46,9 @@ function StatusChip({ status, approvedBy }) {
   );
 }
 
-function DraftCard({ message, displayTimezone, onApprove, onSave, onRegenerate, busy }) {
+function DraftRow({ message, displayTimezone, onApprove, onSave, onRegenerate, busy }) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [subject, setSubject] = useState(message.subject);
   const [body, setBody] = useState(message.body);
   const lead = message.lead ?? {};
@@ -61,27 +65,45 @@ function DraftCard({ message, displayTimezone, onApprove, onSave, onRegenerate, 
   }, [message.subject, message.body]);
 
   return (
-    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-      {/* Recipient identity, always visible. This is what lets the reviewer
-          confirm the email is going to the right person. */}
-      <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--line-2)", background: "var(--bg)" }}>
-        <div className="row spread" style={{ gap: 12, flexWrap: "wrap" }}>
-          <div className="col" style={{ gap: 2, minWidth: 0 }}>
-            <strong style={{ fontSize: 13.5 }}>{lead.name || "Unnamed lead"}</strong>
-            <span className="faint" style={{ fontSize: 12 }}>
-              {[lead.title, lead.company].filter(Boolean).join(" at ") || "No title or company"}
-            </span>
-            <span className="faint" style={{ fontSize: 11.5 }}>{lead.email}</span>
-            {selectedTime ? (
-              <span style={{ fontSize: 11.5, color: "var(--g-700)", fontWeight: 700, marginTop: 3 }}>
-                <Icon name="clock" size={12} /> {message.schedule?.status === "sent" ? "Sent" : "Scheduled"} {selectedTime} · your timezone
+    <div className="campaign-email-row">
+      <button
+        type="button"
+        className="campaign-email-summary"
+        aria-expanded={expanded || editing}
+        onClick={() => !editing && setExpanded(value => !value)}
+      >
+        <Avatar name={lead.name || "Unnamed lead"} size={40} />
+        <span className="campaign-email-copy">
+          <strong>{message.subject || "No subject"}</strong>
+          <span className="faint campaign-email-recipient">
+            {lead.name || "Unnamed lead"}{lead.company ? ` at ${lead.company}` : ""}
+          </span>
+          <span className="faint campaign-email-preview">{message.body}</span>
+        </span>
+        <span className="campaign-email-state">
+          <StatusChip status={message.status} approvedBy={message.approvedBy} />
+          <span className={expanded || editing ? "campaign-email-expand-icon is-open" : "campaign-email-expand-icon"}>
+            <Icon name="arrow" size={15} />
+          </span>
+        </span>
+      </button>
+
+      {(expanded || editing) && (
+        <div className="campaign-email-detail">
+          <div className="row spread campaign-email-meta" style={{ gap: 12, flexWrap: "wrap" }}>
+            <div className="col" style={{ gap: 2, minWidth: 0 }}>
+              <strong style={{ fontSize: 13.5 }}>{lead.name || "Unnamed lead"}</strong>
+              <span className="faint" style={{ fontSize: 12 }}>
+                {[lead.title, lead.company].filter(Boolean).join(" at ") || "No title or company"}
               </span>
-            ) : null}
-            {leadTime ? <span className="faint" style={{ fontSize: 11 }}>Lead local time: {leadTime}</span> : null}
-          </div>
-          <div className="row" style={{ gap: 6, flexWrap: "wrap", alignItems: "flex-start" }}>
-            <StepChip stepNumber={message.stepNumber} />
-            <StatusChip status={message.status} approvedBy={message.approvedBy} />
+              <span className="faint" style={{ fontSize: 11.5 }}>{lead.email}</span>
+              {selectedTime ? (
+                <span style={{ fontSize: 11.5, color: "var(--g-700)", fontWeight: 700, marginTop: 3 }}>
+                  <Icon name="clock" size={12} /> {message.schedule?.status === "sent" ? "Sent" : "Scheduled"} {selectedTime} · your timezone
+                </span>
+              ) : null}
+              {leadTime ? <span className="faint" style={{ fontSize: 11 }}>Lead local time: {leadTime}</span> : null}
+            </div>
             {message.thinContext && (
               <span
                 className="chip"
@@ -92,62 +114,62 @@ function DraftCard({ message, displayTimezone, onApprove, onSave, onRegenerate, 
               </span>
             )}
           </div>
-        </div>
-      </div>
 
-      <div style={{ padding: "14px 16px" }}>
-        {editing ? (
-          <div className="col" style={{ gap: 10 }}>
-            <input className="input" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" />
-            <textarea
-              className="input"
-              rows={9}
-              value={body}
-              onChange={e => setBody(e.target.value)}
-              style={{ resize: "vertical", fontFamily: "inherit", lineHeight: 1.55 }}
-            />
-          </div>
-        ) : (
-          <div className="col" style={{ gap: 8 }}>
-            <strong style={{ fontSize: 13.5 }}>{message.subject}</strong>
-            <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "var(--ink-2)", margin: 0 }}>
-              {message.body}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {!sent && (
-        <div className="row spread" style={{ padding: "10px 16px", borderTop: "1px solid var(--line-2)", gap: 8, flexWrap: "wrap" }}>
-          <div className="row" style={{ gap: 8 }}>
+          <div style={{ padding: "14px 16px" }}>
             {editing ? (
-              <>
-                <button
-                  className="btn btn-primary btn-sm"
-                  disabled={busy}
-                  onClick={async () => { await onSave(message.id, { subject, body }); setEditing(false); }}
-                >
-                  Save changes
-                </button>
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setEditing(false); setSubject(message.subject); setBody(message.body); }}>
-                  Cancel
-                </button>
-              </>
+              <div className="col" style={{ gap: 10 }}>
+                <input className="input" value={subject} onChange={event => setSubject(event.target.value)} placeholder="Subject" />
+                <textarea
+                  className="input"
+                  rows={9}
+                  value={body}
+                  onChange={event => setBody(event.target.value)}
+                  style={{ resize: "vertical", fontFamily: "inherit", lineHeight: 1.55 }}
+                />
+              </div>
             ) : (
-              <>
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setEditing(true)}>
-                  <Icon name="doc" size={14} /> Edit
-                </button>
-                <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => onRegenerate(message.id)}>
-                  <Icon name="refresh" size={14} /> Regenerate
-                </button>
-              </>
+              <div className="col" style={{ gap: 8 }}>
+                <strong style={{ fontSize: 13.5 }}>{message.subject}</strong>
+                <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "var(--ink-2)", margin: 0 }}>
+                  {message.body}
+                </p>
+              </div>
             )}
           </div>
-          {message.status === "draft" && !editing && (
-            <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onApprove([message.id])}>
-              Approve
-            </button>
+
+          {!sent && (
+            <div className="row spread campaign-email-actions" style={{ gap: 8, flexWrap: "wrap" }}>
+              <div className="row" style={{ gap: 8 }}>
+                {editing ? (
+                  <>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      disabled={busy}
+                      onClick={async () => { await onSave(message.id, { subject, body }); setEditing(false); }}
+                    >
+                      Save changes
+                    </button>
+                    <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setEditing(false); setSubject(message.subject); setBody(message.body); }}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setEditing(true)}>
+                      <Icon name="doc" size={14} /> Edit
+                    </button>
+                    <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => onRegenerate(message.id)}>
+                      <Icon name="refresh" size={14} /> Regenerate
+                    </button>
+                  </>
+                )}
+              </div>
+              {message.status === "draft" && !editing && (
+                <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onApprove([message.id])}>
+                  Approve
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -155,8 +177,44 @@ function DraftCard({ message, displayTimezone, onApprove, onSave, onRegenerate, 
   );
 }
 
+function StepSection({ step, messages, displayTimezone, onApprove, onSave, onRegenerate, busy }) {
+  const draftIds = messages.filter(message => message.status === "draft").map(message => message.id);
+
+  return (
+    <section className="campaign-email-step" aria-labelledby={`campaign-email-step-${step.stepNumber}`}>
+      <div className="campaign-email-step-head">
+        <span className="campaign-email-step-number">{String(step.stepNumber).padStart(2, "0")}</span>
+        <span className="campaign-email-step-title">
+          <strong id={`campaign-email-step-${step.stepNumber}`}>Step {step.stepNumber} · {stepLabel(step.stepNumber)}</strong>
+          <span className="faint">{stepTiming(step.delayDays)} · {messages.length} email{messages.length === 1 ? "" : "s"} ready</span>
+        </span>
+        {draftIds.length > 0 && (
+          <button className="campaign-email-step-action" type="button" disabled={busy} onClick={() => onApprove(draftIds)}>
+            Approve {draftIds.length} draft{draftIds.length === 1 ? "" : "s"}
+          </button>
+        )}
+      </div>
+      {step.bodyPromptContext && <p className="campaign-email-step-instruction">{step.bodyPromptContext}</p>}
+      <div>
+        {messages.map(message => (
+          <DraftRow
+            key={message.id}
+            message={message}
+            displayTimezone={displayTimezone || message.schedule?.displayTimezone}
+            busy={busy}
+            onApprove={onApprove}
+            onSave={onSave}
+            onRegenerate={onRegenerate}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function DraftReview({ campaignId, displayTimezone, onChanged }) {
   const [messages, setMessages] = useState([]);
+  const [sequenceSteps, setSequenceSteps] = useState([]);
   const [state, setState] = useState(null);
   const [generation, setGeneration] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -165,11 +223,13 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
 
   const load = useCallback(async () => {
     try {
-      const [{ data: messageData }, { data: generationData }] = await Promise.all([
+      const [{ data: messageData }, { data: generationData }, { data: stepData }] = await Promise.all([
         api.get(`/campaigns/${campaignId}/messages`),
         api.get(`/campaigns/${campaignId}/generation`),
+        api.get(`/campaigns/${campaignId}/steps`),
       ]);
       setMessages(messageData.items ?? []);
+      setSequenceSteps(stepData.items ?? []);
       setState(messageData);
       setGeneration(generationData);
       setError("");
@@ -217,6 +277,23 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
   const counts = state?.counts ?? { draft: 0, approved: 0, sent: 0 };
   const generating = generation && !generation.isTerminal;
   const failedLeads = generation?.failedLeads ?? 0;
+  const messageGroups = useMemo(() => {
+    const stepByNumber = new Map(sequenceSteps.map(step => [Number(step.stepNumber), step]));
+    const grouped = new Map();
+
+    for (const message of messages) {
+      const stepNumber = Number(message.stepNumber) || 1;
+      if (!grouped.has(stepNumber)) grouped.set(stepNumber, []);
+      grouped.get(stepNumber).push(message);
+    }
+
+    return [...grouped.entries()]
+      .sort(([left], [right]) => left - right)
+      .map(([stepNumber, stepMessages]) => ({
+        step: stepByNumber.get(stepNumber) ?? { stepNumber, delayDays: stepNumber === 1 ? 0 : null, bodyPromptContext: "" },
+        messages: stepMessages,
+      }));
+  }, [messages, sequenceSteps]);
 
   if (loading) {
     return <div className="card" style={{ padding: 20 }}><span className="faint" style={{ fontSize: 13 }}>Loading your drafts…</span></div>;
@@ -299,17 +376,20 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
           </span>
         </div>
       ) : (
-        messages.map(message => (
-          <DraftCard
-            key={message.id}
-            message={message}
-            displayTimezone={displayTimezone || message.schedule?.displayTimezone}
-            busy={busy}
-            onApprove={approve}
-            onSave={save}
-            onRegenerate={regenerate}
-          />
-        ))
+        <div className="campaign-email-sequence">
+          {messageGroups.map(({ step, messages: stepMessages }) => (
+            <StepSection
+              key={step.stepNumber}
+              step={step}
+              messages={stepMessages}
+              displayTimezone={displayTimezone}
+              busy={busy}
+              onApprove={approve}
+              onSave={save}
+              onRegenerate={regenerate}
+            />
+          ))}
+        </div>
       )}
     </div>
   );
