@@ -7,6 +7,11 @@ import Avatar from "../../../components/ui/Avatar";
 import Segmented from "../../../components/ui/Segmented";
 import Spinner from "../../../components/ui/Spinner";
 import { cleanText, isValidEmail, normalizeUrl } from "../../../lib/validation";
+import {
+  audienceDefaultsFromOnboarding,
+  normalizeApolloLocations,
+  uniqueApolloValues,
+} from "../../../lib/apollo-targeting";
 
 const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
 const TITLE_OPTIONS = ["Founder", "Co-Founder", "Owner", "CEO", "Chief Revenue Officer", "Chief Sales Officer", "VP Sales", "VP Revenue", "Head of Sales", "Head of Revenue", "Sales Director", "Revenue Operations Director"];
@@ -25,6 +30,7 @@ const TECHNOLOGY_OPTIONS = [
   { value: "salesloft", label: "Salesloft" }, { value: "intercom", label: "Intercom" },
   { value: "stripe", label: "Stripe" }, { value: "shopify", label: "Shopify" },
 ];
+const INDUSTRY_OPTIONS = ["B2B SaaS", "IT Services", "Marketing Agencies", "Recruiting", "Fintech", "Healthcare", "Manufacturing", "Real Estate", "E-commerce", "Education"];
 const STAGE_OPTIONS = ["all", "new", "queued", "contacted", "engaged", "meeting_booked", "not_interested", "unsubscribed"];
 const SOURCE_OPTIONS = ["all", "apollo", "csv", "manual"];
 const SORT_OPTIONS = [
@@ -324,7 +330,10 @@ export default function ProspectsPage() {
   const [customLocations, setCustomLocations] = useState("");
   const [organizationLocations, setOrganizationLocations] = useState([]);
   const [companySizes, setCompanySizes] = useState(["51,200", "201,500"]);
-  const [keywords, setKeywords] = useState("B2B SaaS");
+  const [industries, setIndustries] = useState([]);
+  const [customIndustries, setCustomIndustries] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [keywordSuggestions, setKeywordSuggestions] = useState([]);
   const [domains, setDomains] = useState("");
   const [technologies, setTechnologies] = useState([]);
   const [hiringTitles, setHiringTitles] = useState("");
@@ -367,9 +376,20 @@ export default function ProspectsPage() {
   };
 
   useEffect(() => {
-    api.get("/campaigns")
-      .then(({ data }) => setCampaigns(Array.isArray(data?.items) ? data.items : []))
-      .catch(() => setCampaigns([]));
+    Promise.allSettled([api.get("/campaigns"), api.get("/onboarding")])
+      .then(([campaignResult, onboardingResult]) => {
+        if (campaignResult.status === "fulfilled") setCampaigns(Array.isArray(campaignResult.value.data?.items) ? campaignResult.value.data.items : []);
+        else setCampaigns([]);
+        if (onboardingResult.status === "fulfilled" && onboardingResult.value.data) {
+          const defaults = audienceDefaultsFromOnboarding(onboardingResult.value.data);
+          if (defaults.titles.length) setTitles(defaults.titles);
+          if (defaults.locations.length) setLocations(defaults.locations);
+          if (defaults.companySizes.length) setCompanySizes(defaults.companySizes);
+          setIndustries(defaults.industries);
+          setKeywordSuggestions(defaults.keywordSuggestions);
+          setKeywords(defaults.keywords);
+        }
+      });
     refreshLeads();
     try {
       const saved = JSON.parse(window.localStorage.getItem("gnx-active-apollo-import") || "null");
@@ -406,7 +426,11 @@ export default function ProspectsPage() {
     revealed: leads.filter(lead => Boolean(lead.email)).length,
   }), [leads]);
 
-  const canSearch = useMemo(() => Boolean(campaignId) && (titles.length > 0 || customTitles.trim() || seniorities.length > 0 || locations.length > 0 || customLocations.trim() || companySizes.length > 0 || keywords.trim()), [campaignId, titles, customTitles, seniorities, locations, customLocations, companySizes, keywords]);
+  const canSearch = useMemo(() => Boolean(campaignId)
+    && (titles.length > 0 || customTitles.trim())
+    && (locations.length > 0 || customLocations.trim())
+    && companySizes.length > 0
+    && (industries.length > 0 || customIndustries.trim()), [campaignId, titles, customTitles, locations, customLocations, companySizes, industries, customIndustries]);
   const revealableLeads = useMemo(
     () => filteredLeads.filter(lead => lead.source === "apollo" && !lead.email),
     [filteredLeads]
@@ -425,10 +449,11 @@ export default function ProspectsPage() {
         titles: [...new Set([...titles, ...splitList(customTitles)])],
         includeSimilarTitles,
         seniorities,
-        locations: [...new Set([...locations, ...splitList(customLocations)])],
+        locations: normalizeApolloLocations([...locations, ...splitList(customLocations)]),
         organizationLocations,
         organizationDomains: splitList(domains),
         companySizes,
+        industries: uniqueApolloValues([...industries, ...splitList(customIndustries)]),
         technologyUids: technologies,
         hiringJobTitles: splitList(hiringTitles),
         revenueMin: revenueMin === "" ? undefined : Number(revenueMin),
@@ -839,18 +864,20 @@ export default function ProspectsPage() {
                   {campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name} · {campaign.channel || "email"}</option>)}
                 </select>
               </label>
-              <MultiSelect label="Job titles" options={TITLE_OPTIONS} value={titles} onChange={setTitles} placeholder="Select job titles" required />
+              <MultiSelect label="Job titles" options={uniqueApolloValues([...TITLE_OPTIONS, ...titles])} value={titles} onChange={setTitles} placeholder="Select job titles" required />
               <MultiSelect label="Management level" options={SENIORITY_OPTIONS} value={seniorities} onChange={setSeniorities} placeholder="Select seniority" required />
-              <MultiSelect label="People locations" options={LOCATION_OPTIONS} value={locations} onChange={setLocations} placeholder="Select locations" required />
+              <MultiSelect label="People locations" options={uniqueApolloValues([...LOCATION_OPTIONS, ...locations])} value={locations} onChange={setLocations} placeholder="Select locations" required />
               <label className="field"><span>Other job titles</span><input className="input" value={customTitles} onChange={event => setCustomTitles(event.target.value)} placeholder="Add custom titles, comma separated" /></label>
               <label className="field"><span>Other people locations</span><input className="input" value={customLocations} onChange={event => setCustomLocations(event.target.value)} placeholder="Add cities or regions, comma separated" /></label>
+              <MultiSelect label="Target industries" options={uniqueApolloValues([...INDUSTRY_OPTIONS, ...industries])} value={industries} onChange={value => { setIndustries(value); setKeywords(value.join(", ")); }} placeholder="Select industries" required />
+              <label className="field"><span>Other industries</span><input className="input" value={customIndustries} onChange={event => setCustomIndustries(event.target.value)} placeholder="Add custom industries, comma separated" /></label>
             </div>
             <div className="field" style={{ marginTop: 14 }}>
               <span>Company size *</span>
               <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-                {COMPANY_SIZE_OPTIONS.map(size => (
+                {uniqueApolloValues([...COMPANY_SIZE_OPTIONS, ...companySizes]).map(size => (
                   <button key={size} type="button" className="btn btn-ghost btn-sm" onClick={() => toggleSize(size)} style={{ height: 32, padding: "0 11px", fontSize: 12, background: companySizes.includes(size) ? "var(--g-50)" : "#fff", borderColor: companySizes.includes(size) ? "var(--g-300)" : "var(--line)" }}>
-                    {size.replace(",", "-")} employees
+                    {size.endsWith(",") ? `${size.slice(0, -1)}+` : size.replace(",", "-")} employees
                   </button>
                 ))}
               </div>
@@ -876,8 +903,15 @@ export default function ProspectsPage() {
                   <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={revenueMax} onChange={event => setRevenueMax(event.target.value)} placeholder="50000000" /></label>
                   <label className="field"><span>Leads to prepare</span><select className="input" value={leadLimit} onChange={event => setLeadLimit(Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
                 </div>
+                {keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Onboarding suggestions</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" onClick={() => setKeywords(current => uniqueApolloValues([...splitList(current), keyword]).join(", "))}>{keyword}</button>)}</div></div> : null}
               </div>
             ) : null}
+            <div style={{ marginTop: 14, padding: 12, border: "1px solid var(--line)", borderRadius: 8, background: "#fff" }}>
+              <strong style={{ fontSize: 12.5 }}>Final Apollo audience</strong>
+              <p className="faint" style={{ fontSize: 12, marginTop: 5, lineHeight: 1.55 }}>
+                {uniqueApolloValues([...titles, ...splitList(customTitles)]).join(", ") || "No titles"} · {normalizeApolloLocations([...locations, ...splitList(customLocations)]).join(", ") || "No locations"} · {uniqueApolloValues([...industries, ...splitList(customIndustries)]).join(", ") || "No industries"} · {companySizes.length} company-size range{companySizes.length === 1 ? "" : "s"}
+              </p>
+            </div>
             <div className="row spread source-actions">
               <span className="faint">Email campaigns require an enriched email; voice campaigns require an enriched callable phone.</span>
               <button className="btn btn-primary btn-sm" type="submit" disabled={!canSearch || loading}>

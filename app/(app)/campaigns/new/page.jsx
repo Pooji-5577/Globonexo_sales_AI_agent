@@ -6,6 +6,11 @@ import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
 import Avatar from "../../../../components/ui/Avatar";
 import Spinner from "../../../../components/ui/Spinner";
+import {
+  audienceDefaultsFromOnboarding,
+  normalizeApolloLocations,
+  uniqueApolloValues,
+} from "../../../../lib/apollo-targeting";
 
 const DEFAULT_FORM = {
   name: "",
@@ -72,8 +77,11 @@ const DEFAULT_AUTOMATIC_AUDIENCE = {
   customLocations: "",
   seniorities: ["vp", "head"],
   companySizes: ["51,200", "201,500"],
+  industries: [],
+  customIndustries: "",
   includeSimilarTitles: true,
   keywords: "",
+  keywordSuggestions: [],
   organizationLocations: [],
   domains: "",
   technologies: [],
@@ -82,10 +90,10 @@ const DEFAULT_AUTOMATIC_AUDIENCE = {
   revenueMax: "",
 };
 const COMPANY_SIZE_OPTIONS = ["1,10", "11,50", "51,200", "201,500", "501,1000", "1001,5000", "5001,10000", "10001,"];
-const COMPANY_SIZE_LABELS = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1001-5000", "5001-10000", "10001+"];
 const TITLE_OPTIONS = ["Founder", "Co-Founder", "Owner", "CEO", "Chief Revenue Officer", "Chief Sales Officer", "VP Sales", "VP Revenue", "Head of Sales", "Head of Revenue", "Sales Director", "Revenue Operations Director"];
 const LOCATION_OPTIONS = ["United States", "United Kingdom", "Canada", "Australia", "India", "Germany", "France", "Netherlands", "Singapore", "United Arab Emirates"];
 const SENIORITY_OPTIONS = [["owner", "Owner"], ["founder", "Founder"], ["c_suite", "C-Suite"], ["partner", "Partner"], ["vp", "VP"], ["head", "Head"], ["director", "Director"], ["manager", "Manager"], ["senior", "Senior"], ["entry", "Entry"], ["intern", "Intern"]];
+const INDUSTRY_OPTIONS = ["B2B SaaS", "IT Services", "Marketing Agencies", "Recruiting", "Fintech", "Healthcare", "Manufacturing", "Real Estate", "E-commerce", "Education"];
 const TECHNOLOGY_OPTIONS = [["salesforce", "Salesforce"], ["hubspot", "HubSpot"], ["marketo", "Marketo"], ["outreach", "Outreach"], ["salesloft", "Salesloft"], ["intercom", "Intercom"], ["stripe", "Stripe"], ["shopify", "Shopify"]];
 const splitTargetList = value => value.split(",").map(item => item.trim()).filter(Boolean);
 
@@ -195,6 +203,24 @@ export default function NewCampaignPage() {
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
       .catch(() => setAllLeads([]))
       .finally(() => setLeadsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    api.get("/onboarding")
+      .then(({ data }) => {
+        if (!data) return;
+        const defaults = audienceDefaultsFromOnboarding(data);
+        setAutomaticAudience(current => ({
+          ...current,
+          titles: defaults.titles.length ? defaults.titles : current.titles,
+          locations: defaults.locations.length ? defaults.locations : current.locations,
+          companySizes: defaults.companySizes.length ? defaults.companySizes : current.companySizes,
+          industries: defaults.industries,
+          keywordSuggestions: defaults.keywordSuggestions,
+          keywords: defaults.keywords,
+        }));
+      })
+      .catch(() => {});
   }, []);
 
   // Restore any in-progress draft first. Only fall back to the onboarding
@@ -417,6 +443,7 @@ export default function NewCampaignPage() {
       if (automaticAudience.titles.length === 0 && splitTargetList(automaticAudience.customTitles).length === 0) errors.push("Add at least one target job title for automatic lead generation.");
       if (automaticAudience.locations.length === 0 && splitTargetList(automaticAudience.customLocations).length === 0) errors.push("Add at least one target location for automatic lead generation.");
       if (automaticAudience.companySizes.length === 0) errors.push("Select at least one company size for automatic lead generation.");
+      if (automaticAudience.industries.length === 0 && splitTargetList(automaticAudience.customIndustries).length === 0) errors.push("Select at least one target industry for automatic lead generation.");
     }
     if (voiceEnabled && !form.voicePermissionConfirmed) {
       errors.push(VOICE_PERMISSION_ERROR);
@@ -481,9 +508,10 @@ export default function NewCampaignPage() {
         await api.post("/apollo/import", {
           campaignId,
           titles: [...automaticAudience.titles, ...splitTargetList(automaticAudience.customTitles)],
-          locations: [...automaticAudience.locations, ...splitTargetList(automaticAudience.customLocations)],
+          locations: normalizeApolloLocations([...automaticAudience.locations, ...splitTargetList(automaticAudience.customLocations)]),
           seniorities: automaticAudience.seniorities,
           companySizes: automaticAudience.companySizes,
+          industries: uniqueApolloValues([...automaticAudience.industries, ...splitTargetList(automaticAudience.customIndustries)]),
           includeSimilarTitles: automaticAudience.includeSimilarTitles,
           organizationLocations: automaticAudience.organizationLocations,
           organizationDomains: splitTargetList(automaticAudience.domains),
@@ -918,18 +946,21 @@ export default function NewCampaignPage() {
                     <p className="faint" style={{ fontSize: 12.5, marginTop: 3 }}>GNX searches, deduplicates, enriches, and only admits leads with the contact method required by this campaign.</p>
                   </div>
                   <div className="form-grid">
-                    <CampaignApolloMultiSelect label="Job titles" options={TITLE_OPTIONS} value={automaticAudience.titles} onChange={titles => setAutomaticAudience(current => ({ ...current, titles }))} placeholder="Select job titles" required />
+                    <CampaignApolloMultiSelect label="Job titles" options={uniqueApolloValues([...TITLE_OPTIONS, ...automaticAudience.titles])} value={automaticAudience.titles} onChange={titles => setAutomaticAudience(current => ({ ...current, titles }))} placeholder="Select job titles" required />
                     <CampaignApolloMultiSelect label="Management level" options={SENIORITY_OPTIONS} value={automaticAudience.seniorities} onChange={seniorities => setAutomaticAudience(current => ({ ...current, seniorities }))} placeholder="Select seniority" required />
-                    <CampaignApolloMultiSelect label="People locations" options={LOCATION_OPTIONS} value={automaticAudience.locations} onChange={locations => setAutomaticAudience(current => ({ ...current, locations }))} placeholder="Select locations" required />
+                    <CampaignApolloMultiSelect label="People locations" options={uniqueApolloValues([...LOCATION_OPTIONS, ...automaticAudience.locations])} value={automaticAudience.locations} onChange={locations => setAutomaticAudience(current => ({ ...current, locations }))} placeholder="Select locations" required />
                     <label className="field"><span>Other job titles</span><input className="input" value={automaticAudience.customTitles} onChange={event => setAutomaticAudience(current => ({ ...current, customTitles: event.target.value }))} placeholder="Add custom titles, comma separated" /></label>
                     <label className="field"><span>Other people locations</span><input className="input" value={automaticAudience.customLocations} onChange={event => setAutomaticAudience(current => ({ ...current, customLocations: event.target.value }))} placeholder="Add cities or regions, comma separated" /></label>
+                    <CampaignApolloMultiSelect label="Target industries" options={uniqueApolloValues([...INDUSTRY_OPTIONS, ...automaticAudience.industries])} value={automaticAudience.industries} onChange={industries => setAutomaticAudience(current => ({ ...current, industries, keywords: industries.join(", ") }))} placeholder="Select industries" required />
+                    <label className="field"><span>Other industries</span><input className="input" value={automaticAudience.customIndustries} onChange={event => setAutomaticAudience(current => ({ ...current, customIndustries: event.target.value }))} placeholder="Add custom industries, comma separated" /></label>
                   </div>
                   <div className="field" style={{ marginTop: 14 }}>
                     <span style={{ fontSize: 13, fontWeight: 700 }}>Company size *</span>
                     <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                      {COMPANY_SIZE_OPTIONS.map((value, index) => {
+                      {uniqueApolloValues([...COMPANY_SIZE_OPTIONS, ...automaticAudience.companySizes]).map(value => {
                         const active = automaticAudience.companySizes.includes(value);
-                        return <button key={value} type="button" className="btn btn-ghost btn-sm" style={{ height: 32, padding: "0 11px", fontSize: 12, background: active ? "var(--g-50)" : "#fff", borderColor: active ? "var(--g-300)" : "var(--line)" }} onClick={() => setAutomaticAudience(current => ({ ...current, companySizes: active ? current.companySizes.filter(item => item !== value) : [...current.companySizes, value] }))}>{COMPANY_SIZE_LABELS[index]} employees</button>;
+                        const sizeLabel = value.endsWith(",") ? `${value.slice(0, -1)}+` : value.replace(",", "-");
+                        return <button key={value} type="button" className="btn btn-ghost btn-sm" style={{ height: 32, padding: "0 11px", fontSize: 12, background: active ? "var(--g-50)" : "#fff", borderColor: active ? "var(--g-300)" : "var(--line)" }} onClick={() => setAutomaticAudience(current => ({ ...current, companySizes: active ? current.companySizes.filter(item => item !== value) : [...current.companySizes, value] }))}>{sizeLabel} employees</button>;
                       })}
                     </div>
                   </div>
@@ -952,8 +983,15 @@ export default function NewCampaignPage() {
                         <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={automaticAudience.revenueMax} onChange={event => setAutomaticAudience(current => ({ ...current, revenueMax: event.target.value }))} placeholder="50000000" /></label>
                         <label className="field"><span>Leads to prepare</span><select className="input" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
                       </div>
+                      {automaticAudience.keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Onboarding suggestions</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{automaticAudience.keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" onClick={() => setAutomaticAudience(current => ({ ...current, keywords: uniqueApolloValues([...splitTargetList(current.keywords), keyword]).join(", ") }))}>{keyword}</button>)}</div></div> : null}
                     </div>
                   ) : null}
+                  <div style={{ marginTop: 14, padding: 12, border: "1px solid var(--line)", borderRadius: 8, background: "#fff" }}>
+                    <strong style={{ fontSize: 12.5 }}>Final Apollo audience</strong>
+                    <p className="faint" style={{ fontSize: 12, marginTop: 5, lineHeight: 1.55 }}>
+                      {uniqueApolloValues([...automaticAudience.titles, ...splitTargetList(automaticAudience.customTitles)]).join(", ") || "No titles"} · {normalizeApolloLocations([...automaticAudience.locations, ...splitTargetList(automaticAudience.customLocations)]).join(", ") || "No locations"} · {uniqueApolloValues([...automaticAudience.industries, ...splitTargetList(automaticAudience.customIndustries)]).join(", ") || "No industries"} · {automaticAudience.companySizes.length} company-size range{automaticAudience.companySizes.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
                   <p className="faint" style={{ fontSize: 12.5, marginTop: 14 }}>{emailEnabled ? "Only leads with an enriched email will enter this campaign." : "Only leads with an enriched callable phone will enter this campaign."}</p>
                 </div>
               ) : <>
