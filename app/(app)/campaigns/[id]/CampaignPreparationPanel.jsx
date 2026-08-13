@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
+import { latestPreparationEvents } from "../../../../lib/campaign-display";
 
 const ACTIVE_PREPARATION = new Set(["not_started", "preparing"]);
 const ACTIVE_SIMULATION = new Set(["queued", "running", "repairing"]);
@@ -236,7 +237,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const ready = Number(data?.readinessCounts?.ready ?? 0);
   const target = Number(data?.campaign?.target_qualified_leads ?? 0);
   const countdown = formatCountdown(data?.campaign?.next_acquisition_at, now);
-  const events = useMemo(() => data?.events ?? [], [data?.events]);
+  const events = useMemo(() => latestPreparationEvents(data?.events ?? []), [data?.events]);
   const hasAgent = Boolean(data?.campaign?.retell_staging_agent_id);
   const importFinishedEmpty = importRun?.isTerminal && Number(importRun.qualified ?? 0) === 0;
   const headline = importIsActive

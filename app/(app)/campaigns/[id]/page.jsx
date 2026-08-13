@@ -8,6 +8,7 @@ import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
 import DraftReview from "../../../../components/campaigns/DraftReview";
 import CampaignPreparationPanel from "./CampaignPreparationPanel";
+import { browserTimezone, formatScheduledInTimezone } from "../../../../lib/campaign-display";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -86,11 +87,6 @@ function leadStatusStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
-function formatScheduled(value, timezone) {
-  if (!value) return null;
-  return new Intl.DateTimeFormat("en", { timeZone: timezone || undefined, month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(new Date(value));
-}
-
 function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
@@ -118,7 +114,7 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone,
       <td>
         {attempt ? (
           <div className="col" style={{ gap: 2 }}>
-            <strong style={{ fontSize: 12.5 }}>{attempt.scheduled_at ? formatScheduled(attempt.scheduled_at, displayTimezone) : "Not scheduled"}</strong>
+            <strong style={{ fontSize: 12.5 }}>{attempt.scheduled_at ? formatScheduledInTimezone(attempt.scheduled_at, displayTimezone) : "Not scheduled"}</strong>
             <span className="faint" style={{ fontSize: 11.5 }}>{attempt.blocked_reason ? attempt.blocked_reason.replace(/_/g, " ") : `${attempt.status} · ${attempt.lead_timezone || "timezone required"}`}</span>
           </div>
         ) : <span className="faint" style={{ fontSize: 12 }}>Not scheduled</span>}
@@ -171,6 +167,7 @@ export default function CampaignDetailPage() {
   const [pausing, setPausing] = useState(false);
   const [actionKey, setActionKey] = useState("");
   const [schedule, setSchedule] = useState([]);
+  const [displayTimezone, setDisplayTimezone] = useState(browserTimezone());
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -182,14 +179,16 @@ export default function CampaignDetailPage() {
     setLoading(true);
     setError("");
     try {
-      const [campaignRes, leadsRes, scheduleRes] = await Promise.all([
+      const [campaignRes, leadsRes, scheduleRes, settingsRes] = await Promise.all([
         api.get(`/campaigns/${id}`),
         api.get("/leads", { params: { campaignId: id, perPage: 500 } }),
         api.get(`/campaigns/${id}/schedule`),
+        api.get("/settings").catch(() => ({ data: {} })),
       ]);
       setCampaign(campaignRes.data);
       setLeads(Array.isArray(leadsRes.data?.items) ? leadsRes.data.items : leadsRes.data ?? []);
       setSchedule(Array.isArray(scheduleRes.data?.items) ? scheduleRes.data.items : []);
+      setDisplayTimezone(settingsRes.data?.displayTimezone || settingsRes.data?.profile?.displayTimezone || browserTimezone());
     } catch (err) {
       setError(err?.response?.data?.error ?? "Failed to load campaign.");
     } finally {
@@ -419,12 +418,13 @@ export default function CampaignDetailPage() {
                 </>
               )}
               <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Lead-local hours</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.businessHoursStart} - {campaign.businessHoursEnd}</span></div>
-              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Display timezone</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.timezone}</span></div>
+              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Your display timezone</span><span style={{ fontSize: 14, fontWeight: 700 }}>{displayTimezone}</span></div>
+              <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Campaign schedule timezone</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.timezone}</span></div>
               <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Contact days</span><span style={{ fontSize: 14, fontWeight: 700 }}>{(campaign.allowedWeekdays ?? [1,2,3,4,5]).map(day => ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][day]).join(", ")}</span></div>
             </div>
           </div>
 
-          {emailEnabled && <DraftReview campaignId={campaign.id} onChanged={load} />}
+          {emailEnabled && <DraftReview campaignId={campaign.id} displayTimezone={displayTimezone} onChanged={load} />}
 
           <div className="card table-shell" data-tour="campaign-leads">
             <div className="filter-bar">
@@ -445,7 +445,7 @@ export default function CampaignDetailPage() {
                   {leads.length === 0 ? (
                     <tr><td colSpan={leadColumns.length} className="table-empty">No leads are attached to this campaign.</td></tr>
                   ) : leads.map(lead => (
-                    <CampaignLeadRow key={lead.id} lead={lead} attempt={nextAttemptByLead.get(lead.id)} displayTimezone={campaign.timezone} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
+                    <CampaignLeadRow key={lead.id} lead={lead} attempt={nextAttemptByLead.get(lead.id)} displayTimezone={displayTimezone} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
                   ))}
                 </tbody>
               </table>
