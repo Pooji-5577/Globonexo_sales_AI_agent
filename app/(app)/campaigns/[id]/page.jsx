@@ -234,7 +234,9 @@ export default function CampaignDetailPage() {
   const reconnectGmailForLead = useCallback(async leadId => {
     const { data } = await api.get("/gmail/auth-url", {
       params: {
-        returnTo: `/campaigns/${id}`,
+        // The send was started from the leads table, so come back to it
+        // rather than dropping the customer on the default Emails tab.
+        returnTo: `/campaigns/${id}?tab=leads`,
         sendLeadId: leadId,
       },
     });
@@ -290,6 +292,17 @@ export default function CampaignDetailPage() {
     autoSendStartedRef.current = true;
     sendLeadNow(sendLeadId);
   }, [searchParams, sendLeadNow]);
+
+  // The tab lives in the URL so a reload, a shared link, and the Gmail
+  // reconnect round-trip all land on the section the customer was reading.
+  const activeTab = searchParams.get("tab") === "leads" ? "leads" : "emails";
+  const selectTab = useCallback(tab => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "leads") params.set("tab", "leads");
+    else params.delete("tab");
+    const query = params.toString();
+    router.push(query ? `/campaigns/${id}?${query}` : `/campaigns/${id}`, { scroll: false });
+  }, [id, router, searchParams]);
 
   const metrics = useMemo(() => {
     const stats = campaign?.stats || {};
@@ -424,8 +437,36 @@ export default function CampaignDetailPage() {
             </div>
           </div>
 
-          {emailEnabled && <DraftReview campaignId={campaign.id} displayTimezone={displayTimezone} onChanged={load} />}
+          {/* A voice-only campaign has no drafts to review, so it keeps the
+              single leads view rather than showing a lone dead tab. */}
+          {emailEnabled && (
+            <div className="segmented-control prospects-source-tabs" role="tablist" aria-label="Campaign sections">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "emails"}
+                className={activeTab === "emails" ? "is-active" : ""}
+                onClick={() => selectTab("emails")}
+              >
+                Emails
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "leads"}
+                className={activeTab === "leads" ? "is-active" : ""}
+                onClick={() => selectTab("leads")}
+              >
+                Leads
+              </button>
+            </div>
+          )}
 
+          {emailEnabled && activeTab === "emails" && (
+            <DraftReview campaignId={campaign.id} displayTimezone={displayTimezone} onChanged={load} />
+          )}
+
+          {(!emailEnabled || activeTab === "leads") && (
           <div className="card table-shell" data-tour="campaign-leads">
             <div className="filter-bar">
               <div>
@@ -451,6 +492,7 @@ export default function CampaignDetailPage() {
               </table>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>

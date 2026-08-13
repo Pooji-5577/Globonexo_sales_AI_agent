@@ -326,6 +326,17 @@ a { color: inherit; text-decoration: none; }
   width: fit-content;
   max-width: 100%;
 }
+/* What survives of the preparation card once a campaign is live: lead
+   acquisition keeps running, so only its countdown and warnings remain. */
+.campaign-acquisition-strip {
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+}
 .prospects-source-tabs button {
   min-height: 44px;
   padding-inline: 22px;
