@@ -1334,11 +1334,17 @@ a { color: inherit; text-decoration: none; }
   min-height: 0;
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
+  /* Without an explicit row the implicit one is auto-sized, so it grows to
+     the full height of the thread list and gets clipped by the overflow
+     below - which left both panels unbounded and their inner .scroll
+     regions with nothing to scroll against. */
+  grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
   background: var(--bg);
 }
 .email-list-panel {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--line);
@@ -1729,6 +1735,9 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 900px) {
   .email-inbox-shell {
     grid-template-columns: 1fr;
+    /* Stacked, the two panels size themselves and the shell scrolls as a
+       whole, so the desktop single-row constraint has to be released. */
+    grid-template-rows: auto auto;
     overflow-y: auto;
   }
   .email-list-panel {
