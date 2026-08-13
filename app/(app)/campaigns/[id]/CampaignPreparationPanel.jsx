@@ -250,6 +250,43 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
           ? "Preparation needs attention"
           : progress >= 100 ? "Campaign assets are ready" : "Preparing your campaign";
 
+  // Nothing is known until the first fetch resolves, and the "not started at
+  // 0%" defaults are indistinguishable from a real unprepared campaign.
+  // Rendering them made a live campaign flash a "Prepare campaign" card for a
+  // second before collapsing, so wait for the answer instead of guessing it.
+  if (!data) return error ? <div className="notice-warn" style={{ marginBottom: 0 }}>{error}</div> : null;
+
+  const exhausted = data?.campaign?.acquisition_status === "audience_exhausted";
+  const canTestAgent = channel === "voice" && hasAgent;
+
+  // Once the campaign has been launched and preparation finished, the setup
+  // checklist has nothing left to say — but acquisition keeps running, so the
+  // countdown, the exhausted warning and the voice test stay reachable in a
+  // single line. `attention` keeps the full card so Retry stays on screen.
+  const launched = Boolean(campaignStatus) && campaignStatus !== "draft";
+  if (launched && progress >= 100 && preparationStatus !== "attention") {
+    if (!error && !exhausted && !countdown && !canTestAgent) return null;
+    return (
+      <>
+        {error ? <div className="notice-warn" style={{ marginBottom: 0 }}>{error}</div> : null}
+        {exhausted || countdown || canTestAgent ? (
+          <section className="row spread campaign-acquisition-strip">
+            <div className="row" style={{ gap: 14, flexWrap: "wrap", fontSize: 12.5 }}>
+              {exhausted ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
+              {countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
+            </div>
+            {canTestAgent ? (
+              <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}>
+                <Icon name="phone" size={14} /> Test Sales Agent
+              </button>
+            ) : null}
+          </section>
+        ) : null}
+        {testing ? <SalesAgentTestModal campaignId={campaignId} onClose={() => setTesting(false)} /> : null}
+      </>
+    );
+  }
+
   return (
     <>
       <section className="card" style={{ padding: 20 }}>
@@ -272,13 +309,13 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
               {importRun ? <span><strong>{importRun.candidatesAttempted}</strong> enrichment attempts</span> : null}
               {Number(importRun?.pending ?? 0) > 0 ? <span><strong>{importRun.pending}</strong> waiting on Apollo</span> : null}
               {progress >= 100 && countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
-              {data?.campaign?.acquisition_status === "audience_exhausted" ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
+              {exhausted ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
             </div>
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             {preparationStatus === "not_started" && !importIsActive && !importFinishedEmpty ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Starting…" : "Prepare campaign"}</button> : null}
             {preparationStatus === "attention" ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
-            {channel === "voice" && hasAgent ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}><Icon name="phone" size={14} /> Test Sales Agent</button> : null}
+            {canTestAgent ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}><Icon name="phone" size={14} /> Test Sales Agent</button> : null}
             {channel === "voice" && simulationStatus === "attention" ? <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={retrySimulations}>Retry simulations</button> : null}
           </div>
         </div>
