@@ -6,6 +6,7 @@ import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
 import Avatar from "../../../../components/ui/Avatar";
 import Spinner from "../../../../components/ui/Spinner";
+import VoicePermissionConfirm from "../../../../components/campaigns/VoicePermissionConfirm";
 import {
   audienceDefaultsFromOnboarding,
   normalizeApolloLocations,
@@ -198,6 +199,12 @@ export default function NewCampaignPage() {
   const emailEnabled = usesEmail(form.channel);
   const voiceEnabled = usesVoice(form.channel);
   const setupReady = form.name.trim().length >= 3 && (!voiceEnabled || form.voicePermissionConfirmed);
+  const setVoicePermission = useCallback(confirmed => {
+    setForm(current => ({ ...current, voicePermissionConfirmed: confirmed }));
+    if (confirmed) {
+      setValidationErrors(current => current.filter(message => message !== VOICE_PERMISSION_ERROR));
+    }
+  }, []);
   useEffect(() => {
     api.get("/leads")
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
@@ -752,21 +759,11 @@ export default function NewCampaignPage() {
                 {voiceEnabled && (
                   <div className="field campaign-new-field" style={{ gridColumn: "1 / -1" }}>
                     <span>Automated calling permission</span>
-                    <label
-                      className="row"
-                      style={{ gap: 10, alignItems: "flex-start", padding: 14, border: `1px solid ${form.voicePermissionConfirmed ? "var(--g-500)" : "var(--line)"}`, borderRadius: 9, cursor: "pointer", background: form.voicePermissionConfirmed ? "var(--g-50)" : "#fff" }}
-                    >
-                      <input
-                        ref={voicePermissionRef}
-                        type="checkbox"
-                        checked={form.voicePermissionConfirmed}
-                        onChange={event => set("voicePermissionConfirmed", event.target.checked)}
-                        style={{ marginTop: 3, flex: "none" }}
-                      />
-                      <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
-                        I confirm that my organization is permitted to make automated calls to these contacts and will follow applicable calling laws.
-                      </span>
-                    </label>
+                    <VoicePermissionConfirm
+                      ref={voicePermissionRef}
+                      checked={form.voicePermissionConfirmed}
+                      onChange={setVoicePermission}
+                    />
                   </div>
                 )}
 
@@ -1144,6 +1141,15 @@ export default function NewCampaignPage() {
                     ? "Campaign name is required before saving this draft."
                     : "Confirm automated calling permission before saving this Voice campaign."}
               </p>
+              {voiceEnabled && !form.voicePermissionConfirmed ? (
+                <div style={{ marginTop: 10 }}>
+                  <VoicePermissionConfirm
+                    checked={form.voicePermissionConfirmed}
+                    onChange={setVoicePermission}
+                    compact
+                  />
+                </div>
+              ) : null}
             </div>
           </aside>
         </div>
