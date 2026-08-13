@@ -9,6 +9,7 @@ import RouteSkeleton from '../../../components/ui/RouteSkeleton';
 import { useFirstLoad } from '../../../hooks/useFirstLoad';
 import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
 import { useSetup } from '../../../providers/SetupProvider';
+import { browserTimezone, DISPLAY_TIMEZONES } from '../../../lib/campaign-display';
 
 const HELP_LINKS = [
   { href: '/support', label: 'Support tickets', ico: 'inbox' },
@@ -102,6 +103,7 @@ export default function SettingsPage() {
     dailyEmailSendCap: 100,
     bookingLink: '',
     retellPhoneNumber: '',
+    displayTimezone: browserTimezone(),
   });
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
@@ -143,18 +145,22 @@ export default function SettingsPage() {
   useEffect(() => {
     api.get('/settings', requestOptions())
       .then(({ data }) => {
+        const profile = data.profile ?? data;
+        const organization = data.organization ?? data;
+        const agentConfig = data.agentConfig ?? data;
         setForm({
-          firstName:          data.profile?.firstName || '',
-          lastName:           data.profile?.lastName || '',
-          orgName:            data.organization?.name || '',
-          orgWebsite:         data.organization?.website || '',
-          tone:               data.agentConfig?.tone || 'consultative',
-          autoApproveReplies: Boolean(data.agentConfig?.autoApproveReplies),
-          dailyEmailSendCap:  data.agentConfig?.dailyEmailSendCap || 100,
-          bookingLink:        data.agentConfig?.bookingLink || '',
-          retellPhoneNumber:  data.agentConfig?.retellPhoneNumber || '',
+          firstName:          profile.firstName || '',
+          lastName:           profile.lastName || '',
+          orgName:            organization.name ?? organization.orgName ?? '',
+          orgWebsite:         organization.website ?? organization.orgWebsite ?? '',
+          tone:               agentConfig.tone || 'consultative',
+          autoApproveReplies: Boolean(agentConfig.autoApproveReplies),
+          dailyEmailSendCap:  agentConfig.dailyEmailSendCap || 100,
+          bookingLink:        agentConfig.bookingLink || '',
+          retellPhoneNumber:  agentConfig.retellPhoneNumber || '',
+          displayTimezone:    profile.displayTimezone || browserTimezone(),
         });
-        setVoiceAgentId(data.agentConfig?.retellAgentId || null);
+        setVoiceAgentId(agentConfig.retellAgentId || null);
       })
       .catch(() => setError('Failed to load settings. Check the API server and refresh.'))
       .finally(() => setLoading(false));
@@ -420,6 +426,7 @@ export default function SettingsPage() {
         autoApproveReplies: Boolean(form.autoApproveReplies),
         dailyEmailSendCap: clampNumber(form.dailyEmailSendCap, { min: 1, max: 500, fallback: 100 }),
         bookingLink,
+        displayTimezone: form.displayTimezone,
       });
       setSuccess(true);
     } catch (err) {
@@ -475,6 +482,17 @@ export default function SettingsPage() {
               <div className="settings-two-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
                 <Field label="First name" value={form.firstName || ''} onChange={set('firstName')} />
                 <Field label="Last name" value={form.lastName || ''} onChange={set('lastName')} />
+              </div>
+              <div className="field" style={{ marginTop: 14 }}>
+                <label>Display timezone</label>
+                <div className="input-wrap">
+                  <select className="input" value={form.displayTimezone} onChange={set('displayTimezone')}>
+                    {(DISPLAY_TIMEZONES.includes(form.displayTimezone) ? DISPLAY_TIMEZONES : [form.displayTimezone, ...DISPLAY_TIMEZONES]).map(zone => (
+                      <option key={zone} value={zone}>{zone.replace(/_/g, ' ')}</option>
+                    ))}
+                  </select>
+                </div>
+                <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>Campaign dates are shown in this timezone. Sending still follows each lead’s local contact window.</span>
               </div>
             </section>
 

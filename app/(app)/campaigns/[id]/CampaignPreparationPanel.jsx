@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
+import { latestPreparationEvents } from "../../../../lib/campaign-display";
 
 const ACTIVE_PREPARATION = new Set(["not_started", "preparing"]);
 const ACTIVE_SIMULATION = new Set(["queued", "running", "repairing"]);
+const ACTIVE_IMPORT = new Set(["queued", "searching", "candidates_found", "enriching", "waiting_for_enrichment"]);
 
 function preparationLog(event, details = {}) {
   // Browser breadcrumbs are intentionally limited to state/counter data.
@@ -156,6 +158,9 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
         response.data?.campaign?.acquisition_status,
         response.data?.campaign?.preparation_progress,
         response.data?.readinessCounts?.ready ?? 0,
+        response.data?.latestImport?.status,
+        response.data?.latestImport?.qualified ?? 0,
+        response.data?.latestImport?.pending ?? 0,
       ].join("|");
       if (statusKey !== lastStatusLogRef.current) {
         lastStatusLogRef.current = statusKey;
@@ -166,6 +171,9 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
           acquisitionStatus: response.data?.campaign?.acquisition_status,
           progress: response.data?.campaign?.preparation_progress,
           ready: response.data?.readinessCounts?.ready ?? 0,
+          importStatus: response.data?.latestImport?.status,
+          importQualified: response.data?.latestImport?.qualified ?? 0,
+          importPending: response.data?.latestImport?.pending ?? 0,
         });
       }
       setError("");
@@ -180,12 +188,13 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
 
   const preparationStatus = data?.campaign?.preparation_status ?? "not_started";
   const simulationStatus = data?.campaign?.retell_simulation_status ?? "not_started";
+  const importStatus = data?.latestImport?.status ?? null;
   useEffect(() => {
     const partialStillWorking = preparationStatus === "ready_partial" && Number(data?.campaign?.preparation_progress ?? 0) < 100;
-    if (!ACTIVE_PREPARATION.has(preparationStatus) && !partialStillWorking && !ACTIVE_SIMULATION.has(simulationStatus)) return undefined;
+    if (!ACTIVE_PREPARATION.has(preparationStatus) && !partialStillWorking && !ACTIVE_SIMULATION.has(simulationStatus) && !ACTIVE_IMPORT.has(importStatus)) return undefined;
     const timer = window.setInterval(load, 8000);
     return () => window.clearInterval(timer);
-  }, [data?.campaign?.preparation_progress, load, preparationStatus, simulationStatus]);
+  }, [data?.campaign?.preparation_progress, importStatus, load, preparationStatus, simulationStatus]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -219,12 +228,27 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   };
 
   const latestRun = data?.simulation?.runs?.[0];
-  const progress = Number(data?.campaign?.preparation_progress ?? 0);
+  const importRun = data?.latestImport;
+  const importIsActive = ACTIVE_IMPORT.has(importStatus);
+  const preparationProgress = Number(data?.campaign?.preparation_progress ?? 0);
+  const progress = preparationStatus === "not_started" && importRun
+    ? Number(importRun.stageProgressPercent ?? 0)
+    : preparationProgress;
   const ready = Number(data?.readinessCounts?.ready ?? 0);
   const target = Number(data?.campaign?.target_qualified_leads ?? 0);
   const countdown = formatCountdown(data?.campaign?.next_acquisition_at, now);
-  const events = useMemo(() => data?.events ?? [], [data?.events]);
+  const events = useMemo(() => latestPreparationEvents(data?.events ?? []), [data?.events]);
   const hasAgent = Boolean(data?.campaign?.retell_staging_agent_id);
+  const importFinishedEmpty = importRun?.isTerminal && Number(importRun.qualified ?? 0) === 0;
+  const headline = importIsActive
+    ? importStatus === "waiting_for_enrichment" ? "Waiting for Apollo enrichment" : "Finding and enriching campaign leads"
+    : importFinishedEmpty
+      ? "No contactable leads found"
+      : preparationStatus === "not_started"
+        ? "Ready to begin preparation"
+        : preparationStatus === "attention"
+          ? "Preparation needs attention"
+          : progress >= 100 ? "Campaign assets are ready" : "Preparing your campaign";
 
   return (
     <>
@@ -234,7 +258,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             <div className="row spread" style={{ gap: 12 }}>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 800, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".05em" }}>Campaign preparation</p>
-                <h2 style={{ fontSize: 19, marginTop: 5 }}>{preparationStatus === "not_started" ? "Ready to begin preparation" : preparationStatus === "attention" ? "Preparation needs attention" : progress >= 100 ? "Campaign assets are ready" : "Preparing your campaign"}</h2>
+                <h2 style={{ fontSize: 19, marginTop: 5 }}>{headline}</h2>
               </div>
               <strong style={{ fontSize: 20 }}>{progress}%</strong>
             </div>
@@ -244,12 +268,15 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             <div className="row" style={{ gap: 14, marginTop: 12, flexWrap: "wrap", fontSize: 12.5 }}>
               <span><strong>{ready}</strong> ready</span>
               {target ? <span><strong>{target}</strong> target prospects</span> : null}
-              {countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
+              {importRun ? <span><strong>{importRun.candidatesFound}</strong> found</span> : null}
+              {importRun ? <span><strong>{importRun.candidatesAttempted}</strong> enrichment attempts</span> : null}
+              {Number(importRun?.pending ?? 0) > 0 ? <span><strong>{importRun.pending}</strong> waiting on Apollo</span> : null}
+              {progress >= 100 && countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
               {data?.campaign?.acquisition_status === "audience_exhausted" ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
             </div>
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-            {preparationStatus === "not_started" ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Starting…" : "Prepare campaign"}</button> : null}
+            {preparationStatus === "not_started" && !importIsActive && !importFinishedEmpty ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Starting…" : "Prepare campaign"}</button> : null}
             {preparationStatus === "attention" ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
             {channel === "voice" && hasAgent ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}><Icon name="phone" size={14} /> Test Sales Agent</button> : null}
             {channel === "voice" && simulationStatus === "attention" ? <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={retrySimulations}>Retry simulations</button> : null}
@@ -257,6 +284,24 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
         </div>
 
         {error ? <div className="notice-warn" style={{ marginTop: 14 }}>{error}</div> : null}
+
+        {importFinishedEmpty ? (
+          <div className="notice-warn" style={{ marginTop: 14 }}>
+            Apollo searched {importRun.pagesSearched} page{importRun.pagesSearched === 1 ? "" : "s"} and found {importRun.candidatesFound} candidates, but none passed enrichment and campaign contact rules. Review the audience filters and start a new import.
+          </div>
+        ) : null}
+
+        {importRun ? (
+          <div style={{ marginTop: 16, padding: 13, borderRadius: 9, background: "var(--bg-2)" }}>
+            <div className="row spread" style={{ gap: 12, flexWrap: "wrap" }}>
+              <strong style={{ fontSize: 13 }}>Apollo lead acquisition · {String(importStatus).replace(/_/g, " ")}</strong>
+              <span className="faint" style={{ fontSize: 12 }}>{importRun.qualified}/{importRun.requested} qualified</span>
+            </div>
+            <p className="faint" style={{ fontSize: 12, marginTop: 5 }}>
+              {importRun.metadata?.message || `${importRun.duplicates} duplicates skipped · ${importRun.rejected} rejected · ${importRun.failed} provider failures`}
+            </p>
+          </div>
+        ) : null}
 
         <div className="col" style={{ gap: 9, marginTop: 20 }}>
           {events.length === 0 ? (

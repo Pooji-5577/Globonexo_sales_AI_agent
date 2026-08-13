@@ -17,6 +17,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import api from "../../lib/api";
 import Icon from "../ui/Icon";
+import { formatScheduledInTimezone } from "../../lib/campaign-display";
 
 function StepChip({ stepNumber }) {
   const labels = { 1: "First touch", 2: "Follow-up", 3: "Final follow-up" };
@@ -42,12 +43,17 @@ function StatusChip({ status, approvedBy }) {
   );
 }
 
-function DraftCard({ message, onApprove, onSave, onRegenerate, busy }) {
+function DraftCard({ message, displayTimezone, onApprove, onSave, onRegenerate, busy }) {
   const [editing, setEditing] = useState(false);
   const [subject, setSubject] = useState(message.subject);
   const [body, setBody] = useState(message.body);
   const lead = message.lead ?? {};
   const sent = message.status === "sent";
+  const scheduledAt = message.schedule?.scheduledAt;
+  const selectedTime = formatScheduledInTimezone(scheduledAt, displayTimezone);
+  const leadTime = message.schedule?.leadTimezone && message.schedule.leadTimezone !== displayTimezone
+    ? formatScheduledInTimezone(scheduledAt, message.schedule.leadTimezone)
+    : null;
 
   useEffect(() => {
     setSubject(message.subject);
@@ -66,6 +72,12 @@ function DraftCard({ message, onApprove, onSave, onRegenerate, busy }) {
               {[lead.title, lead.company].filter(Boolean).join(" at ") || "No title or company"}
             </span>
             <span className="faint" style={{ fontSize: 11.5 }}>{lead.email}</span>
+            {selectedTime ? (
+              <span style={{ fontSize: 11.5, color: "var(--g-700)", fontWeight: 700, marginTop: 3 }}>
+                <Icon name="clock" size={12} /> {message.schedule?.status === "sent" ? "Sent" : "Scheduled"} {selectedTime} · your timezone
+              </span>
+            ) : null}
+            {leadTime ? <span className="faint" style={{ fontSize: 11 }}>Lead local time: {leadTime}</span> : null}
           </div>
           <div className="row" style={{ gap: 6, flexWrap: "wrap", alignItems: "flex-start" }}>
             <StepChip stepNumber={message.stepNumber} />
@@ -143,7 +155,7 @@ function DraftCard({ message, onApprove, onSave, onRegenerate, busy }) {
   );
 }
 
-export default function DraftReview({ campaignId, onChanged }) {
+export default function DraftReview({ campaignId, displayTimezone, onChanged }) {
   const [messages, setMessages] = useState([]);
   const [state, setState] = useState(null);
   const [generation, setGeneration] = useState(null);
@@ -291,6 +303,7 @@ export default function DraftReview({ campaignId, onChanged }) {
           <DraftCard
             key={message.id}
             message={message}
+            displayTimezone={displayTimezone || message.schedule?.displayTimezone}
             busy={busy}
             onApprove={approve}
             onSave={save}

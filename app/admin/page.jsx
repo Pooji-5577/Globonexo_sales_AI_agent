@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { id: "orgs", label: "Organizations", ico: "building" },
   { id: "users", label: "Users", ico: "users" },
   { id: "campaigns", label: "Campaigns", ico: "send" },
+  { id: "apollo", label: "Apollo usage", ico: "chart" },
   { id: "support", label: "Support", ico: "chat" },
 ];
 
@@ -135,6 +136,7 @@ export default function AdminPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [adminUser, setAdminUser] = useState(null);
+  const [apolloUsage, setApolloUsage] = useState(null);
   const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
@@ -188,6 +190,11 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === "support") loadSupportTickets();
+    if (tab === "apollo") {
+      api.get("/admin/apollo-credits")
+        .then(res => setApolloUsage(res.data))
+        .catch(() => setError("Apollo credit usage could not be loaded."));
+    }
   }, [tab]);
 
   useEffect(() => {
@@ -454,6 +461,38 @@ export default function AdminPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      ) : tab === "apollo" ? (
+        <div className="col" style={{ gap: 16 }}>
+          <div className="metric-grid">
+            <Metric label="total credits" value={apolloUsage?.summary?.totalCredits ?? 0} icon="chart" />
+            <Metric label="Apollo calls" value={apolloUsage?.summary?.calls ?? 0} icon="send" />
+            <Metric label="email credits" value={apolloUsage?.summary?.emailCredits ?? 0} icon="mail" />
+            <Metric label="voice credits" value={apolloUsage?.summary?.voiceCredits ?? 0} icon="phone" />
+          </div>
+          <div className="card table-shell">
+            <div className="table-scroll">
+              <table className="data-table" style={{ minWidth: 1180 }}>
+                <thead><tr>{["Time", "Organization", "Campaign", "Operation", "Channel", "Requested", "Returned", "Credits", "State", "Duration"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                <tbody>
+                  {(apolloUsage?.items ?? []).length === 0 ? <tr><td colSpan={10} className="table-empty">No Apollo calls recorded yet.</td></tr> : (apolloUsage?.items ?? []).map(call => (
+                    <tr className="data-row" key={call.id}>
+                      <td>{new Date(call.started_at).toLocaleString()}</td>
+                      <td>{call.organizationName}</td>
+                      <td>{call.campaignName || "—"}</td>
+                      <td><strong>{call.operation}</strong><div className="faint">{call.endpoint}</div></td>
+                      <td><span className="chip">{call.channel || "shared"}</span></td>
+                      <td>{call.requested_records}</td>
+                      <td>{call.channel === "voice" ? call.phone_records : call.email_records}</td>
+                      <td>{call.credit_status === "final" ? Number(call.credits_consumed ?? 0) : call.credit_status}</td>
+                      <td><StatusBadge value={call.status} /></td>
+                      <td>{call.duration_ms == null ? "—" : `${call.duration_ms} ms`}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : (
