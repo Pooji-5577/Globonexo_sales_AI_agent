@@ -181,7 +181,13 @@ function stageStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
-function LeadRow({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
+function formatNextOutreach(attempt) {
+  if (!attempt) return "Not scheduled";
+  if (!attempt.scheduled_at) return attempt.blocked_reason ? `Blocked: ${attempt.blocked_reason.replace(/_/g, " ")}` : "Not scheduled";
+  return new Intl.DateTimeFormat("en", { timeZone: attempt.display_timezone || undefined, month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).format(new Date(attempt.scheduled_at));
+}
+
+function LeadRow({ lead, onDelete, onSendNow, sending }) {
   const name = leadName(lead);
   const score = lead.score ?? 0;
   const status = lead.status || "new";
@@ -191,7 +197,7 @@ function LeadRow({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
   const safeLinkedIn = safeExternalUrl(lead.linkedinUrl);
   const sendReady = hasEmail && !STOPPED_STATUSES.has(status);
   const canSendNow = sendReady && Boolean(lead.campaignId) && status !== "contacted";
-  const canRevealEmail = !hasEmail && source === "apollo";
+  const readyLabel = hasEmail ? "Email ready" : lead.phone ? "Voice ready" : "Not ready";
 
   return (
     <tr className="data-row">
@@ -204,11 +210,12 @@ function LeadRow({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
           </div>
         </div>
       </td>
-      <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.email || "Not revealed"}</span></td>
+      <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.email || "Not requested"}</span></td>
+      <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.phone || "Not requested"}</span></td>
       <td><span className="badge" style={stageStyle(status)}>{STAGE_LABELS[status] || status}</span></td>
       <td>
         <span className={`chip ${sendReady ? "chip-ready" : "chip-blocked"}`}>
-          {sendReady ? "Ready" : hasEmail ? "Stopped" : "Needs email"}
+          {STOPPED_STATUSES.has(status) ? "Stopped" : readyLabel}
         </span>
       </td>
       <td>
@@ -217,20 +224,9 @@ function LeadRow({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
           <strong style={{ fontSize: 13 }}>{score}</strong>
         </div>
       </td>
-      <td><span className="faint" style={{ fontSize: 13 }}>{lead.location || "-"}</span></td>
+      <td><span style={{ fontSize: 12.5, fontWeight: 700 }}>{formatNextOutreach(lead.nextOutreach)}</span></td>
       <td>
         <div className="row" style={{ gap: 6, justifyContent: "flex-end", minWidth: 168, flexWrap: "wrap" }}>
-          {canRevealEmail ? (
-            <button
-              className="btn btn-ghost btn-sm"
-              type="button"
-              disabled={enriching}
-              onClick={() => onEnrich(lead.id)}
-              style={{ height: 32, padding: "0 10px", fontSize: 12 }}
-            >
-              {enriching ? "Revealing..." : "Reveal email"}
-            </button>
-          ) : null}
           <button
             className="btn btn-ghost btn-sm"
             type="button"
@@ -250,7 +246,7 @@ function LeadRow({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
   );
 }
 
-function LeadMobileCard({ lead, onDelete, onEnrich, onSendNow, enriching, sending }) {
+function LeadMobileCard({ lead, onDelete, onSendNow, sending }) {
   const name = leadName(lead);
   const score = lead.score ?? 0;
   const status = lead.status || "new";
@@ -260,7 +256,6 @@ function LeadMobileCard({ lead, onDelete, onEnrich, onSendNow, enriching, sendin
   const safeLinkedIn = safeExternalUrl(lead.linkedinUrl);
   const sendReady = hasEmail && !STOPPED_STATUSES.has(status);
   const canSendNow = sendReady && Boolean(lead.campaignId) && status !== "contacted";
-  const canRevealEmail = !hasEmail && source === "apollo";
 
   return (
     <article className="prospect-mobile-card card">
@@ -291,14 +286,10 @@ function LeadMobileCard({ lead, onDelete, onEnrich, onSendNow, enriching, sendin
         </div>
       </div>
 
-      <div className="prospect-mobile-email">{lead.email || "Email not revealed"}</div>
+      <div className="prospect-mobile-email">Email: {lead.email || "Not requested"} · Phone: {lead.phone || "Not requested"}</div>
+      <div className="faint" style={{ fontSize: 12 }}>Next outreach: {formatNextOutreach(lead.nextOutreach)}</div>
 
       <div className="row prospect-mobile-actions">
-        {canRevealEmail ? (
-          <button className="btn btn-ghost btn-sm" type="button" disabled={enriching} onClick={() => onEnrich(lead.id)}>
-            {enriching ? "Revealing..." : "Reveal email"}
-          </button>
-        ) : null}
         <button className="btn btn-ghost btn-sm" type="button" disabled={!canSendNow || sending} onClick={() => onSendNow(lead.id)}>
           <Icon name="send" size={14} /> {sending ? "Sending..." : "Send now"}
         </button>
@@ -358,6 +349,11 @@ export default function ProspectsPage() {
   const [error, setError] = useState("");
   const [manualLead, setManualLead] = useState(DEFAULT_MANUAL_LEAD);
   const [manualLoading, setManualLoading] = useState(false);
+  const [importProgress, setImportProgress] = useState(null);
+  const [voiceConfirmed, setVoiceConfirmed] = useState(false);
+  const [voiceLegalBasis, setVoiceLegalBasis] = useState("legitimate_interest");
+  const selectedCampaign = campaigns.find(campaign => campaign.id === campaignId);
+  const selectedVoiceCampaign = selectedCampaign?.channel === "voice";
 
   const refreshLeads = () => {
     setLeadLoading(true);
@@ -375,6 +371,13 @@ export default function ProspectsPage() {
       .then(({ data }) => setCampaigns(Array.isArray(data?.items) ? data.items : []))
       .catch(() => setCampaigns([]));
     refreshLeads();
+    try {
+      const saved = JSON.parse(window.localStorage.getItem("gnx-active-apollo-import") || "null");
+      if (saved?.runId) {
+        setImportProgress(saved);
+        if (saved.campaignId) setCampaignId(saved.campaignId);
+      }
+    } catch {}
   }, []);
 
   const filteredLeads = useMemo(() => {
@@ -434,6 +437,9 @@ export default function ProspectsPage() {
         limit: leadLimit,
         candidateCap: Math.min(500, Math.max(50, leadLimit * 5)),
       });
+      const activeImport = { runId: data.runId, campaignId, status: "queued", requested: leadLimit, qualified: 0 };
+      setImportProgress(activeImport);
+      window.localStorage.setItem("gnx-active-apollo-import", JSON.stringify(activeImport));
       setNotice(`Apollo import queued${data?.jobId ? ` as job ${data.jobId}` : ""}. Search, enrichment, and campaign checks will continue in the background.`);
     } catch (err) {
       setError(err?.response?.data?.error || "Apollo import could not be started. Check the filters and Apollo connection.");
@@ -441,6 +447,23 @@ export default function ProspectsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!importProgress?.runId || importProgress?.isTerminal) return;
+    const timer = setInterval(async () => {
+      try {
+        const { data } = await api.get(`/apollo/import/${importProgress.runId}`);
+        setImportProgress(data);
+        if (data.isTerminal) {
+          window.localStorage.removeItem("gnx-active-apollo-import");
+          refreshLeads();
+        } else {
+          window.localStorage.setItem("gnx-active-apollo-import", JSON.stringify({ ...data, campaignId: data.campaignId || campaignId }));
+        }
+      } catch {}
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [importProgress?.runId, importProgress?.isTerminal]);
 
   const handleCsv = async event => {
     const file = event.target.files?.[0];
@@ -460,7 +483,17 @@ export default function ProspectsPage() {
     setError("");
     setNotice("");
     try {
-      const { data } = await api.post("/leads/csv-upload", { campaignId: campaignId || undefined, rows: csvLeads });
+      if (selectedVoiceCampaign && !voiceConfirmed) {
+        setError("Confirm DNC screening and lawful basis before importing voice leads.");
+        return;
+      }
+      const { data } = await api.post("/leads/csv-upload", {
+        campaignId: campaignId || undefined, rows: csvLeads,
+        voiceCompliance: selectedVoiceCampaign ? {
+          confirmed: true, legalBasis: voiceLegalBasis, dncCheckedAt: new Date().toISOString(),
+          country: locations[0] || "Unknown",
+        } : undefined,
+      });
       const inserted = data?.inserted ?? 0;
       const skipped = data?.skipped ?? 0;
       if (skipped > 0) {
@@ -517,6 +550,10 @@ export default function ProspectsPage() {
       setError("Enter a valid LinkedIn URL or leave it blank.");
       return;
     }
+    if (selectedVoiceCampaign && (!phone || !voiceConfirmed)) {
+      setError("Voice campaign leads require a direct/mobile phone and DNC/lawful-basis confirmation.");
+      return;
+    }
 
     setManualLoading(true);
     try {
@@ -532,6 +569,10 @@ export default function ProspectsPage() {
         phone,
         location,
         linkedinUrl,
+        voiceCompliance: selectedVoiceCampaign ? {
+          confirmed: true, legalBasis: voiceLegalBasis, dncCheckedAt: new Date().toISOString(),
+          country: location || "Unknown",
+        } : undefined,
       });
 
       setLeads(current => [data, ...current.filter(lead => lead.id !== data.id)]);
@@ -669,9 +710,6 @@ export default function ProspectsPage() {
                 <select className="input compact-select" value={sortBy} onChange={event => setSortBy(event.target.value)}>
                   {SORT_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
-                <button className="btn btn-ghost btn-sm" type="button" disabled={revealableLeads.length === 0 || bulkEnriching} onClick={enrichVisibleLeads}>
-                  <Icon name="mail" size={15} /> {bulkEnriching ? "Revealing..." : `Reveal emails (${revealableLeads.length})`}
-                </button>
                 <button className="btn btn-primary btn-sm" type="button" onClick={() => setTab("manual")}>
                   <Icon name="plus" size={15} color="#06231a" /> Add manually
                 </button>
@@ -682,6 +720,7 @@ export default function ProspectsPage() {
                   <colgroup>
                     <col className="prospect-col" />
                     <col className="email-col" />
+                    <col className="email-col" />
                     <col className="stage-col" />
                     <col className="ready-col" />
                     <col className="score-col" />
@@ -690,20 +729,18 @@ export default function ProspectsPage() {
                   </colgroup>
                   <thead>
                     <tr>
-                      {["Prospect", "Email", "Stage", "Send ready", "Score", "Location", ""].map(header => <th key={header}>{header}</th>)}
+                      {["Prospect", "Email", "Phone", "Stage", "Readiness", "Score", "Next outreach", ""].map(header => <th key={header}>{header}</th>)}
                     </tr>
                   </thead>
                   <tbody>
                     {leadLoading && filteredLeads.length === 0 ? null : filteredLeads.length === 0 ? (
-                      <tr><td colSpan={7} className="table-empty">No prospects match the current filters.</td></tr>
+                      <tr><td colSpan={8} className="table-empty">No prospects match the current filters.</td></tr>
                     ) : filteredLeads.map(lead => (
                       <LeadRow
                         key={lead.id}
                         lead={lead}
                         onDelete={deleteLead}
-                        onEnrich={enrichLead}
                         onSendNow={sendLeadNow}
-                        enriching={enrichingId === lead.id}
                         sending={sendingId === lead.id}
                       />
                     ))}
@@ -720,9 +757,7 @@ export default function ProspectsPage() {
                     key={lead.id}
                     lead={lead}
                     onDelete={deleteLead}
-                    onEnrich={enrichLead}
                     onSendNow={sendLeadNow}
-                    enriching={enrichingId === lead.id}
                     sending={sendingId === lead.id}
                   />
                 ))}
@@ -754,6 +789,19 @@ export default function ProspectsPage() {
                   {campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
                 </select>
               </label>
+              {selectedVoiceCampaign ? <div className="field" style={{ gridColumn: "1 / -1" }}>
+                <span>Voice compliance *</span>
+                <select className="input" value={voiceLegalBasis} onChange={event => setVoiceLegalBasis(event.target.value)}>
+                  <option value="legitimate_interest">Legitimate interest</option>
+                  <option value="consent">Consent</option>
+                  <option value="existing_business_relationship">Existing business relationship</option>
+                  <option value="other">Other lawful basis</option>
+                </select>
+                <label className="apollo-checkbox-row">
+                  <input type="checkbox" checked={voiceConfirmed} onChange={event => setVoiceConfirmed(event.target.checked)} />
+                  I confirm this direct/mobile number was checked against applicable DNC registries, has not opted out, and may lawfully be called.
+                </label>
+              </div> : null}
             </div>
             <div className="row spread source-actions">
               <span className="faint">Name, email, or company is required. Email and phone can be added later.</span>
@@ -763,6 +811,17 @@ export default function ProspectsPage() {
             </div>
           </form>
         ) : tab === "apollo" ? (
+          <div className="col" style={{ gap: 16 }}>
+          {importProgress ? <section className="card" style={{ padding: 18 }}>
+            <div className="row spread"><strong>Preparing {campaigns.find(c => c.id === campaignId)?.channel || "campaign"} leads</strong><span className="chip">{importProgress.status}</span></div>
+            <div className="row" style={{ gap: 18, marginTop: 12, flexWrap: "wrap" }}>
+              <span>Requested <strong>{importProgress.requested ?? leadLimit}</strong></span>
+              <span>Found <strong>{importProgress.candidatesFound ?? 0}</strong></span>
+              <span>Qualified <strong>{importProgress.qualified ?? 0}</strong></span>
+              <span>Pending <strong>{importProgress.pending ?? 0}</strong></span>
+              <span>Rejected <strong>{importProgress.rejected ?? 0}</strong></span>
+            </div>
+          </section> : null}
           <form className="card source-panel" onSubmit={runApolloSearch}>
             <div className="source-panel-head">
               <span><Icon name="search" size={18} /></span>
@@ -825,7 +884,7 @@ export default function ProspectsPage() {
                 <Icon name="search" size={15} color="#06231a" /> {loading ? "Starting import..." : "Find and prepare leads"}
               </button>
             </div>
-          </form>
+          </form></div>
         ) : (
           <div className="col" style={{ gap: 16 }}>
             <section className="card source-panel">
@@ -838,13 +897,13 @@ export default function ProspectsPage() {
               </div>
               <div className="form-grid two">
                 <label className="field"><span>CSV file</span><input className="input" type="file" accept=".csv,text/csv" onChange={handleCsv} style={{ paddingTop: 12 }} /></label>
-                <label className="field">
-                  <span>Attach to campaign</span>
-                  <select className="input" value={campaignId} onChange={event => setCampaignId(event.target.value)}>
-                    <option value="">No campaign yet</option>
-                    {campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
-                  </select>
-                </label>
+                <label className="field"><span>Attach to campaign</span><select className="input" value={campaignId} onChange={event => { setCampaignId(event.target.value); setVoiceConfirmed(false); }}><option value="">No campaign yet</option>{campaigns.map(campaign => <option key={campaign.id} value={campaign.id}>{campaign.name} · {campaign.channel}</option>)}</select></label>
+                {selectedVoiceCampaign ? <div className="notice-warn">
+                  <strong>Voice compliance confirmation required</strong>
+                  <p>Every row must contain a person-level direct/mobile number.</p>
+                  <select className="input" value={voiceLegalBasis} onChange={event => setVoiceLegalBasis(event.target.value)}><option value="legitimate_interest">Legitimate interest</option><option value="consent">Consent</option><option value="existing_business_relationship">Existing business relationship</option><option value="other">Other lawful basis</option></select>
+                  <label className="apollo-checkbox-row"><input type="checkbox" checked={voiceConfirmed} onChange={event => setVoiceConfirmed(event.target.checked)} /> I confirm these numbers were DNC-checked, have not opted out, and may lawfully be called.</label>
+                </div> : null}
               </div>
               <div className="row spread source-actions">
                 <span className="faint">{csvLeads.length} parsed rows. Maximum 1000 rows per upload.</span>
