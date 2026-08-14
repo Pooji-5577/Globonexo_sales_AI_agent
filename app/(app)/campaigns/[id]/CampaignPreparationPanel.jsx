@@ -233,6 +233,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
     ? Number(importRun.stageProgressPercent ?? 0)
     : preparationProgress;
   const ready = Number(data?.readinessCounts?.ready ?? 0);
+  const zeroReadyVoice = channel === "voice" && progress >= 100 && ready === 0;
   const target = Number(data?.campaign?.target_qualified_leads ?? 0);
   const countdown = formatCountdown(data?.campaign?.next_acquisition_at, now);
   const events = useMemo(() => campaignPreparationEvents(data), [data]);
@@ -246,7 +247,8 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
         ? "Ready to begin preparation"
         : preparationStatus === "attention"
           ? "Preparation needs attention"
-          : progress >= 100 ? "Campaign assets are ready" : "Preparing your campaign";
+          : zeroReadyVoice ? "No voice leads are ready"
+            : progress >= 100 ? "Campaign assets are ready" : "Preparing your campaign";
 
   // Nothing is known until the first fetch resolves, and the "not started at
   // 0%" defaults are indistinguishable from a real unprepared campaign.
@@ -262,7 +264,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   // countdown, the exhausted warning and the voice test stay reachable in a
   // single line. `attention` keeps the full card so Retry stays on screen.
   const launched = Boolean(campaignStatus) && campaignStatus !== "draft";
-  if (launched && progress >= 100 && preparationStatus !== "attention") {
+  if (launched && progress >= 100 && preparationStatus !== "attention" && !zeroReadyVoice) {
     if (!error && !exhausted && !countdown && !canTestAgent) return null;
     return (
       <>
@@ -312,13 +314,19 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             {preparationStatus === "not_started" && !importIsActive && !importFinishedEmpty ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Starting…" : "Prepare campaign"}</button> : null}
-            {preparationStatus === "attention" ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
+            {preparationStatus === "attention" || zeroReadyVoice ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
             {canTestAgent ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}><Icon name="phone" size={14} /> Test Sales Agent</button> : null}
             {channel === "voice" && simulationStatus === "attention" ? <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={retrySimulations}>Retry simulations</button> : null}
           </div>
         </div>
 
         {error ? <div className="notice-warn" style={{ marginTop: 14 }}>{error}</div> : null}
+
+        {zeroReadyVoice ? (
+          <div className="notice-warn" style={{ marginTop: 14 }}>
+            This campaign cannot launch because none of its enrolled leads passed voice readiness. Retry preparation to re-check the phone number and calling acknowledgement.
+          </div>
+        ) : null}
 
         {importFinishedEmpty ? (
           <div className="notice-warn" style={{ marginTop: 14 }}>

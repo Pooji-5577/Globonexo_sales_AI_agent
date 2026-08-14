@@ -8,7 +8,7 @@ import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
 import DraftReview from "../../../../components/campaigns/DraftReview";
 import CampaignPreparationPanel from "./CampaignPreparationPanel";
-import { browserTimezone, formatScheduledInTimezone } from "../../../../lib/campaign-display";
+import { browserTimezone, campaignReadyCount, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -168,6 +168,12 @@ export default function CampaignDetailPage() {
   const [actionKey, setActionKey] = useState("");
   const [schedule, setSchedule] = useState([]);
   const [displayTimezone, setDisplayTimezone] = useState(browserTimezone());
+  const [preparationData, setPreparationData] = useState(null);
+  const handlePreparationChanged = useCallback(data => {
+    setPreparationData(data);
+    const status = data?.campaign?.status;
+    if (status) setCampaign(current => current ? { ...current, status } : current);
+  }, []);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -200,6 +206,7 @@ export default function CampaignDetailPage() {
 
   const handleLaunch = async () => {
     setLaunching(true);
+    setError("");
     try {
       const { data } = await api.post(`/campaigns/${id}/launch`);
       setCampaign(prev => ({ ...prev, status: "active" }));
@@ -212,7 +219,9 @@ export default function CampaignDetailPage() {
       }
       await load();
     } catch (err) {
-      showToast(err?.response?.data?.error ?? "Failed to launch campaign.");
+      const message = err?.response?.data?.error ?? "Failed to launch campaign.";
+      setError(message);
+      showToast(message);
     } finally {
       setLaunching(false);
     }
@@ -306,14 +315,15 @@ export default function CampaignDetailPage() {
 
   const metrics = useMemo(() => {
     const stats = campaign?.stats || {};
+    const ready = campaignReadyCount({ channel: campaign?.channel, stats, preparationData });
     return [
       ["Enrolled", stats.enrolled ?? leads.length],
-      ["Ready", stats.ready ?? 0],
+      ["Ready", ready],
       ["Missing email", stats.missingEmail ?? 0],
       ["Queued", stats.queued ?? 0],
       ["Sent", stats.sent ?? 0],
     ];
-  }, [campaign, leads.length]);
+  }, [campaign, leads.length, preparationData]);
   const nextAttemptByLead = useMemo(() => {
     const map = new Map();
     for (const attempt of schedule) {
@@ -346,6 +356,7 @@ export default function CampaignDetailPage() {
   const voiceEnabled = usesVoice(campaign.channel);
   const dualChannel = emailEnabled && voiceEnabled;
   const isAiVoice = voiceEnabled && (campaign.voiceMode ?? "ai") === "ai";
+  const launchGate = isAiVoice ? voiceLaunchGate(preparationData) : { blocked: false, message: "" };
 
   // A dual-channel campaign shows an Email and a Phone column, so the lead
   // table columns are derived rather than picked from two fixed layouts.
@@ -383,7 +394,7 @@ export default function CampaignDetailPage() {
         </div>
         <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
           {(campaign.status === "draft" || campaign.status === "paused") && (
-            <button className="btn btn-primary btn-sm" data-tour="campaign-launch" onClick={handleLaunch} disabled={launching}>
+            <button className="btn btn-primary btn-sm" data-tour="campaign-launch" onClick={handleLaunch} disabled={launching || launchGate.blocked} title={launchGate.blocked ? launchGate.message : undefined}>
               {launching ? "Launching..." : "Launch campaign"}
             </button>
           )}
@@ -399,7 +410,7 @@ export default function CampaignDetailPage() {
 
       <div className="scroll grow app-page">
         <div className="col" style={{ gap: 16 }}>
-          <CampaignPreparationPanel campaignId={campaign.id} channel={campaign.channel} campaignStatus={campaign.status} />
+          <CampaignPreparationPanel campaignId={campaign.id} channel={campaign.channel} campaignStatus={campaign.status} onChanged={handlePreparationChanged} />
 
           <div className="metric-grid">
             {metrics.map(([label, value]) => (
