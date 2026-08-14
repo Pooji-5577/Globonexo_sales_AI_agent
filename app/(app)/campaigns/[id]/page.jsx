@@ -8,7 +8,7 @@ import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
 import DraftReview from "../../../../components/campaigns/DraftReview";
 import CampaignPreparationPanel from "./CampaignPreparationPanel";
-import { browserTimezone, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
+import { browserTimezone, campaignReadyCount, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -169,6 +169,11 @@ export default function CampaignDetailPage() {
   const [schedule, setSchedule] = useState([]);
   const [displayTimezone, setDisplayTimezone] = useState(browserTimezone());
   const [preparationData, setPreparationData] = useState(null);
+  const handlePreparationChanged = useCallback(data => {
+    setPreparationData(data);
+    const status = data?.campaign?.status;
+    if (status) setCampaign(current => current ? { ...current, status } : current);
+  }, []);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
@@ -310,14 +315,15 @@ export default function CampaignDetailPage() {
 
   const metrics = useMemo(() => {
     const stats = campaign?.stats || {};
+    const ready = campaignReadyCount({ channel: campaign?.channel, stats, preparationData });
     return [
       ["Enrolled", stats.enrolled ?? leads.length],
-      ["Ready", stats.ready ?? 0],
+      ["Ready", ready],
       ["Missing email", stats.missingEmail ?? 0],
       ["Queued", stats.queued ?? 0],
       ["Sent", stats.sent ?? 0],
     ];
-  }, [campaign, leads.length]);
+  }, [campaign, leads.length, preparationData]);
   const nextAttemptByLead = useMemo(() => {
     const map = new Map();
     for (const attempt of schedule) {
@@ -404,7 +410,7 @@ export default function CampaignDetailPage() {
 
       <div className="scroll grow app-page">
         <div className="col" style={{ gap: 16 }}>
-          <CampaignPreparationPanel campaignId={campaign.id} channel={campaign.channel} campaignStatus={campaign.status} onChanged={setPreparationData} />
+          <CampaignPreparationPanel campaignId={campaign.id} channel={campaign.channel} campaignStatus={campaign.status} onChanged={handlePreparationChanged} />
 
           <div className="metric-grid">
             {metrics.map(([label, value]) => (
