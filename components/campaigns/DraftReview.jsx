@@ -7,11 +7,17 @@
  * draft shows the person it is addressed to, their title, company and address,
  * so the recipient can be verified without leaving the screen.
  *
- * Two things the design has to make unmissable. Approve all, because a first
+ * Three things the design has to make unmissable. Approve all, because a first
  * campaign carries thirty drafts and approving them one at a time is not a
- * reasonable ask. And the failure count, because generation is automatic - if
+ * reasonable ask. The failure count, because generation is automatic - if
  * two leads produced nothing, nobody pressed a button that could have told
  * them, and a silently uncontacted lead is one the customer paid to enrich.
+ *
+ * And the thin-context pile, for the same reason as the failure count. These
+ * are the emails autopilot refuses to send, so they are waiting on a person who
+ * may well believe nothing is waiting on them. Every bulk control here counts
+ * them separately and leaves them behind - "Approve all" that swept them up
+ * would be the fastest way to make the hold meaningless.
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
@@ -31,9 +37,20 @@ function stepTiming(delayDays) {
   return `Send on Day ${delayDays}`;
 }
 
-function StatusChip({ status, approvedBy }) {
+const THIN_CHIP = { bg: "#fef9c3", color: "#854d0e" };
+
+function thinTitle(message) {
+  return `Apollo had ${message.contextScore ?? 0} of ${message.contextScoreMax ?? 10} optional details for this lead, so this email is deliberately short and role-based rather than padded with guesses. Autopilot will not send it — you decide.`;
+}
+
+// A thin draft says "needs your OK" rather than "needs review", because the two
+// are different asks: autopilot can take a review off the customer's hands and
+// cannot take this one.
+function StatusChip({ status, approvedBy, thinContext }) {
   const styles = {
-    draft: { label: "Needs review", bg: "#fff7ed", color: "#9a3412" },
+    draft: thinContext
+      ? { label: "Needs your OK", ...THIN_CHIP }
+      : { label: "Needs review", bg: "#fff7ed", color: "#9a3412" },
     approved: { label: approvedBy === "autopilot" ? "Approved by autopilot" : "Approved", bg: "var(--g-50)", color: "var(--g-700)" },
     queued: { label: "Queued", bg: "#eef2ff", color: "#4338ca" },
     sent: { label: "Sent", bg: "var(--bg-2)", color: "var(--muted)" },
@@ -46,7 +63,7 @@ function StatusChip({ status, approvedBy }) {
   );
 }
 
-function DraftRow({ message, displayTimezone, onApprove, onSave, onRegenerate, busy }) {
+function DraftRow({ message, displayTimezone, onApprove, onSendThin, onSave, onRegenerate, busy }) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [subject, setSubject] = useState(message.subject);
@@ -81,7 +98,14 @@ function DraftRow({ message, displayTimezone, onApprove, onSave, onRegenerate, b
           <span className="faint campaign-email-preview">{message.body}</span>
         </span>
         <span className="campaign-email-state">
-          <StatusChip status={message.status} approvedBy={message.approvedBy} />
+          {/* On the collapsed row, not only inside the detail: an email you have
+              to open to discover is unreviewed is one nobody reviews. */}
+          {message.thinContext && (
+            <span className="chip" style={{ background: THIN_CHIP.bg, color: THIN_CHIP.color, fontSize: 11, fontWeight: 700 }} title={thinTitle(message)}>
+              Thin context
+            </span>
+          )}
+          <StatusChip status={message.status} approvedBy={message.approvedBy} thinContext={message.thinContext} />
           <span className={expanded || editing ? "campaign-email-expand-icon is-open" : "campaign-email-expand-icon"}>
             <Icon name="arrow" size={15} />
           </span>
@@ -104,13 +128,12 @@ function DraftRow({ message, displayTimezone, onApprove, onSave, onRegenerate, b
               ) : null}
               {leadTime ? <span className="faint" style={{ fontSize: 11 }}>Lead local time: {leadTime}</span> : null}
             </div>
-            {message.thinContext && (
-              <span
-                className="chip"
-                style={{ background: "#fef9c3", color: "#854d0e", fontSize: 11 }}
-                title={`Apollo had ${message.contextScore ?? 0} of ${message.contextScoreMax ?? 10} optional details for this lead, so this email is deliberately short and role-based rather than padded with guesses.`}
-              >
-                Thin context
+            {/* The chip is already on the collapsed row, so the space here is
+                better spent saying what it means and what happens next. */}
+            {message.thinContext && message.status !== "sent" && (
+              <span style={{ fontSize: 11.5, color: THIN_CHIP.color, maxWidth: 340, lineHeight: 1.5 }}>
+                Apollo returned {message.contextScore ?? 0} of {message.contextScoreMax ?? 10} optional details for this lead, so this email is
+                short and role-based rather than padded with guesses. Your agent will not send it on its own.
               </span>
             )}
           </div>
@@ -165,9 +188,20 @@ function DraftRow({ message, displayTimezone, onApprove, onSave, onRegenerate, b
                 )}
               </div>
               {message.status === "draft" && !editing && (
-                <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onApprove([message.id])}>
-                  Approve
-                </button>
+                message.thinContext ? (
+                  <button
+                    className="btn btn-primary btn-sm"
+                    disabled={busy}
+                    onClick={() => onSendThin([message.id])}
+                    title="Send this email even though we know little about the lead. Any follow-ups to this person go with it, so you are not asked again."
+                  >
+                    Send anyway
+                  </button>
+                ) : (
+                  <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => onApprove([message.id])}>
+                    Approve
+                  </button>
+                )
               )}
             </div>
           )}
@@ -177,8 +211,14 @@ function DraftRow({ message, displayTimezone, onApprove, onSave, onRegenerate, b
   );
 }
 
-function StepSection({ step, messages, displayTimezone, onApprove, onSave, onRegenerate, busy }) {
-  const draftIds = messages.filter(message => message.status === "draft").map(message => message.id);
+function StepSection({ step, messages, displayTimezone, onApprove, onSendThin, onSave, onRegenerate, busy }) {
+  // Thin drafts are deliberately not in this list. Approving a step is a bulk
+  // judgement about copy the agent wrote well; the thin ones are the copy it
+  // could not write well, and sweeping them in here would quietly undo the
+  // whole point of holding them back.
+  const draftIds = messages
+    .filter(message => message.status === "draft" && !message.thinContext)
+    .map(message => message.id);
 
   return (
     <section className="campaign-email-step" aria-labelledby={`campaign-email-step-${step.stepNumber}`}>
@@ -203,6 +243,7 @@ function StepSection({ step, messages, displayTimezone, onApprove, onSave, onReg
             displayTimezone={displayTimezone || message.schedule?.displayTimezone}
             busy={busy}
             onApprove={onApprove}
+            onSendThin={onSendThin}
             onSave={onSave}
             onRegenerate={onRegenerate}
           />
@@ -269,12 +310,18 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
 
   const approve = ids => run(() => api.post(`/campaigns/${campaignId}/messages/approve-batch`, { messageIds: ids }));
   const approveAll = () => run(() => api.post(`/campaigns/${campaignId}/messages/approve-batch`, {}));
+  // No ids means every thin-context email in the campaign. With ids, the server
+  // also picks up the same leads' follow-ups, so one decision per person.
+  const sendThin = ids => run(() => api.post(`/campaigns/${campaignId}/messages/send-thin-context`, ids ? { messageIds: ids } : {}));
   const save = (id, patch) => run(() => api.patch(`/campaigns/${campaignId}/messages/${id}`, patch));
   const regenerate = id => run(() => api.post(`/campaigns/${campaignId}/messages/${id}/regenerate`));
   const setAutopilot = enabled => run(() => api.post(`/campaigns/${campaignId}/autopilot`, { enabled }));
   const retryFailed = () => run(() => api.post(`/campaigns/${campaignId}/generation/retry`));
 
-  const counts = state?.counts ?? { draft: 0, approved: 0, sent: 0 };
+  const counts = state?.counts ?? { draft: 0, approved: 0, sent: 0, thinWaiting: 0 };
+  const thinWaiting = counts.thinWaiting ?? 0;
+  // Drafts autopilot or Approve all can still clear on the customer's behalf.
+  const ordinaryDrafts = Math.max(0, counts.draft - thinWaiting);
   const generating = generation && !generation.isTerminal;
   const failedLeads = generation?.failedLeads ?? 0;
   const messageGroups = useMemo(() => {
@@ -308,7 +355,8 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
             <span className="faint" style={{ fontSize: 12.5 }}>
               {generating
                 ? `Writing emails… ${generation.processedLeads ?? 0} of ${generation.totalLeads ?? 0} leads done.`
-                : `${counts.draft} awaiting approval, ${counts.approved} approved, ${counts.sent} sent.`}
+                : `${ordinaryDrafts} awaiting approval, ${counts.approved} approved, ${counts.sent} sent`
+                  + (thinWaiting > 0 ? `, ${thinWaiting} needing your OK.` : ".")}
             </span>
           </div>
 
@@ -329,9 +377,9 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
               <Icon name="bolt" size={14} /> {state?.autopilotEnabled ? "Autopilot on" : "Turn on autopilot"}
             </button>
 
-            {counts.draft > 0 && (
+            {ordinaryDrafts > 0 && (
               <button className="btn btn-primary btn-sm" disabled={busy} onClick={approveAll}>
-                Approve all {counts.draft}
+                Approve all {ordinaryDrafts}
               </button>
             )}
           </div>
@@ -340,8 +388,36 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
         {state?.autopilotEnabled && (
           <p className="faint" style={{ fontSize: 12, marginTop: 10, marginBottom: 0 }}>
             Autopilot is on for this campaign. New emails are approved as they are written. Safety checks still
-            run on every one — an email that fails them is never saved as a draft.
+            run on every one — an email that fails them is never saved as a draft. Emails written from thin
+            context are the exception: autopilot never sends those, so they wait here for you.
           </p>
+        )}
+
+        {/* The pile has to be visible from the top of the screen. A customer who
+            believes autopilot has everything in hand has no reason to scroll. */}
+        {thinWaiting > 0 && (
+          <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: "var(--r-md)", background: "#fefce8", border: "1px solid #fde68a" }}>
+            <div className="row spread" style={{ gap: 10, flexWrap: "wrap" }}>
+              <div className="col" style={{ gap: 2 }}>
+                <strong style={{ fontSize: 13, color: "#854d0e" }}>
+                  {thinWaiting} email{thinWaiting === 1 ? "" : "s"} need{thinWaiting === 1 ? "s" : ""} your OK
+                </strong>
+                <span style={{ fontSize: 12, color: "#854d0e", lineHeight: 1.5 }}>
+                  Apollo returned very little about these leads, so the emails are short and generic. Your agent
+                  will not send them on its own. Read them and send the ones that work — or narrow your targeting
+                  and import better-matched leads.
+                </span>
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                disabled={busy}
+                onClick={() => sendThin(null)}
+                title="Approve and schedule every thin-context email in this campaign, follow-ups included."
+              >
+                Send all {thinWaiting} anyway
+              </button>
+            </div>
+          </div>
         )}
 
         {failedLeads > 0 && (
@@ -385,6 +461,7 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
               displayTimezone={displayTimezone}
               busy={busy}
               onApprove={approve}
+              onSendThin={sendThin}
               onSave={save}
               onRegenerate={regenerate}
             />

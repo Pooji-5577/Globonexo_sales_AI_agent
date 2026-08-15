@@ -62,6 +62,9 @@ export default function AppShell({ children }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
+  const [notifications, setNotifications] = useState({ items: [], unreadCount: 0 });
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -95,7 +98,44 @@ export default function AppShell({ children }) {
   useEffect(() => {
     setMobileNavOpen(false);
     setProfileMenuOpen(false);
+    setNotificationsOpen(false);
   }, [pathname]);
+
+  // Polled rather than pushed. The feed is derived from the drafts themselves,
+  // so a poll is always current and a send made in another tab clears the bell
+  // here without anything having to tell it. Sixty seconds is well inside the
+  // time it takes a customer to notice a pile of emails is waiting.
+  useEffect(() => {
+    if (!authChecked || !user) return undefined;
+
+    let active = true;
+    const load = () => {
+      if (document.visibilityState !== 'visible') return;
+      api.get('/notifications')
+        .then(res => { if (active) setNotifications(res.data ?? { items: [], unreadCount: 0 }); })
+        // A bell that cannot load is not worth an error state: it is ambient
+        // information, and the campaign screen carries the same counts.
+        .catch(() => {});
+    };
+
+    load();
+    const timer = window.setInterval(load, 60000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [authChecked, user, pathname]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [notificationsOpen]);
 
   // The product tour anchors several steps to sidebar items. On a narrow
   // viewport those only exist inside the mobile drawer, so the tour asks for it
@@ -256,9 +296,74 @@ export default function AppShell({ children }) {
             <input className="input has-ico" style={{ height: 40, background: 'var(--bg)', fontSize: 14 }} placeholder="Search leads, accounts, replies…" />
           </div>
           <div className="row" style={{ gap: 14 }}>
-            <button style={{ position: 'relative', color: 'var(--muted)' }}>
-              <Icon name="bell" size={20} />
-            </button>
+            <div ref={notificationsRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                style={{ position: 'relative', color: notifications.unreadCount > 0 ? 'var(--ink-2)' : 'var(--muted)', display: 'block' }}
+                onClick={() => setNotificationsOpen(open => !open)}
+                aria-haspopup="menu"
+                aria-expanded={notificationsOpen}
+                aria-label={notifications.unreadCount > 0
+                  ? `Notifications: ${notifications.unreadCount} email${notifications.unreadCount === 1 ? '' : 's'} need your OK`
+                  : 'Notifications'}
+              >
+                <Icon name="bell" size={20} />
+                {notifications.unreadCount > 0 && (
+                  <span
+                    style={{
+                      position: 'absolute', top: -5, right: -6, minWidth: 17, height: 17, padding: '0 4px',
+                      borderRadius: 9, background: '#b45309', color: '#fff', fontSize: 10.5, fontWeight: 800,
+                      lineHeight: '17px', textAlign: 'center', border: '2px solid #fff', boxSizing: 'content-box',
+                    }}
+                  >
+                    {notifications.unreadCount > 99 ? '99+' : notifications.unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div
+                  className="card"
+                  role="menu"
+                  style={{ position: 'absolute', top: '100%', right: 0, marginTop: 10, width: 340, maxWidth: '90vw', maxHeight: 420, overflowY: 'auto', padding: 6, zIndex: 40 }}
+                >
+                  <div style={{ padding: '8px 10px 6px' }}>
+                    <strong style={{ fontSize: 13 }}>Notifications</strong>
+                  </div>
+
+                  {notifications.items.length === 0 ? (
+                    <p className="faint" style={{ fontSize: 12.5, padding: '2px 10px 12px', margin: 0, lineHeight: 1.5 }}>
+                      Nothing needs you right now. Emails your agent can send on its own never appear here.
+                    </p>
+                  ) : (
+                    notifications.items.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setNotificationsOpen(false); goTo(item.href); }}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left', padding: '10px',
+                          borderRadius: 8, background: 'transparent',
+                        }}
+                      >
+                        <span className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+                          <span style={{ flex: 'none', marginTop: 2, color: '#b45309' }}>
+                            <Icon name="bolt" size={14} />
+                          </span>
+                          <span className="col" style={{ gap: 3, minWidth: 0 }}>
+                            <strong style={{ fontSize: 13 }}>{item.title}</strong>
+                            <span className="faint" style={{ fontSize: 12, lineHeight: 1.5, whiteSpace: 'normal' }}>
+                              {item.body}
+                            </span>
+                          </span>
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             {userName && !isAdmin && (
               <div className="row" style={{ gap: 9 }}>
                 <Avatar name={userName} size={34} />
