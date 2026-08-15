@@ -39,6 +39,23 @@ function stepTiming(delayDays) {
 
 const THIN_CHIP = { bg: "#fef9c3", color: "#854d0e" };
 
+// An approved email with no send slot is the worst state this screen can be
+// in: it looks finished and does nothing. Naming the reason in plain words is
+// the difference between a customer fixing it and a customer never finding out.
+const BLOCKED_REASONS = {
+  timezone_required: "We could not work out a send time for this lead, so it is not scheduled yet.",
+  campaign_not_active: "This campaign is not active, so nothing is scheduled yet. Launch it to start sending.",
+  campaign_paused: "This campaign is paused. Resume it to schedule this email.",
+  not_approved: "This email is not approved yet, so it will not send.",
+  sequence_stopped: "This lead replied or opted out, so the rest of the sequence was stopped.",
+  email_not_sent: "The last send attempt did not go through.",
+};
+
+function blockedMessage(reason) {
+  if (!reason) return null;
+  return BLOCKED_REASONS[reason] ?? "This email is not scheduled yet.";
+}
+
 function thinTitle(message) {
   return `Apollo had ${message.contextScore ?? 0} of ${message.contextScoreMax ?? 10} optional details for this lead, so this email is deliberately short and role-based rather than padded with guesses. Autopilot will not send it — you decide.`;
 }
@@ -127,6 +144,19 @@ function DraftRow({ message, displayTimezone, onApprove, onSendThin, onSave, onR
                 </span>
               ) : null}
               {leadTime ? <span className="faint" style={{ fontSize: 11 }}>Lead local time: {leadTime}</span> : null}
+              {/* Scheduled, but in the campaign's hours rather than the lead's,
+                  because we do not know where they are. Saying so stops the
+                  time above from reading as a fact about the prospect. */}
+              {selectedTime && !message.schedule?.leadTimezone ? (
+                <span className="faint" style={{ fontSize: 11 }}>
+                  Sent in your business hours — we do not know this lead&apos;s timezone.
+                </span>
+              ) : null}
+              {!selectedTime && !sent && blockedMessage(message.schedule?.blockedReason) ? (
+                <span style={{ fontSize: 11.5, color: "#9a3412", marginTop: 3, lineHeight: 1.5 }}>
+                  <Icon name="clock" size={12} /> Not scheduled — {blockedMessage(message.schedule.blockedReason)}
+                </span>
+              ) : null}
             </div>
             {/* The chip is already on the collapsed row, so the space here is
                 better spent saying what it means and what happens next. */}
