@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "../providers/AuthProvider";
 import PostHogProvider from "../providers/PostHogProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata = {
   title: "GNX Sales",
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
         <PostHogProvider>
           <AuthProvider>{children}</AuthProvider>
         </PostHogProvider>
+        <Analytics />
       </body>
     </html>
   );
