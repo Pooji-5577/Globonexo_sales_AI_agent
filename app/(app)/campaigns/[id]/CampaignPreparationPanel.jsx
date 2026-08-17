@@ -277,7 +277,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
         {creditLimit.reached || exhausted || countdown || canTestAgent ? (
           <section className="row spread campaign-acquisition-strip">
             <div className="row" style={{ gap: 14, flexWrap: "wrap", fontSize: 12.5 }}>
-              {creditLimit.reached ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>{creditLimit.fetched}/{creditLimit.target} leads fetched before the credit limit</span> : null}
+              {creditLimit.reached ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Lead sourcing completed with {creditLimit.fetched}/{creditLimit.target} requested leads</span> : null}
               {exhausted ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
               {countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
             </div>
@@ -311,9 +311,8 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             <div className="row" style={{ gap: 14, marginTop: 12, flexWrap: "wrap", fontSize: 12.5 }}>
               <span><strong>{ready}</strong> ready</span>
               {target ? <span><strong>{target}</strong> target prospects</span> : null}
-              <span><strong>{creditLimit.remaining}</strong> lead credits left</span>
               {importRun ? <span><strong>{importRun.candidatesFound}</strong> found</span> : null}
-              {importRun ? <span><strong>{importRun.candidatesAttempted}</strong> enrichment attempts</span> : null}
+              {importRun ? <span><strong>{importRun.candidatesAttempted}</strong> contacts submitted for enrichment</span> : null}
               {Number(importRun?.pending ?? 0) > 0 ? <span><strong>{importRun.pending}</strong> waiting on enrichment</span> : null}
               {progress >= 100 && countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
               {exhausted ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
@@ -331,7 +330,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
 
         {creditLimit.reached ? (
           <div className="notice-warn" style={{ marginTop: 14 }}>
-            Lead acquisition stopped before another paid request. This campaign completed with <strong>{creditLimit.fetched} of {creditLimit.target}</strong> requested leads. Increase the campaign credit limit only if you want acquisition to continue.
+            Lead sourcing completed with <strong>{creditLimit.fetched} of {creditLimit.target}</strong> requested leads. No further paid enrichment was attempted.
           </div>
         ) : null}
 
