@@ -432,7 +432,7 @@ export default function CampaignDetailPage() {
               {emailEnabled && (
                 <>
                   <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Daily send cap</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.dailySendCap ?? 100} emails</span></div>
-                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Max leads</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.maxLeads ?? 100}</span></div>
+                  <div className="col" style={{ gap: 2 }}><span className="faint" style={{ fontSize: 11 }}>Max leads</span><span style={{ fontSize: 14, fontWeight: 700 }}>{campaign.maxLeads ?? 25}</span></div>
                 </>
               )}
               {voiceEnabled && (

@@ -17,7 +17,7 @@ const DEFAULT_FORM = {
   name: "",
   channel: "email",
   promptNotes: "",
-  maxLeads: 100,
+  maxLeads: 25,
   dailySendCap: 75,
   callCadencePerHour: 5,
   voiceMode: "ai",
