@@ -245,7 +245,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const headline = creditLimit.reached
     ? creditLimit.headline
     : importIsActive
-    ? importStatus === "waiting_for_enrichment" ? "Waiting for Apollo enrichment" : "Finding and enriching campaign leads"
+    ? importStatus === "waiting_for_enrichment" ? "Waiting for lead enrichment" : "Finding and enriching campaign leads"
     : importFinishedEmpty
       ? "No contactable leads found"
       : preparationStatus === "not_started"
@@ -311,10 +311,10 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             <div className="row" style={{ gap: 14, marginTop: 12, flexWrap: "wrap", fontSize: 12.5 }}>
               <span><strong>{ready}</strong> ready</span>
               {target ? <span><strong>{target}</strong> target prospects</span> : null}
-              <span><strong>{creditLimit.remaining}</strong> Apollo credits left</span>
+              <span><strong>{creditLimit.remaining}</strong> lead credits left</span>
               {importRun ? <span><strong>{importRun.candidatesFound}</strong> found</span> : null}
               {importRun ? <span><strong>{importRun.candidatesAttempted}</strong> enrichment attempts</span> : null}
-              {Number(importRun?.pending ?? 0) > 0 ? <span><strong>{importRun.pending}</strong> waiting on Apollo</span> : null}
+              {Number(importRun?.pending ?? 0) > 0 ? <span><strong>{importRun.pending}</strong> waiting on enrichment</span> : null}
               {progress >= 100 && countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
               {exhausted ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
             </div>
@@ -331,7 +331,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
 
         {creditLimit.reached ? (
           <div className="notice-warn" style={{ marginTop: 14 }}>
-            Apollo stopped before another paid request. This campaign completed with <strong>{creditLimit.fetched} of {creditLimit.target}</strong> requested leads. Increase the campaign credit limit only if you want acquisition to continue.
+            Lead acquisition stopped before another paid request. This campaign completed with <strong>{creditLimit.fetched} of {creditLimit.target}</strong> requested leads. Increase the campaign credit limit only if you want acquisition to continue.
           </div>
         ) : null}
 
@@ -343,14 +343,14 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
 
         {importFinishedEmpty ? (
           <div className="notice-warn" style={{ marginTop: 14 }}>
-            Apollo searched {importRun.pagesSearched} page{importRun.pagesSearched === 1 ? "" : "s"} and found {importRun.candidatesFound} candidates, but none passed enrichment and campaign contact rules. Review the audience filters and start a new import.
+            We searched {importRun.pagesSearched} page{importRun.pagesSearched === 1 ? "" : "s"} and found {importRun.candidatesFound} candidates, but none passed enrichment and campaign contact rules. Review the audience filters and start a new import.
           </div>
         ) : null}
 
         {importRun ? (
           <div style={{ marginTop: 16, padding: 13, borderRadius: 9, background: "var(--bg-2)" }}>
             <div className="row spread" style={{ gap: 12, flexWrap: "wrap" }}>
-              <strong style={{ fontSize: 13 }}>Apollo lead acquisition · {String(importStatus).replace(/_/g, " ")}</strong>
+              <strong style={{ fontSize: 13 }}>Lead acquisition · {String(importStatus).replace(/_/g, " ")}</strong>
               <span className="faint" style={{ fontSize: 12 }}>{importRun.qualified}/{importRun.requested} qualified</span>
             </div>
             <p className="faint" style={{ fontSize: 12, marginTop: 5 }}>

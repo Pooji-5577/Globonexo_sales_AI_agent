@@ -12,13 +12,13 @@ import {
   normalizeApolloLocations,
   uniqueApolloValues,
 } from "../../../../lib/apollo-targeting";
+import { normalizeSavedCampaignForm } from "../../../../lib/campaign-draft";
 
 const DEFAULT_FORM = {
   name: "",
   channel: "email",
   promptNotes: "",
   maxLeads: 25,
-  apolloCreditLimit: 25,
   dailySendCap: 75,
   callCadencePerHour: 5,
   voiceMode: "ai",
@@ -242,7 +242,10 @@ export default function NewCampaignPage() {
       const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        if (saved.form) setForm(current => ({ ...current, ...saved.form, ...migrateIcpSource(saved.form) }));
+        if (saved.form) {
+          const restoredForm = normalizeSavedCampaignForm(saved.form);
+          setForm(current => ({ ...current, ...restoredForm, ...migrateIcpSource(restoredForm) }));
+        }
         const restored = normalizeSteps(saved.steps);
         if (restored) {
           setSteps(restored);
@@ -323,9 +326,7 @@ export default function NewCampaignPage() {
   }, [filteredLeads]);
 
   const set = (key, value) => {
-    setForm(current => key === "channel"
-      ? { ...current, channel: value, apolloCreditLimit: value === "voice" ? 200 : 25 }
-      : { ...current, [key]: value });
+    setForm(current => ({ ...current, [key]: value }));
     setValidationErrors([]);
     setError("");
   };
@@ -433,10 +434,6 @@ export default function NewCampaignPage() {
       errors.push("Maximum leads cannot exceed 25 per campaign.");
     }
 
-    if (!Number.isInteger(Number(form.apolloCreditLimit)) || Number(form.apolloCreditLimit) < 0) {
-      errors.push("Apollo credit limit must be zero or a positive whole number.");
-    }
-
     if (usesEmail(form.channel) && Number(form.dailySendCap) < 1) {
       errors.push("Daily send cap must be at least 1.");
     }
@@ -496,7 +493,6 @@ export default function NewCampaignPage() {
       const { data: campaign } = await api.post("/campaigns", {
         ...form,
         maxLeads: Number(form.maxLeads),
-        apolloCreditLimit: Number(form.apolloCreditLimit),
         dailySendCap: Number(form.dailySendCap),
         callCadencePerHour: Number(form.callCadencePerHour),
       });
@@ -741,10 +737,6 @@ export default function NewCampaignPage() {
                   <span className="hint">Each campaign can contain at most 25 leads.</span>
                 </Field>
 
-                <Field label="Apollo credit limit" hint={voiceEnabled ? "Voice default: 200 credits (up to 25 phone reveals at 8 credits each)." : "Email default: 25 credits (up to 25 verified email reveals at 1 credit each)."}>
-                  <input className="input" type="number" min="0" max="100000" value={form.apolloCreditLimit} onChange={event => set("apolloCreditLimit", event.target.value)} />
-                </Field>
-
                 {emailEnabled && (
                   <Field label="Daily send cap" hint="Default is intentionally conservative for new outbound campaigns.">
                     <input className="input" type="number" min="1" max="500" value={form.dailySendCap} onChange={event => set("dailySendCap", event.target.value)} />
@@ -816,7 +808,7 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="Lead preparation days" hint="Defaults to Saturday and Sunday. Apollo discovery, deduplication, enrichment, research, and AI drafting run on these days in the campaign timezone.">
+                <Field label="Lead preparation days" hint="Defaults to Saturday and Sunday. Lead discovery, deduplication, enrichment, research, and AI drafting run on these days in the campaign timezone.">
                   <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
                     {WEEKDAYS.map(day => {
                       const active = form.leadPreparationWeekdays.includes(day.value);
@@ -833,7 +825,7 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="Qualified leads per week" hint="The platform keeps moving through Apollo pages until this many contactable leads are prepared, or the audience is exhausted.">
+                <Field label="Qualified leads per week" hint="The platform keeps moving through the lead database until this many contactable leads are prepared, or the audience is exhausted.">
                   <input className="input" type="number" min="1" max="3500" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", event.target.value)} />
                 </Field>
 
@@ -956,7 +948,7 @@ export default function NewCampaignPage() {
               {leadSource === "automatic" ? (
                 <div style={{ padding: 16, border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)" }}>
                   <div style={{ marginBottom: 14 }}>
-                    <strong style={{ fontSize: 14 }}>Automatic Apollo audience</strong>
+                    <strong style={{ fontSize: 14 }}>Automatic audience</strong>
                     <p className="faint" style={{ fontSize: 12.5, marginTop: 3 }}>GNX searches, deduplicates, enriches, and only admits leads with the contact method required by this campaign.</p>
                   </div>
                   <div className="form-grid">
@@ -983,7 +975,7 @@ export default function NewCampaignPage() {
                   </label>
 
                   <button className="btn btn-ghost btn-sm apollo-more-button" type="button" onClick={() => setShowAutomaticMoreFilters(value => !value)}>
-                    <Icon name="sliders" size={14} /> {showAutomaticMoreFilters ? "Hide additional filters" : "More Apollo filters"}
+                    <Icon name="sliders" size={14} /> {showAutomaticMoreFilters ? "Hide additional filters" : "More filters"}
                   </button>
                   {showAutomaticMoreFilters ? (
                     <div className="apollo-more-panel">
@@ -997,11 +989,11 @@ export default function NewCampaignPage() {
                         <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={automaticAudience.revenueMax} onChange={event => setAutomaticAudience(current => ({ ...current, revenueMax: event.target.value }))} placeholder="50000000" /></label>
                         <label className="field"><span>Leads to prepare</span><select className="input" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
                       </div>
-                      {automaticAudience.keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. Apollo treats this as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{automaticAudience.keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: automaticAudience.keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setAutomaticAudience(current => ({ ...current, keywords: current.keywords === keyword ? "" : keyword }))}>{keyword}</button>)}</div></div> : null}
+                      {automaticAudience.keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. This is treated as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{automaticAudience.keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: automaticAudience.keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setAutomaticAudience(current => ({ ...current, keywords: current.keywords === keyword ? "" : keyword }))}>{keyword}</button>)}</div></div> : null}
                     </div>
                   ) : null}
                   <div style={{ marginTop: 14, padding: 12, border: "1px solid var(--line)", borderRadius: 8, background: "#fff" }}>
-                    <strong style={{ fontSize: 12.5 }}>Final Apollo audience</strong>
+                    <strong style={{ fontSize: 12.5 }}>Final audience</strong>
                     <p className="faint" style={{ fontSize: 12, marginTop: 5, lineHeight: 1.55 }}>
                       {uniqueApolloValues([...automaticAudience.titles, ...splitTargetList(automaticAudience.customTitles)]).join(", ") || "No titles"} · {normalizeApolloLocations([...automaticAudience.locations, ...splitTargetList(automaticAudience.customLocations)]).join(", ") || "No locations"} · {uniqueApolloValues([...automaticAudience.industries, ...splitTargetList(automaticAudience.customIndustries)]).join(", ") || "No industries"} · {automaticAudience.companySizes.length} company-size range{automaticAudience.companySizes.length === 1 ? "" : "s"}
                     </p>
@@ -1130,7 +1122,6 @@ export default function NewCampaignPage() {
 
             {[
               ["Max leads", form.maxLeads],
-              ["Apollo credit limit", form.apolloCreditLimit],
               ...(emailEnabled ? [["Daily cap", form.dailySendCap]] : []),
               ["Weekly lead target", form.weeklyQualifiedLeadTarget],
               ["Preparation days", WEEKDAYS.filter(day => form.leadPreparationWeekdays.includes(day.value)).map(day => day.label).join(", ") || "None"],

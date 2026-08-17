@@ -51,7 +51,7 @@ function OnboardingPreparationCard({ preparation, onOpenCampaign, onOpenProspect
     : Math.min(99, Math.round((enriched / Math.max(target, 1)) * 100));
 
   // A run that found some leads but not the full target is 'partial', not a
-  // failure: Apollo may simply not hold ten verified people matching this ICP.
+  // failure: the lead database may simply not hold ten verified people matching this ICP.
   // Reporting that plainly beats raising an alarm the customer cannot action.
   const partial = preparation.status === "partial" || (preparation.status === "attention" && enriched > 0);
   const ready = (preparation.status === "ready" || preparation.status === "completed") && enriched >= target;
@@ -66,12 +66,12 @@ function OnboardingPreparationCard({ preparation, onOpenCampaign, onOpenProspect
         : "Preparing your first audience";
 
   const detail = ready
-    ? "Apollo found your verified prospects and the agent is writing their emails."
+    ? "We found your verified prospects and the agent is writing their emails."
     : partial
-      ? `Apollo had ${enriched} verified contact${enriched === 1 ? "" : "s"} matching this profile${rejected > 0 ? `, and ${rejected} more were filtered out as unreachable or shared inboxes` : ""}. You can broaden the profile for more.`
+      ? `We had ${enriched} verified contact${enriched === 1 ? "" : "s"} matching this profile${rejected > 0 ? `, and ${rejected} more were filtered out as unreachable or shared inboxes` : ""}. You can broaden the profile for more.`
       : attention
-        ? preparation.error || "Apollo found nobody matching this profile. Broaden the titles, industries, or regions in Prospects and try again."
-        : "GNX is searching Apollo and enriching the audience in the background. You can keep working.";
+        ? preparation.error || "We found nobody matching this profile. Broaden the titles, industries, or regions in Prospects and try again."
+        : "GNX is searching our lead database and enriching the audience in the background. You can keep working.";
 
   return (
     <div className="card" data-tour="dashboard-preparation" style={{ padding: 18, marginBottom: 18, borderRadius: 8, background: ready ? "linear-gradient(160deg,#fff,#f4fdf8)" : "#fff" }}>

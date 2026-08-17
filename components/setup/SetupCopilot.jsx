@@ -150,9 +150,7 @@ export default function SetupCopilot() {
   const isLast = stepIndex >= steps.length - 1;
 
   const set = useCallback((key, value) => {
-    setDraft(currentDraft => key === "channel"
-      ? { ...currentDraft, channel: value, apolloCreditLimit: value === "voice" ? 200 : 25 }
-      : { ...currentDraft, [key]: value });
+    setDraft(currentDraft => ({ ...currentDraft, [key]: value }));
     setSubmitError("");
   }, []);
 
@@ -410,12 +408,12 @@ export default function SetupCopilot() {
               {current?.id === "audience" ? (
                 <div className="copilot-step">
                   <p className="copilot-lead">
-                    Describe who this campaign targets. Apollo enrichment uses this to fill in company size,
+                    Describe who this campaign targets. Lead enrichment uses this to fill in company size,
                     technologies, and hiring signals, so the agent can reference something real instead of a template.
                   </p>
                   {integrations?.apollo?.status === "not_configured" ? (
                     <div className="copilot-note">
-                      Apollo is not enabled on this workspace. Your campaign will use the lead data you already have.
+                      Lead enrichment is not enabled on this workspace. Your campaign will use the lead data you already have.
                     </div>
                   ) : (
                     <div className="copilot-note">{integrations?.apollo?.detail}</div>
@@ -503,7 +501,7 @@ export default function SetupCopilot() {
                     <div className="copilot-empty">
                       <Icon name="users" size={26} color="var(--faint)" />
                       <strong>No leads yet</strong>
-                      <p>Import a CSV, add someone manually, or run an Apollo search from Prospects.</p>
+                      <p>Import a CSV, add someone manually, or run a lead database search from Prospects.</p>
                       <button type="button" className="btn btn-primary btn-sm" onClick={() => { close(); router.push("/prospects"); }}>
                         Go to Prospects
                       </button>
@@ -586,10 +584,6 @@ export default function SetupCopilot() {
                     </Field>
                     <Field label="Maximum leads">
                       <input className="input" type="number" min="1" max="25" value={draft.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
-                    </Field>
-                    <Field label="Apollo credit limit">
-                      <input className="input" type="number" min="0" max="100000" value={draft.apolloCreditLimit} onChange={event => set("apolloCreditLimit", event.target.value)} />
-                      <span className="hint">{draft.channel === "voice" ? "Voice defaults to 200 credits." : "Email defaults to 25 credits."}</span>
                     </Field>
                     {emailOn ? (
                       <Field label="Daily send cap" hint="Conservative caps protect deliverability on a new domain.">

@@ -399,7 +399,7 @@ export default function OnboardingPage() {
                 <OSelect label="Follow-up cadence" value={d.followUpCadence} onChange={v => set('followUpCadence', v)}
                   options={['Day 0, Day 3, Day 7', 'Day 0, Day 2, Day 5', 'Day 0, Day 4, Day 10', 'Custom later']} />
                 <OMulti label="Tools you already use" hint="Helps GNX sales understand the sales workflow it should fit into."
-                  options={['Gmail', 'Apollo', 'HubSpot', 'Salesforce', 'Pipedrive', 'Slack', 'Google Calendar', 'Calendly / Cal.com']}
+                  options={['Gmail', 'Lead database tool', 'HubSpot', 'Salesforce', 'Pipedrive', 'Slack', 'Google Calendar', 'Calendly / Cal.com']}
                   value={d.tools} onChange={v => toggle('tools', v)} />
               </div>
             )}

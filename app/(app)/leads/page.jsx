@@ -18,7 +18,7 @@ const STATUS_OPTIONS = [
 
 const SOURCE_OPTIONS = [
   { label: "All sources", value: "" },
-  { label: "Apollo", value: "apollo" },
+  { label: "Lead database", value: "apollo" },
   { label: "CSV", value: "csv" },
   { label: "Manual", value: "manual" },
 ];
@@ -64,7 +64,7 @@ function LeadRow({ lead, onEnrich, enrichingId }) {
         <span className="faint" style={{ fontSize: 13 }}>{lead.location || "-"}</span>
       </td>
       <td style={{ padding: "12px 18px" }}>
-        <span className="badge" style={{ background: lead.source === "apollo" ? "var(--g-50)" : "var(--bg-2)", color: lead.source === "apollo" ? "var(--g-700)" : "var(--ink-2)", fontSize: 12, textTransform: "capitalize" }}>{lead.source}</span>
+        <span className="badge" style={{ background: lead.source === "apollo" ? "var(--g-50)" : "var(--bg-2)", color: lead.source === "apollo" ? "var(--g-700)" : "var(--ink-2)", fontSize: 12, textTransform: "capitalize" }}>{lead.source === "apollo" ? "Lead database" : lead.source}</span>
       </td>
       <td style={{ padding: "12px 18px" }}>
         <span className="badge" style={{ background: colors.bg, color: colors.color, fontSize: 12, textTransform: "capitalize" }}>{statusLabel(lead.status)}</span>
@@ -75,7 +75,7 @@ function LeadRow({ lead, onEnrich, enrichingId }) {
           style={{ height: 30, padding: "0 10px", fontSize: 12 }}
           disabled={isEnriching}
           onClick={() => onEnrich(lead.id)}
-          title="Enrich via Apollo"
+          title="Enrich lead details"
         >
           <Icon name="spark" size={14} /> {isEnriching ? "Enriching..." : "Enrich"}
         </button>
@@ -589,7 +589,7 @@ export default function LeadsPage() {
       const name = data.name || data.firstName || "Lead";
       setNotice(`${name} enriched and saved.`);
     } catch (err) {
-      setError(err?.response?.data?.error || "Enrichment failed. Check Apollo API key.");
+      setError(err?.response?.data?.error || "Enrichment failed. Check your lead database connection.");
     } finally {
       setEnrichingId(null);
     }

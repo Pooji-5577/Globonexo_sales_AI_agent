@@ -23,9 +23,9 @@ const categories = [
   {
     icon: "users",
     title: "Leads and prospecting",
-    body: "Build target lists from Apollo search or your own data.",
+    body: "Build target lists from a lead database search or your own data.",
     topics: [
-      "Searching Apollo for your ideal customer profile",
+      "Searching the lead database for your ideal customer profile",
       "Uploading and mapping a CSV of leads",
       "Deduplicating and cleaning imported lists",
       "Moving qualified prospects into a campaign",

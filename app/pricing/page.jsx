@@ -19,7 +19,7 @@ const plans = [
     features: [
       "1 user and 1 AI agent",
       "Up to 1,000 outbound emails/month",
-      "Apollo search and CSV upload",
+      "Lead database search and CSV upload",
       "Human-approved AI replies",
       "Basic dashboard and inbox",
     ],
@@ -93,7 +93,7 @@ export default function PricingPage() {
         <section className="pricing-note public-section">
           <div>
             <h2>Every plan includes the core sales loop.</h2>
-            <p>Gmail or custom SMTP + IMAP sending, Apollo and CSV lead sourcing, AI-generated email sequences, reply drafting, inbox review, dashboard metrics, and support access are included.</p>
+            <p>Gmail or custom SMTP + IMAP sending, lead database and CSV lead sourcing, AI-generated email sequences, reply drafting, inbox review, dashboard metrics, and support access are included.</p>
           </div>
           <Link className="btn btn-primary btn-lg" href="/signup">
             Create account <Icon name="arrow" size={16} color="#06231a" />

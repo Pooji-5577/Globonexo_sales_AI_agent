@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { id: "orgs", label: "Organizations", ico: "building" },
   { id: "users", label: "Users", ico: "users" },
   { id: "campaigns", label: "Campaigns", ico: "send" },
-  { id: "apollo", label: "Apollo usage", ico: "chart" },
+  { id: "apollo", label: "Lead database usage", ico: "chart" },
   { id: "support", label: "Support", ico: "chat" },
 ];
 
@@ -193,7 +193,7 @@ export default function AdminPage() {
     if (tab === "apollo") {
       api.get("/admin/apollo-credits")
         .then(res => setApolloUsage(res.data))
-        .catch(() => setError("Apollo credit usage could not be loaded."));
+        .catch(() => setError("Lead database credit usage could not be loaded."));
     }
   }, [tab]);
 
@@ -467,7 +467,7 @@ export default function AdminPage() {
         <div className="col" style={{ gap: 16 }}>
           <div className="metric-grid">
             <Metric label="total credits" value={apolloUsage?.summary?.totalCredits ?? 0} icon="chart" />
-            <Metric label="Apollo calls" value={apolloUsage?.summary?.calls ?? 0} icon="send" />
+            <Metric label="lead database calls" value={apolloUsage?.summary?.calls ?? 0} icon="send" />
             <Metric label="email credits" value={apolloUsage?.summary?.emailCredits ?? 0} icon="mail" />
             <Metric label="voice credits" value={apolloUsage?.summary?.voiceCredits ?? 0} icon="phone" />
           </div>
@@ -476,7 +476,7 @@ export default function AdminPage() {
               <table className="data-table" style={{ minWidth: 1180 }}>
                 <thead><tr>{["Time", "Organization", "Campaign", "Operation", "Channel", "Requested", "Returned", "Credits", "State", "Duration"].map(header => <th key={header}>{header}</th>)}</tr></thead>
                 <tbody>
-                  {(apolloUsage?.items ?? []).length === 0 ? <tr><td colSpan={10} className="table-empty">No Apollo calls recorded yet.</td></tr> : (apolloUsage?.items ?? []).map(call => (
+                  {(apolloUsage?.items ?? []).length === 0 ? <tr><td colSpan={10} className="table-empty">No lead database calls recorded yet.</td></tr> : (apolloUsage?.items ?? []).map(call => (
                     <tr className="data-row" key={call.id}>
                       <td>{new Date(call.started_at).toLocaleString()}</td>
                       <td>{call.organizationName}</td>

@@ -57,7 +57,7 @@ function blockedMessage(reason) {
 }
 
 function thinTitle(message) {
-  return `Apollo had ${message.contextScore ?? 0} of ${message.contextScoreMax ?? 10} optional details for this lead, so this email is deliberately short and role-based rather than padded with guesses. Autopilot will not send it — you decide.`;
+  return `We had ${message.contextScore ?? 0} of ${message.contextScoreMax ?? 10} optional details for this lead, so this email is deliberately short and role-based rather than padded with guesses. Autopilot will not send it — you decide.`;
 }
 
 // A thin draft says "needs your OK" rather than "needs review", because the two
@@ -162,7 +162,7 @@ function DraftRow({ message, displayTimezone, onApprove, onSendThin, onSave, onR
                 better spent saying what it means and what happens next. */}
             {message.thinContext && message.status !== "sent" && (
               <span style={{ fontSize: 11.5, color: THIN_CHIP.color, maxWidth: 340, lineHeight: 1.5 }}>
-                Apollo returned {message.contextScore ?? 0} of {message.contextScoreMax ?? 10} optional details for this lead, so this email is
+                We returned {message.contextScore ?? 0} of {message.contextScoreMax ?? 10} optional details for this lead, so this email is
                 short and role-based rather than padded with guesses. Your agent will not send it on its own.
               </span>
             )}
@@ -433,7 +433,7 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
                   {thinWaiting} email{thinWaiting === 1 ? "" : "s"} need{thinWaiting === 1 ? "s" : ""} your OK
                 </strong>
                 <span style={{ fontSize: 12, color: "#854d0e", lineHeight: 1.5 }}>
-                  Apollo returned very little about these leads, so the emails are short and generic. Your agent
+                  We returned very little about these leads, so the emails are short and generic. Your agent
                   will not send them on its own. Read them and send the ones that work — or narrow your targeting
                   and import better-matched leads.
                 </span>
