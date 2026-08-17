@@ -18,6 +18,7 @@ const DEFAULT_FORM = {
   channel: "email",
   promptNotes: "",
   maxLeads: 25,
+  apolloCreditLimit: 25,
   dailySendCap: 75,
   callCadencePerHour: 5,
   voiceMode: "ai",
@@ -322,7 +323,9 @@ export default function NewCampaignPage() {
   }, [filteredLeads]);
 
   const set = (key, value) => {
-    setForm(current => ({ ...current, [key]: value }));
+    setForm(current => key === "channel"
+      ? { ...current, channel: value, apolloCreditLimit: value === "voice" ? 200 : 25 }
+      : { ...current, [key]: value });
     setValidationErrors([]);
     setError("");
   };
@@ -426,6 +429,13 @@ export default function NewCampaignPage() {
     if (Number(form.maxLeads) < 1) {
       errors.push("Maximum leads must be at least 1.");
     }
+    if (Number(form.maxLeads) > 25) {
+      errors.push("Maximum leads cannot exceed 25 per campaign.");
+    }
+
+    if (!Number.isInteger(Number(form.apolloCreditLimit)) || Number(form.apolloCreditLimit) < 0) {
+      errors.push("Apollo credit limit must be zero or a positive whole number.");
+    }
 
     if (usesEmail(form.channel) && Number(form.dailySendCap) < 1) {
       errors.push("Daily send cap must be at least 1.");
@@ -486,6 +496,7 @@ export default function NewCampaignPage() {
       const { data: campaign } = await api.post("/campaigns", {
         ...form,
         maxLeads: Number(form.maxLeads),
+        apolloCreditLimit: Number(form.apolloCreditLimit),
         dailySendCap: Number(form.dailySendCap),
         callCadencePerHour: Number(form.callCadencePerHour),
       });
@@ -726,7 +737,12 @@ export default function NewCampaignPage() {
 
               <div className="campaign-new-controls-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
                 <Field label="Maximum leads">
-                  <input className="input" type="number" min="1" max="10000" value={form.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
+                  <input className="input" type="number" min="1" max="25" value={form.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
+                  <span className="hint">Each campaign can contain at most 25 leads.</span>
+                </Field>
+
+                <Field label="Apollo credit limit" hint={voiceEnabled ? "Voice default: 200 credits (up to 25 phone reveals at 8 credits each)." : "Email default: 25 credits (up to 25 verified email reveals at 1 credit each)."}>
+                  <input className="input" type="number" min="0" max="100000" value={form.apolloCreditLimit} onChange={event => set("apolloCreditLimit", event.target.value)} />
                 </Field>
 
                 {emailEnabled && (
@@ -1114,6 +1130,7 @@ export default function NewCampaignPage() {
 
             {[
               ["Max leads", form.maxLeads],
+              ["Apollo credit limit", form.apolloCreditLimit],
               ...(emailEnabled ? [["Daily cap", form.dailySendCap]] : []),
               ["Weekly lead target", form.weeklyQualifiedLeadTarget],
               ["Preparation days", WEEKDAYS.filter(day => form.leadPreparationWeekdays.includes(day.value)).map(day => day.label).join(", ") || "None"],

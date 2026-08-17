@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
-import { campaignPreparationEvents, shouldPollCampaignPreparation, simulationPresentation } from "../../../../lib/campaign-display";
+import { campaignCreditLimitPresentation, campaignPreparationEvents, shouldPollCampaignPreparation, simulationPresentation } from "../../../../lib/campaign-display";
 
 const ACTIVE_IMPORT = new Set(["queued", "searching", "candidates_found", "enriching", "waiting_for_enrichment"]);
 
@@ -228,8 +228,11 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const latestRun = simulation.run;
   const importRun = data?.latestImport;
   const importIsActive = ACTIVE_IMPORT.has(importStatus);
-  const preparationProgress = Number(data?.campaign?.preparation_progress ?? 0);
-  const progress = preparationStatus === "not_started" && importRun
+  const creditLimit = campaignCreditLimitPresentation(data);
+  const preparationProgress = creditLimit.progress;
+  const progress = creditLimit.reached
+    ? 100
+    : preparationStatus === "not_started" && importRun
     ? Number(importRun.stageProgressPercent ?? 0)
     : preparationProgress;
   const ready = Number(data?.readinessCounts?.ready ?? 0);
@@ -239,7 +242,9 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const events = useMemo(() => campaignPreparationEvents(data), [data]);
   const hasAgent = Boolean(data?.campaign?.retell_staging_agent_id);
   const importFinishedEmpty = importRun?.isTerminal && Number(importRun.qualified ?? 0) === 0;
-  const headline = importIsActive
+  const headline = creditLimit.reached
+    ? creditLimit.headline
+    : importIsActive
     ? importStatus === "waiting_for_enrichment" ? "Waiting for Apollo enrichment" : "Finding and enriching campaign leads"
     : importFinishedEmpty
       ? "No contactable leads found"
@@ -265,13 +270,14 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   // single line. `attention` keeps the full card so Retry stays on screen.
   const launched = Boolean(campaignStatus) && campaignStatus !== "draft";
   if (launched && progress >= 100 && preparationStatus !== "attention" && !zeroReadyVoice) {
-    if (!error && !exhausted && !countdown && !canTestAgent) return null;
+    if (!error && !creditLimit.reached && !exhausted && !countdown && !canTestAgent) return null;
     return (
       <>
         {error ? <div className="notice-warn" style={{ marginBottom: 0 }}>{error}</div> : null}
-        {exhausted || countdown || canTestAgent ? (
+        {creditLimit.reached || exhausted || countdown || canTestAgent ? (
           <section className="row spread campaign-acquisition-strip">
             <div className="row" style={{ gap: 14, flexWrap: "wrap", fontSize: 12.5 }}>
+              {creditLimit.reached ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>{creditLimit.fetched}/{creditLimit.target} leads fetched before the credit limit</span> : null}
               {exhausted ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
               {countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
             </div>
@@ -305,6 +311,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             <div className="row" style={{ gap: 14, marginTop: 12, flexWrap: "wrap", fontSize: 12.5 }}>
               <span><strong>{ready}</strong> ready</span>
               {target ? <span><strong>{target}</strong> target prospects</span> : null}
+              <span><strong>{creditLimit.remaining}</strong> Apollo credits left</span>
               {importRun ? <span><strong>{importRun.candidatesFound}</strong> found</span> : null}
               {importRun ? <span><strong>{importRun.candidatesAttempted}</strong> enrichment attempts</span> : null}
               {Number(importRun?.pending ?? 0) > 0 ? <span><strong>{importRun.pending}</strong> waiting on Apollo</span> : null}
@@ -314,13 +321,19 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
           </div>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             {preparationStatus === "not_started" && !importIsActive && !importFinishedEmpty ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Starting…" : "Prepare campaign"}</button> : null}
-            {preparationStatus === "attention" || zeroReadyVoice ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
+            {!creditLimit.reached && (preparationStatus === "attention" || zeroReadyVoice) ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
             {canTestAgent ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}><Icon name="phone" size={14} /> Test Sales Agent</button> : null}
             {channel === "voice" && simulationStatus === "attention" ? <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={retrySimulations}>Retry simulations</button> : null}
           </div>
         </div>
 
         {error ? <div className="notice-warn" style={{ marginTop: 14 }}>{error}</div> : null}
+
+        {creditLimit.reached ? (
+          <div className="notice-warn" style={{ marginTop: 14 }}>
+            Apollo stopped before another paid request. This campaign completed with <strong>{creditLimit.fetched} of {creditLimit.target}</strong> requested leads. Increase the campaign credit limit only if you want acquisition to continue.
+          </div>
+        ) : null}
 
         {zeroReadyVoice ? (
           <div className="notice-warn" style={{ marginTop: 14 }}>

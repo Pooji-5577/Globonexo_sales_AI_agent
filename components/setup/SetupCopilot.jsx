@@ -150,7 +150,9 @@ export default function SetupCopilot() {
   const isLast = stepIndex >= steps.length - 1;
 
   const set = useCallback((key, value) => {
-    setDraft(currentDraft => ({ ...currentDraft, [key]: value }));
+    setDraft(currentDraft => key === "channel"
+      ? { ...currentDraft, channel: value, apolloCreditLimit: value === "voice" ? 200 : 25 }
+      : { ...currentDraft, [key]: value });
     setSubmitError("");
   }, []);
 
@@ -583,7 +585,11 @@ export default function SetupCopilot() {
                       <input className="input" type="time" value={draft.businessHoursEnd} onChange={event => set("businessHoursEnd", event.target.value)} />
                     </Field>
                     <Field label="Maximum leads">
-                      <input className="input" type="number" min="1" max="10000" value={draft.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
+                      <input className="input" type="number" min="1" max="25" value={draft.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
+                    </Field>
+                    <Field label="Apollo credit limit">
+                      <input className="input" type="number" min="0" max="100000" value={draft.apolloCreditLimit} onChange={event => set("apolloCreditLimit", event.target.value)} />
+                      <span className="hint">{draft.channel === "voice" ? "Voice defaults to 200 credits." : "Email defaults to 25 credits."}</span>
                     </Field>
                     {emailOn ? (
                       <Field label="Daily send cap" hint="Conservative caps protect deliverability on a new domain.">
