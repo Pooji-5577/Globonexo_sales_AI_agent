@@ -98,6 +98,12 @@ const SENIORITY_OPTIONS = [["owner", "Owner"], ["founder", "Founder"], ["c_suite
 const INDUSTRY_OPTIONS = ["B2B SaaS", "IT Services", "Marketing Agencies", "Recruiting", "Fintech", "Healthcare", "Manufacturing", "Real Estate", "E-commerce", "Education"];
 const TECHNOLOGY_OPTIONS = [["salesforce", "Salesforce"], ["hubspot", "HubSpot"], ["marketo", "Marketo"], ["outreach", "Outreach"], ["salesloft", "Salesloft"], ["intercom", "Intercom"], ["stripe", "Stripe"], ["shopify", "Shopify"]];
 const splitTargetList = value => value.split(",").map(item => item.trim()).filter(Boolean);
+function clampNumberInput(value, min, max) {
+  if (value === "") return value;
+  const number = Number(value);
+  if (Number.isNaN(number)) return value;
+  return String(Math.min(max, Math.max(min, number)));
+}
 
 function CampaignApolloMultiSelect({ label, options, value, onChange, placeholder, required = false }) {
   const selectedLabels = options.filter(option => value.includes(Array.isArray(option) ? option[0] : option)).map(option => Array.isArray(option) ? option[1] : option);
@@ -733,25 +739,25 @@ export default function NewCampaignPage() {
 
               <div className="campaign-new-controls-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
                 <Field label="Maximum leads">
-                  <input className="input" type="number" min="1" max="25" value={form.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
+                  <input className="input" type="number" min="1" max="25" value={form.maxLeads} onChange={event => set("maxLeads", clampNumberInput(event.target.value, 1, 25))} />
                   <span className="hint">Each campaign can contain at most 25 leads.</span>
                 </Field>
 
                 {emailEnabled && (
                   <Field label="Daily send cap" hint="Default is intentionally conservative for new outbound campaigns.">
-                    <input className="input" type="number" min="1" max="500" value={form.dailySendCap} onChange={event => set("dailySendCap", event.target.value)} />
+                    <input className="input" type="number" min="1" max="500" value={form.dailySendCap} onChange={event => set("dailySendCap", clampNumberInput(event.target.value, 1, 500))} />
                   </Field>
                 )}
 
                 {voiceEnabled && (
                   <Field label="Calls per hour">
-                    <input className="input" type="number" min="1" max="60" value={form.callCadencePerHour} onChange={event => set("callCadencePerHour", event.target.value)} />
+                    <input className="input" type="number" min="1" max="60" value={form.callCadencePerHour} onChange={event => set("callCadencePerHour", clampNumberInput(event.target.value, 1, 60))} />
                   </Field>
                 )}
 
                 {voiceEnabled && (
                   <Field label="Maximum call attempts" hint="No-answer and voicemail retries stop after this many prospect attempts.">
-                    <input className="input" type="number" min="1" max="10" value={form.maxCallAttempts} onChange={event => set("maxCallAttempts", event.target.value)} />
+                    <input className="input" type="number" min="1" max="10" value={form.maxCallAttempts} onChange={event => set("maxCallAttempts", clampNumberInput(event.target.value, 1, 10))} />
                   </Field>
                 )}
 
