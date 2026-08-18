@@ -28,6 +28,7 @@ const NAV_GROUPS = [
     label: 'Communication',
     items: [
       { id: 'inbox', label: 'Inbox', ico: 'inbox' },
+      { id: 'calls', label: 'Call History', ico: 'phone' },
       { id: 'calendar', label: 'Calendar', ico: 'calendar' },
     ]
   },
