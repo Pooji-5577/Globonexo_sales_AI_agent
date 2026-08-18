@@ -13,6 +13,7 @@ import {
   uniqueApolloValues,
 } from "../../../../lib/apollo-targeting";
 import { normalizeSavedCampaignForm } from "../../../../lib/campaign-draft";
+import { findPlan } from "../../../../lib/plans";
 
 const DEFAULT_FORM = {
   name: "",
@@ -30,6 +31,7 @@ const DEFAULT_FORM = {
   weeklyQualifiedLeadTarget: 25,
   voicePermissionConfirmed: false,
   maxCallAttempts: 3,
+  researchPolicy: "strict",
 };
 
 // The backend accepts 1-10 steps. Step numbers are derived from list position
@@ -192,6 +194,8 @@ export default function NewCampaignPage() {
   const [error, setError] = useState("");
   const [draftRestored, setDraftRestored] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
+  const [dailyEmailCap, setDailyEmailCap] = useState(100);
+  const [planId, setPlanId] = useState("starter");
 
   const [allLeads, setAllLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
@@ -212,6 +216,18 @@ export default function NewCampaignPage() {
       setValidationErrors(current => current.filter(message => message !== VOICE_PERMISSION_ERROR));
     }
   }, []);
+  useEffect(() => {
+    api.get("/billing/usage")
+      .then(({ data }) => {
+        const plan = findPlan(data?.plan) ?? findPlan("starter");
+        const cap = Number(plan?.dailyEmailCap ?? 100);
+        setPlanId(plan?.id ?? "starter");
+        setDailyEmailCap(cap);
+        setForm(current => ({ ...current, dailySendCap: Math.min(Number(current.dailySendCap) || 75, cap) }));
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     api.get("/leads")
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
@@ -443,6 +459,9 @@ export default function NewCampaignPage() {
     if (usesEmail(form.channel) && Number(form.dailySendCap) < 1) {
       errors.push("Daily send cap must be at least 1.");
     }
+    if (usesEmail(form.channel) && Number(form.dailySendCap) > dailyEmailCap) {
+      errors.push(`Daily send cap cannot exceed ${dailyEmailCap} on the ${planId} plan.`);
+    }
 
     if (usesVoice(form.channel) && Number(form.callCadencePerHour) < 1) {
       errors.push("Calls per hour must be at least 1.");
@@ -471,7 +490,7 @@ export default function NewCampaignPage() {
     }
 
     return errors;
-  }, [automaticAudience, form, leadSource, voiceEnabled]);
+  }, [automaticAudience, dailyEmailCap, form, leadSource, planId, voiceEnabled]);
 
   const submit = async event => {
     event.preventDefault();
@@ -743,9 +762,21 @@ export default function NewCampaignPage() {
                   <span className="hint">Each campaign can contain at most 25 leads.</span>
                 </Field>
 
+                {leadSource === "automatic" && (
+                  <Field label="Research policy" hint="Strict only selects leads with enough evidence; review holds ambiguous matches for inspection.">
+                    <select className="input" value={form.researchPolicy} onChange={event => set("researchPolicy", event.target.value)}>
+                      <option value="strict">Strict — evidence required</option>
+                      <option value="review">Review — hold ambiguous matches</option>
+                      <option value="flexible">Flexible — continue with factual context</option>
+                      <option value="volume">Volume — optional research</option>
+                    </select>
+                  </Field>
+                )}
+
                 {emailEnabled && (
                   <Field label="Daily send cap" hint="Default is intentionally conservative for new outbound campaigns.">
-                    <input className="input" type="number" min="1" max="500" value={form.dailySendCap} onChange={event => set("dailySendCap", clampNumberInput(event.target.value, 1, 500))} />
+                    <input className="input" type="number" min="1" max={dailyEmailCap} value={form.dailySendCap} onChange={event => set("dailySendCap", clampNumberInput(event.target.value, 1, dailyEmailCap))} />
+                    <span className="hint">Up to {dailyEmailCap} emails/day on the {planId} plan.</span>
                   </Field>
                 )}
 

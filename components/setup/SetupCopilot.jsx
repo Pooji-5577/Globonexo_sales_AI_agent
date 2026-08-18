@@ -725,7 +725,7 @@ export default function SetupCopilot() {
                     ) : (
                       <ul>
                         <li>Plan: <strong>{usage.plan}</strong> ({usage.subscriptionStatus})</li>
-                        <li>Emails sent this month: <strong>{usage.emailsSentThisMonth}</strong></li>
+                        <li>Credits left: <strong>{Number(usage.credits?.remainingCredits ?? 0).toLocaleString()}</strong></li>
                         <li>Active campaigns: <strong>{usage.activeCampaigns}</strong></li>
                       </ul>
                     )}

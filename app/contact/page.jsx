@@ -26,7 +26,7 @@ const channels = [
   {
     icon: "building",
     title: "Sales and plans",
-    body: "Questions about pricing, seat counts, volume limits, or moving to the Scale plan. We can walk through your outbound motion first.",
+    body: "Questions about pricing, credit usage, campaign limits, or moving to the Scale plan. We can walk through your outbound motion first.",
     action: { label: "sales@globonexo.com", href: "mailto:sales@globonexo.com" },
     note: "Replies within 1 business day",
   },

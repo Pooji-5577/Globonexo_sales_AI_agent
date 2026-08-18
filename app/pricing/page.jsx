@@ -7,56 +7,16 @@ import Link from "next/link";
 import Icon from "../../components/ui/Icon";
 import PublicNav from "../../components/layout/PublicNav";
 import PublicFooter from "../../components/layout/PublicFooter";
+import { MOST_POPULAR_PLAN_ID, PLAN_CONFIG } from "../../lib/plans";
 
-const plans = [
-  {
-    name: "Starter",
-    price: "$59",
-    annual: "$588/year",
-    description: "For founders validating outbound with one AI sales agent.",
-    cta: "Start Starter",
-    featured: false,
-    features: [
-      "1 user and 1 AI agent",
-      "Up to 1,000 outbound emails/month",
-      "Lead database search and CSV upload",
-      "Human-approved AI replies",
-      "Basic dashboard and inbox",
-    ],
-  },
-  {
-    name: "Growth",
-    price: "$179",
-    annual: "$1,788/year",
-    description: "For small sales teams ready to run email and voice campaigns.",
-    cta: "Start Growth",
-    featured: true,
-    features: [
-      "3 users and 3 AI agents",
-      "Up to 5,000 outbound emails/month",
-      "AI voice campaigns via Retell",
-      "Inbound AI receptionist: 20 connected minutes/day",
-      "Campaign analytics and hot lead tracking",
-      "Priority onboarding support",
-    ],
-  },
-  {
-    name: "Scale",
-    price: "$479",
-    annual: "$4,788/year",
-    description: "For teams that need higher volume, tighter controls, and admin visibility.",
-    cta: "Talk to sales",
-    featured: false,
-    features: [
-      "10 users and 10 AI agents",
-      "Up to 20,000 outbound emails/month",
-      "Inbound AI receptionist: 60 connected minutes/day",
-      "Advanced send caps and approval controls",
-      "Admin, support, and impersonation tools",
-      "Dedicated launch review",
-    ],
-  },
-];
+const plans = PLAN_CONFIG.map((plan) => ({
+  ...plan,
+  price: `$${plan.monthly}`,
+  annual: `$${plan.annualTotal.toLocaleString()}/year`,
+  cta: `Start ${plan.name}`,
+  featured: plan.id === MOST_POPULAR_PLAN_ID,
+  features: plan.feats,
+}));
 
 export default function PricingPage() {
   return (
@@ -67,7 +27,7 @@ export default function PricingPage() {
         <section className="pricing-hero public-section">
           <span className="eyebrow">Pricing</span>
           <h1 className="display">Hire your AI sales rep without adding headcount.</h1>
-          <p>Choose a monthly or annual paid plan, start with email outbound, and keep every AI reply under human control.</p>
+          <p>Choose a monthly or annual paid plan. Every tier includes the same core sales loop; credits set the ceiling and flex across enrichment, drafting, and calling.</p>
         </section>
 
         <section className="pricing-grid public-section" aria-label="Pricing plans">
@@ -93,7 +53,7 @@ export default function PricingPage() {
         <section className="pricing-note public-section">
           <div>
             <h2>Every plan includes the core sales loop.</h2>
-            <p>Gmail or custom SMTP + IMAP sending, lead database and CSV lead sourcing, AI-generated email sequences, reply drafting, inbox review, dashboard metrics, and support access are included.</p>
+            <p>Every plan includes AI email sequences, Apollo lead enrichment, AI voice calling, human-approved replies, inbox review, dashboard metrics, and support access. One credit is one cent of reported provider cost.</p>
           </div>
           <Link className="btn btn-primary btn-lg" href="/signup">
             Create account <Icon name="arrow" size={16} color="#06231a" />

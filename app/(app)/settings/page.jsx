@@ -10,6 +10,7 @@ import { useFirstLoad } from '../../../hooks/useFirstLoad';
 import { clampNumber, cleanText, normalizeUrl } from '../../../lib/validation';
 import { useSetup } from '../../../providers/SetupProvider';
 import { browserTimezone, DISPLAY_TIMEZONES } from '../../../lib/campaign-display';
+import { findPlan } from '../../../lib/plans';
 
 const HELP_LINKS = [
   { href: '/support', label: 'Support tickets', ico: 'inbox' },
@@ -105,6 +106,8 @@ export default function SettingsPage() {
     retellPhoneNumber: '',
     displayTimezone: browserTimezone(),
   });
+  const [planId, setPlanId] = useState('starter');
+  const [dailyEmailCap, setDailyEmailCap] = useState(100);
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [gmailLoading, setGmailLoading] = useState(true);
@@ -148,6 +151,10 @@ export default function SettingsPage() {
         const profile = data.profile ?? data;
         const organization = data.organization ?? data;
         const agentConfig = data.agentConfig ?? data;
+        const plan = findPlan(data.planId) ?? findPlan('starter');
+        const planCap = Number(data.dailyEmailCap ?? plan?.dailyEmailCap ?? 100);
+        setPlanId(plan?.id ?? 'starter');
+        setDailyEmailCap(planCap);
         setForm({
           firstName:          profile.firstName || '',
           lastName:           profile.lastName || '',
@@ -155,7 +162,7 @@ export default function SettingsPage() {
           orgWebsite:         organization.website ?? organization.orgWebsite ?? '',
           tone:               agentConfig.tone || 'consultative',
           autoApproveReplies: Boolean(agentConfig.autoApproveReplies),
-          dailyEmailSendCap:  agentConfig.dailyEmailSendCap || 100,
+          dailyEmailSendCap:  Math.min(agentConfig.dailyEmailSendCap || planCap, planCap),
           bookingLink:        agentConfig.bookingLink || '',
           retellPhoneNumber:  agentConfig.retellPhoneNumber || '',
           displayTimezone:    profile.displayTimezone || browserTimezone(),
@@ -424,7 +431,7 @@ export default function SettingsPage() {
         orgWebsite,
         tone: TONES.some(tone => tone.value === form.tone) ? form.tone : 'consultative',
         autoApproveReplies: Boolean(form.autoApproveReplies),
-        dailyEmailSendCap: clampNumber(form.dailyEmailSendCap, { min: 1, max: 500, fallback: 100 }),
+        dailyEmailSendCap: clampNumber(form.dailyEmailSendCap, { min: 1, max: dailyEmailCap, fallback: dailyEmailCap }),
         bookingLink,
         displayTimezone: form.displayTimezone,
       });
@@ -707,12 +714,12 @@ export default function SettingsPage() {
                         className="input"
                         type="number"
                         min={1}
-                        max={500}
+                        max={dailyEmailCap}
                         value={form.dailyEmailSendCap}
                         onChange={(e) => setForm((f) => ({ ...f, dailyEmailSendCap: e.target.value }))}
                       />
                     </div>
-                    <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>1-500 emails/day.</span>
+                    <span style={{ fontSize: 12.5, color: 'var(--faint)' }}>1-{dailyEmailCap} emails/day on the {planId} plan.</span>
                   </div>
                 </div>
 

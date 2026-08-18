@@ -774,11 +774,7 @@ function Step5({ d, toggle }) {
   const tools = [
     { t: 'Gmail', d: 'Send & track outreach emails', i: 'mail', group: 'Email' },
     { t: 'Outlook', d: 'Alternative email sender', i: 'mail', group: 'Email' },
-    { t: 'HubSpot', d: 'Sync contacts, deals & activities', i: 'funnel', group: 'CRM' },
-    { t: 'Salesforce', d: 'Enterprise CRM sync', i: 'funnel', group: 'CRM' },
     { t: 'Google Calendar', d: 'Auto-book meetings on open slots', i: 'calendar', group: 'Calendar' },
-    { t: 'LinkedIn', d: 'Reach prospects via DM', i: 'users', group: 'Channels' },
-    { t: 'Slack', d: 'Get notified on hot replies', i: 'chat', group: 'Notifications' },
   ];
   const groups = [...new Set(tools.map(t => t.group))];
   return (
@@ -1943,9 +1939,9 @@ function FunnelChart() {
 function Billing() {
   const [annual, setAnnual] = useStateSB(true);
   const plans = [
-    { name: 'Starter', price: annual ? 49 : 59, desc: 'For solo reps getting started', feats: ['1 seat', '50 emails/day', 'Basic ICP targeting', 'Email only', '3 active campaigns'] },
-    { name: 'Growth', price: annual ? 149 : 179, desc: 'For small sales teams', feats: ['5 seats', '200 emails/day', 'Advanced ICP + signals', 'Email + LinkedIn', 'Unlimited campaigns', 'CRM sync'], current: true },
-    { name: 'Scale', price: annual ? 399 : 479, desc: 'For high-velocity teams', feats: ['20 seats', 'Unlimited emails', 'Priority intent data', 'All channels incl. SMS', 'Custom AI training', 'Dedicated CSM'] },
+    { name: 'Starter', price: annual ? 49 : 59, desc: 'For solo reps getting started with the core sales loop.', feats: ['2,645 credits/month', '3 email campaigns', '1 voice campaign', 'AI email sequences', 'Apollo lead enrichment', 'AI voice calling'] },
+    { name: 'Growth', price: annual ? 149 : 179, desc: 'For small sales teams running more of the same core loop.', feats: ['5,370 credits/month', '10 email campaigns', '4 voice campaigns', 'AI email sequences', 'Apollo lead enrichment', 'AI voice calling'], current: true },
+    { name: 'Scale', price: annual ? 399 : 479, desc: 'For teams that need higher volume and admin cost visibility.', feats: ['14,370 credits/month', '25 email campaigns', '10 voice campaigns', 'AI email sequences', 'Apollo lead enrichment', 'AI voice calling'] },
   ];
   return (
     <div className="scroll grow" style={{ padding: '24px 32px', minHeight: 0 }}>
@@ -1964,16 +1960,16 @@ function Billing() {
         </div>
         {/* Usage */}
         <div className="card" style={{ padding: 24, marginBottom: 28 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Current usage</div>
+          <div className="row spread" style={{ marginBottom: 18 }}><div style={{ fontWeight: 800, fontSize: 15 }}>Credit balance</div><strong style={{ color: 'var(--g-700)', fontSize: 22 }}>3,680</strong></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
-            {[{ k: 'Emails sent this month', v: 584, max: 6000, unit: '' }, { k: 'Seats used', v: 3, max: 5, unit: '' }, { k: 'Active campaigns', v: 2, max: 'Unlimited', unit: '' }].map(u => (
+            {[{ k: 'Credits used', v: 1690, max: 5370 }, { k: 'Credits reserved', v: 0, max: 5370 }, { k: 'Active campaigns', v: 2, max: 14 }].map(u => (
               <div key={u.k}>
                 <div className="row spread" style={{ marginBottom: 10 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)' }}>{u.k}</span>
-                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{u.v}{u.max !== 'Unlimited' ? ` / ${u.max}` : ' / ∞'}</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{u.v.toLocaleString()} / {u.max.toLocaleString()}</span>
                 </div>
                 <div style={{ height: 9, background: 'var(--bg-2)', borderRadius: 99 }}>
-                  <div style={{ height: '100%', width: (u.max !== 'Unlimited' ? (u.v / u.max) * 100 : 10) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
+                  <div style={{ height: '100%', width: Math.min((u.v / u.max) * 100, 100) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
                 </div>
               </div>
             ))}
@@ -2012,7 +2008,7 @@ function Billing() {
 function Settings() {
   const [tone, setTone] = useStateSB('Consultative');
   const [vol, setVol] = useStateSB(120);
-  const [chans, setChans] = useStateSB(['Email', 'LinkedIn']);
+  const [chans, setChans] = useStateSB(['Email', 'Voice']);
   const toggleChan = c => setChans(chans.includes(c) ? chans.filter(x => x !== c) : [...chans, c]);
   const [autos, setAutos] = useStateSB({ firstTouch: true, approveReplies: true, autoBook: true, weekends: false });
   const toggle = k => setAutos(a => ({ ...a, [k]: !a[k] }));
@@ -2042,7 +2038,7 @@ function Settings() {
         </SetCard>
         <SetCard title="Channels" ico="link" sub="Where the agent can reach out.">
           <div className="col" style={{ gap: 10 }}>
-            {[['Email', 'mail'], ['LinkedIn', 'users'], ['SMS', 'phone']].map(([c, i]) => (
+            {[['Email', 'mail'], ['Voice', 'phone']].map(([c, i]) => (
               <SToggle key={c} ico={i} label={c} on={chans.includes(c)} onChange={() => toggleChan(c)} />
             ))}
           </div>

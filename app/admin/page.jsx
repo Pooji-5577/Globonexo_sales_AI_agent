@@ -19,6 +19,7 @@ const NAV_ITEMS = [
   { id: "users", label: "Users", ico: "users" },
   { id: "campaigns", label: "Campaigns", ico: "send" },
   { id: "apollo", label: "Lead database usage", ico: "chart" },
+  { id: "costs", label: "Cost & margin", ico: "trend" },
   { id: "support", label: "Support", ico: "chat" },
 ];
 
@@ -137,6 +138,7 @@ export default function AdminPage() {
   const [notice, setNotice] = useState("");
   const [adminUser, setAdminUser] = useState(null);
   const [apolloUsage, setApolloUsage] = useState(null);
+  const [costUsage, setCostUsage] = useState(null);
   const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
@@ -195,6 +197,11 @@ export default function AdminPage() {
         .then(res => setApolloUsage(res.data))
         .catch(() => setError("Lead database credit usage could not be loaded."));
     }
+    if (tab === "costs") {
+      api.get("/admin/costs")
+        .then(res => setCostUsage(res.data))
+        .catch(() => setError("Provider cost usage could not be loaded."));
+    }
   }, [tab]);
 
   useEffect(() => {
@@ -241,7 +248,8 @@ export default function AdminPage() {
     ? "Search organizations by name or website..."
     : tab === "users"
       ? "Search users by name or email..."
-      : "Search campaigns by name or organization...";
+      : tab === "costs" ? "Search costs by organization or provider..."
+        : "Search campaigns by name or organization...";
 
   const suspendOrg = async org => {
     if (!window.confirm(`Suspend ${org.name}? They will immediately lose access to the app.`)) return;
@@ -347,7 +355,7 @@ export default function AdminPage() {
         </div>
       </section>
 
-      {tab !== "support" && (
+      {tab !== "support" && tab !== "costs" && (
         <div className="input-wrap" style={{ width: 280, marginBottom: 12 }}>
           <span className="lead-ico"><Icon name="search" size={15} /></span>
           <input
@@ -488,6 +496,54 @@ export default function AdminPage() {
                       <td>{call.credit_status === "final" ? Number(call.credits_consumed ?? 0) : call.credit_status}</td>
                       <td><StatusBadge value={call.status} /></td>
                       <td>{call.duration_ms == null ? "—" : `${call.duration_ms} ms`}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : tab === "costs" ? (
+        <div className="col" style={{ gap: 16 }}>
+          <div className="metric-grid">
+            <Metric label="reported provider cost" value={`$${((costUsage?.summary?.reportedCostCents ?? 0) / 100).toFixed(2)}`} icon="trend" />
+            <Metric label="credits debited" value={(costUsage?.summary?.creditsDebited ?? 0).toLocaleString()} icon="chart" />
+            <Metric label="settled events" value={costUsage?.summary?.settledEvents ?? 0} icon="check" />
+            <Metric label="unmetered events" value={costUsage?.summary?.unmeteredEvents ?? 0} icon="alertCircle" tone="warn" />
+          </div>
+          <div className="card table-shell">
+            <div className="table-scroll">
+              <table className="data-table" style={{ minWidth: 980 }}>
+                <thead><tr>{["Organization", "Plan", "Reported cost", "Credits", "Est. margin", "Events"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                <tbody>
+                  {(costUsage?.organizations ?? []).length === 0 ? <tr><td colSpan={6} className="table-empty">No provider cost events recorded this period.</td></tr> : (costUsage?.organizations ?? []).map(org => (
+                    <tr className="data-row" key={org.organizationId}>
+                      <td><strong>{org.organizationName}</strong></td>
+                      <td><span className="chip">{org.planId}</span></td>
+                      <td>${(org.reportedCostCents / 100).toFixed(2)}</td>
+                      <td>{org.creditsDebited.toLocaleString()}</td>
+                      <td style={{ color: org.estimatedMarginCents < 0 ? "#b42318" : "var(--g-700)", fontWeight: 800 }}>${(org.estimatedMarginCents / 100).toFixed(2)}</td>
+                      <td>{org.events}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="card table-shell">
+            <div className="table-scroll">
+              <table className="data-table" style={{ minWidth: 1080 }}>
+                <thead><tr>{["Time", "Organization", "Provider", "Operation", "Reported cost", "Credits", "State"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                <tbody>
+                  {(costUsage?.items ?? []).slice(0, 100).map(item => (
+                    <tr className="data-row" key={item.id}>
+                      <td>{new Date(item.createdAt).toLocaleString()}</td>
+                      <td>{item.organizationName}</td>
+                      <td><span className="chip">{item.provider}</span></td>
+                      <td>{item.operation}</td>
+                      <td>{item.reportedCostCents == null ? "—" : `$${(item.reportedCostCents / 100).toFixed(4)}`}</td>
+                      <td>{item.creditsDebited.toLocaleString()}</td>
+                      <td><StatusBadge value={item.status} /></td>
                     </tr>
                   ))}
                 </tbody>

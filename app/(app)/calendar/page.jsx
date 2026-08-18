@@ -64,6 +64,7 @@ const DEFAULT_SETTINGS = {
   bufferMinutes: 15,
   minNoticeMinutes: 120,
   bookingWindowDays: 14,
+  defaultMeetingUrl: "",
 };
 
 function MeetingCard({ meeting, onCancel, canceling }) {
@@ -90,6 +91,17 @@ function MeetingCard({ meeting, onCancel, canceling }) {
           </a>
         ) : null}
       </div>
+      {meeting.joinUrl ? (
+        <a
+          className="row"
+          style={{ gap: 4, marginTop: 8, fontSize: 12, color: "var(--g-700)", fontWeight: 700 }}
+          href={meeting.joinUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Icon name="link" size={13} /> Join meeting
+        </a>
+      ) : null}
       {meeting.status === "scheduled" && (
         <button
           type="button"
@@ -204,6 +216,12 @@ function SettingsPanel({ settings, onSave, saving }) {
             <label>Book within (days)</label>
             <input className="input" type="number" min={1} max={90} value={form.bookingWindowDays} onChange={(e) => set("bookingWindowDays")(Number(e.target.value))} />
           </div>
+        </div>
+
+        <div className="field">
+          <label>Default meeting link</label>
+          <input className="input" type="url" value={form.defaultMeetingUrl || ""} onChange={(e) => set("defaultMeetingUrl")(e.target.value)} placeholder="https://meet.google.com/…" />
+          <span style={{ fontSize: 11.5, color: "var(--faint)" }}>Sent automatically to the prospect and your connected mailbox after a call booking.</span>
         </div>
 
         <button

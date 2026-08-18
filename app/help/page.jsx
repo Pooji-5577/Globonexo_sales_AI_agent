@@ -90,7 +90,7 @@ const categories = [
   {
     icon: "cog",
     title: "Account and billing",
-    body: "Manage plans, seats, integrations, and security.",
+    body: "Manage plans, credits, campaign limits, integrations, and security.",
     topics: [
       "Changing or cancelling your plan",
       "Updating payment methods and invoices",

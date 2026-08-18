@@ -232,40 +232,56 @@ export default function BillingPage() {
             )}
 
             <div className="card billing-usage-card" data-tour="billing-usage" style={{ padding: 24 }}>
-              <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Current usage</div>
+              <div className="row spread" style={{ marginBottom: 18, gap: 16 }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: 15 }}>Credit balance</div>
+                  <p className="muted" style={{ fontSize: 12.5, marginTop: 3 }}>One credit equals one cent of reported provider cost.</p>
+                </div>
+                <strong style={{ color: usage?.credits?.remainingCredits > 0 ? 'var(--g-700)' : '#b42318', fontSize: 22 }}>
+                  {(usage?.credits?.remainingCredits ?? 0).toLocaleString()}
+                </strong>
+              </div>
+              {(usage?.meteringStatus === 'unavailable' || (usage?.credits?.remainingCredits ?? 0) <= 0) && (
+                <div role="alert" style={{ padding: 12, marginBottom: 18, borderRadius: 10, background: '#fff4ed', border: '1px solid #f7c9ad', color: '#8a2d12', fontSize: 13 }}>
+                  {usage?.meteringStatus === 'unavailable'
+                    ? 'Credit metering is not available yet. New AI, enrichment, and voice actions are paused until the billing ledger is ready.'
+                    : 'Your credit balance is empty. New AI, enrichment, and voice actions are paused; work already in flight can still finish.'}
+                </div>
+              )}
               <div className="billing-usage-grid">
                 {[
-                  { k: 'Emails sent this month', v: usage?.emailsSentThisMonth ?? 0, max: currentPlanConfig.emailCap },
-                  { k: 'Seats used', v: usage?.seatsUsed ?? 0, max: currentPlanConfig.seats ?? 1 },
-                  { k: 'Active campaigns', v: usage?.activeCampaigns ?? 0, max: null },
+                  { k: 'Credits used', v: usage?.credits?.usedCredits ?? 0, max: usage?.credits?.totalCredits ?? currentPlanConfig.monthlyCredits },
+                  { k: 'Credits reserved', v: usage?.credits?.reservedCredits ?? 0, max: usage?.credits?.totalCredits ?? currentPlanConfig.monthlyCredits },
+                  { k: 'Email campaigns', v: usage?.campaignUsage?.email?.used ?? 0, max: usage?.campaignUsage?.email?.limit ?? currentPlanConfig.emailCampaigns },
+                  { k: 'Voice campaigns', v: usage?.campaignUsage?.voice?.used ?? 0, max: usage?.campaignUsage?.voice?.limit ?? currentPlanConfig.voiceCampaigns },
                 ].map((item) => (
                   <div key={item.k}>
                     <div className="row spread" style={{ marginBottom: 10 }}>
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)' }}>{item.k}</span>
-                      <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{item.v}{item.max ? ` / ${item.max}` : ' / ∞'}</span>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{item.v}{item.max ? ` / ${item.max.toLocaleString()}` : ' / ∞'}</span>
                     </div>
                     <div style={{ height: 9, background: 'var(--bg-2)', borderRadius: 99 }}>
-                      <div style={{ height: '100%', width: (item.max ? Math.min((item.v / item.max) * 100, 100) : 10) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
+                      <div style={{ height: '100%', width: (item.max ? Math.min((item.v / item.max) * 100, 100) : 10) + '%', borderRadius: 99, background: item.k === 'Credits reserved' ? 'var(--teal)' : 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
                     </div>
                   </div>
                 ))}
               </div>
               <div className="billing-usage-summary">
                 <div>
-                  <span className="muted">Email credits left</span>
-                  <strong>{Math.max((currentPlanConfig.emailCap ?? 0) - (usage?.emailsSentThisMonth ?? 0), 0).toLocaleString()}</strong>
+                  <span className="muted">Included credits</span>
+                  <strong>{(usage?.credits?.includedCredits ?? currentPlanConfig.monthlyCredits).toLocaleString()}</strong>
                 </div>
                 <div>
-                  <span className="muted">Open seats</span>
-                  <strong>{Math.max((currentPlanConfig.seats ?? 1) - (usage?.seatsUsed ?? 0), 0)}</strong>
+                  <span className="muted">Top-up credits</span>
+                  <strong>{(usage?.credits?.topUpCredits ?? 0).toLocaleString()}</strong>
                 </div>
                 <div>
-                  <span className="muted">Campaign limit</span>
-                  <strong>Unlimited</strong>
+                  <span className="muted">Campaign ceiling</span>
+                  <strong>{currentPlanConfig.emailCampaigns} email · {currentPlanConfig.voiceCampaigns} voice</strong>
                 </div>
               </div>
               <p className="muted" style={{ fontSize: 13, lineHeight: 1.55, marginTop: 18 }}>
-                Usage resets at the start of each billing month. Seat counts update as teammates are added or removed.
+                Usage resets at the start of each billing month. Credits are settled from the cost the provider reports after the action completes.
               </p>
               {!canManageBilling && <p className="muted" style={{ fontSize: 13, marginTop: 18 }}>Only the organization billing manager can start, change, or cancel a subscription.</p>}
             </div>
