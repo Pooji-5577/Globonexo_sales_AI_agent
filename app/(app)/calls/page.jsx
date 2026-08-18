@@ -12,6 +12,9 @@ const STATUS_STYLES = {
   failed:      { label: "Failed",      bg: "#fee2e2",      color: "#991b1b",      dot: "#ef4444" },
   voicemail:   { label: "Voicemail",   bg: "#f3f4f6",      color: "#374151",      dot: "#9ca3af" },
   rejected:    { label: "Rejected",    bg: "#f3f4f6",      color: "#374151",      dot: "#9ca3af" },
+  no_answer:   { label: "No Answer",   bg: "#fff7ed",      color: "#9a3412",      dot: "#f97316" },
+  busy:        { label: "Busy",        bg: "#fff7ed",      color: "#9a3412",      dot: "#f97316" },
+  not_connected:{ label: "Not Connected", bg: "#f3f4f6",   color: "#4b5563",      dot: "#9ca3af" },
 };
 
 const DISPOSITION_STYLES = {
@@ -21,9 +24,12 @@ const DISPOSITION_STYLES = {
   not_interested:  { label: "Not Interested",  bg: "#fee2e2",      color: "#991b1b" },
   voicemail:       { label: "Voicemail",       bg: "#f3f4f6",      color: "#374151" },
   no_answer:       { label: "No Answer",       bg: "#f3f4f6",      color: "#374151" },
+  busy:            { label: "Busy",             bg: "#fff7ed",      color: "#9a3412" },
+  no_connect:      { label: "Not Connected",    bg: "#f3f4f6",      color: "#4b5563" },
+  technical_failure:{ label: "Technical Failure", bg: "#fee2e2",   color: "#991b1b" },
 };
 
-const FILTERS = ["all", "completed", "in_progress", "failed", "voicemail", "rejected"];
+const FILTERS = ["all", "completed", "in_progress", "no_answer", "busy", "voicemail", "failed", "rejected"];
 
 const FILTER_LABELS = {
   all: "All",
@@ -32,6 +38,8 @@ const FILTER_LABELS = {
   failed: "Failed",
   voicemail: "Voicemail",
   rejected: "Rejected",
+  no_answer: "No answer",
+  busy: "Busy",
 };
 
 const EMPTY_STATE_COPY = {
@@ -41,6 +49,8 @@ const EMPTY_STATE_COPY = {
   failed:      { title: "No failed calls",           body: "Nice — nothing has failed to connect." },
   voicemail:   { title: "No voicemails yet",         body: "Calls that hit voicemail will show up here." },
   rejected:    { title: "No rejected calls",         body: "Calls declined by inbound safety and budget rules will show up here." },
+  no_answer:   { title: "No unanswered calls",       body: "Calls that did not connect will show up here." },
+  busy:        { title: "No busy calls",             body: "Calls that reached a busy destination will show up here." },
 };
 
 function StatCard({ label, value, icon, tone }) {
@@ -67,10 +77,9 @@ function StatusBadge({ status }) {
 
 function DispositionBadge({ disposition, status }) {
   if (!disposition) {
-    // Retell only analyzes calls that actually completed - a failed, queued,
-    // or still-in-progress call has no transcript to analyze yet, so showing
-    // "Analyzing..." for those is misleading; only a completed call is
-    // genuinely waiting on the post-call analysis webhook.
+    // A connected call may still be waiting for Retell's post-call analysis;
+    // terminal non-connected states now receive a provider disposition from
+    // call_ended and should not look as if analysis is pending.
     if (status === "completed") {
       return <span style={{ fontSize: 11, color: "var(--faint)" }}>Analyzing…</span>;
     }
@@ -85,9 +94,13 @@ function DispositionBadge({ disposition, status }) {
   );
 }
 
-function formatDuration(startedAt, endedAt) {
-  if (!startedAt || !endedAt) return "—";
-  const seconds = Math.floor((new Date(endedAt) - new Date(startedAt)) / 1000);
+function formatDuration(startedAt, endedAt, durationSeconds) {
+  const seconds = Number.isFinite(Number(durationSeconds))
+    ? Math.max(0, Math.floor(Number(durationSeconds)))
+    : startedAt && endedAt
+      ? Math.floor((new Date(endedAt) - new Date(startedAt)) / 1000)
+      : null;
+  if (seconds === null) return "—";
   if (seconds < 0) return "—";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -103,10 +116,36 @@ function leadName(lead) {
   return [lead?.first_name, lead?.last_name].filter(Boolean).join(" ") || lead?.name || "Unknown";
 }
 
-function TranscriptModal({ call, onClose }) {
+function DetailRow({ label, value }) {
+  if (value === null || value === undefined || value === "") return null;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", gap: 12, padding: "7px 0", borderBottom: "1px solid var(--line-2)" }}>
+      <span style={{ color: "var(--muted)", fontSize: 12 }}>{label}</span>
+      <span style={{ color: "var(--fg)", fontSize: 12, overflowWrap: "anywhere" }}>{String(value)}</span>
+    </div>
+  );
+}
+
+function formatProviderCost(cost) {
+  const combined = Number(cost?.combined_cost);
+  if (!Number.isFinite(combined)) return null;
+  return `$${(combined / 100).toFixed(2)} provider cost`;
+}
+
+function formatAnalysisLabel(value) {
+  return String(value).replace(/_/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
+}
+
+function CallDetailsModal({ call, onClose }) {
+  const analysis = call.retell_analysis_data && typeof call.retell_analysis_data === "object"
+    ? call.retell_analysis_data
+    : {};
+  const analysisEntries = Object.entries(analysis).filter(([, value]) => value !== null && value !== undefined && value !== "");
+  const hasRecording = call.direction !== "inbound" && (call.recording_url || call.recording_multi_channel_url);
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
-      <div style={{ background: "var(--bg)", borderRadius: 14, padding: 24, maxWidth: 600, width: "100%", maxHeight: "70vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: "var(--bg)", borderRadius: 14, padding: 24, maxWidth: 720, width: "100%", maxHeight: "82vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
         <div className="row spread" style={{ marginBottom: 16 }}>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15 }}>{leadName(call.leads)}</div>
@@ -116,14 +155,61 @@ function TranscriptModal({ call, onClose }) {
             ×
           </button>
         </div>
-        {call.transcript ? (
-          <pre style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "var(--fg)", fontFamily: "inherit", margin: 0 }}>
-            {call.transcript}
-          </pre>
-        ) : (
-          <div style={{ textAlign: "center", color: "var(--muted)", padding: "32px 0", fontSize: 13 }}>
-            Transcript is still being processed. Check back in a minute.
-          </div>
+        <div className="row" style={{ gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+          <StatusBadge status={call.status} />
+          <DispositionBadge disposition={call.disposition} status={call.status} />
+          <span style={{ fontSize: 12, color: "var(--muted)" }}>{formatDuration(call.started_at, call.ended_at, call.duration_seconds)}</span>
+        </div>
+
+        {call.call_summary && (
+          <section style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Call summary</div>
+            <div style={{ fontSize: 13, lineHeight: 1.55 }}>{call.call_summary}</div>
+          </section>
+        )}
+
+        <section style={{ marginBottom: 18 }}>
+          <DetailRow label="Direction" value={call.direction || "outbound"} />
+          <DetailRow label="Connection" value={call.disconnection_reason ? formatAnalysisLabel(call.disconnection_reason) : call.status === "completed" ? "Connected" : null} />
+          <DetailRow label="Sentiment" value={call.user_sentiment} />
+          <DetailRow label="Call success" value={typeof call.call_successful === "boolean" ? (call.call_successful ? "Yes" : "No") : null} />
+          <DetailRow label="Callback" value={call.callback_requested_at ? formatDate(call.callback_requested_at) : null} />
+          <DetailRow label="Provider cost" value={formatProviderCost(call.call_cost)} />
+          <DetailRow label="Agent version" value={call.agent_version ? `${call.agent_id || "Retell agent"} · v${call.agent_version}` : null} />
+        </section>
+
+        {analysisEntries.length > 0 && (
+          <section style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Sales analysis</div>
+            <div style={{ borderTop: "1px solid var(--line-2)" }}>
+              {analysisEntries.map(([key, value]) => <DetailRow key={key} label={formatAnalysisLabel(key)} value={typeof value === "boolean" ? (value ? "Yes" : "No") : value} />)}
+            </div>
+          </section>
+        )}
+
+        {hasRecording && (
+          <section style={{ marginBottom: 18 }}>
+            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Recording</div>
+            <audio controls preload="none" src={call.recording_multi_channel_url || call.recording_url} style={{ width: "100%" }} />
+          </section>
+        )}
+
+        <section>
+          <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Transcript</div>
+          {call.direction === "inbound" ? (
+            <div style={{ color: "var(--muted)", fontSize: 13, padding: "18px 0" }}>Inbound transcripts and recordings are not retained.</div>
+          ) : call.transcript ? (
+            <pre style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "var(--fg)", fontFamily: "inherit", margin: 0 }}>{call.transcript}</pre>
+          ) : (
+            <div style={{ color: "var(--muted)", fontSize: 13, padding: "18px 0" }}>Transcript is still being processed, or this call did not connect.</div>
+          )}
+        </section>
+
+        {call.direction !== "inbound" && call.transcript_with_tool_calls?.length > 0 && (
+          <details style={{ marginTop: 18 }}>
+            <summary style={{ cursor: "pointer", color: "var(--muted)", fontSize: 12 }}>Show tool activity ({call.transcript_with_tool_calls.length} events)</summary>
+            <pre style={{ fontSize: 11, lineHeight: 1.45, whiteSpace: "pre-wrap", color: "var(--muted)", marginTop: 8 }}>{JSON.stringify(call.transcript_with_tool_calls, null, 2)}</pre>
+          </details>
         )}
       </div>
     </div>
@@ -136,7 +222,7 @@ export default function CallsPage() {
   const [error, setError]           = useState("");
   const [filter, setFilter]         = useState("all");
   const [toast, setToast]           = useState("");
-  const [transcript, setTranscript] = useState(null);
+  const [selectedCall, setSelectedCall] = useState(null);
   const [retrying, setRetrying]     = useState("");
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 4000); };
@@ -173,9 +259,9 @@ export default function CallsPage() {
 
   const metrics = useMemo(() => ({
     total:      calls.length,
-    completed:  calls.filter(c => c.status === "completed").length,
+    connected:  calls.filter(c => c.status === "completed").length,
     inProgress: calls.filter(c => c.status === "in_progress" || c.status === "queued").length,
-    failed:     calls.filter(c => c.status === "failed").length,
+    notConnected: calls.filter(c => ["no_answer", "busy", "not_connected", "voicemail", "failed", "rejected"].includes(c.status)).length,
   }), [calls]);
 
   const emptyCopy = EMPTY_STATE_COPY[filter] ?? EMPTY_STATE_COPY.all;
@@ -188,7 +274,7 @@ export default function CallsPage() {
         </div>
       )}
 
-      {transcript && <TranscriptModal call={transcript} onClose={() => setTranscript(null)} />}
+      {selectedCall && <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />}
 
       {/* Header */}
       <div className="row spread" style={{ flexWrap: "wrap", gap: 12 }}>
@@ -203,9 +289,9 @@ export default function CallsPage() {
 
       <div className="metric-grid">
         <StatCard label="total calls" value={metrics.total} icon="phone" />
-        <StatCard label="completed" value={metrics.completed} icon="checkCircle" />
+        <StatCard label="connected" value={metrics.connected} icon="checkCircle" />
         <StatCard label="in progress" value={metrics.inProgress} icon="clock" tone="warn" />
-        <StatCard label="failed" value={metrics.failed} icon="alertCircle" tone="warn" />
+        <StatCard label="not connected" value={metrics.notConnected} icon="alertCircle" tone="warn" />
       </div>
 
       {/* Filter chips */}
@@ -274,7 +360,7 @@ export default function CallsPage() {
                     <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{call.campaigns?.name || "—"}</td>
                     <td style={{ padding: "12px 16px" }}><StatusBadge status={call.status} /></td>
                     <td style={{ padding: "12px 16px" }}><DispositionBadge disposition={call.disposition} status={call.status} /></td>
-                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{formatDuration(call.started_at, call.ended_at)}</td>
+                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{formatDuration(call.started_at, call.ended_at, call.duration_seconds)}</td>
                     <td style={{ padding: "12px 16px", color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(call.created_at)}</td>
                     <td style={{ padding: "12px 16px" }}>
                       <div className="row" style={{ gap: 6 }}>
@@ -283,10 +369,10 @@ export default function CallsPage() {
                         ) : (
                           <button
                             className="btn btn-ghost btn-sm"
-                            onClick={() => setTranscript(call)}
+                            onClick={() => setSelectedCall(call)}
                             style={{ fontSize: 11 }}
                           >
-                            Transcript
+                            Details
                           </button>
                         )}
                         {call.status === "failed" && call.direction !== "inbound" && (
