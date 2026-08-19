@@ -87,13 +87,35 @@ function leadStatusStyle(status) {
   return { background: `${color}1f`, color, border: `1px solid ${color}45` };
 }
 
+function campaignEligibility(lead) {
+  const membership = lead.campaignMembership;
+  if (!membership || membership.qualificationStatus === "qualified") return null;
+  const reason = membership.rejectionReason || lead.rejectionReason;
+  const labels = {
+    dnc_found: "Blocked — DNC match",
+    dnc_pending: "Awaiting DNC check",
+    dnc_missing: "DNC check required",
+    internal_do_not_call: "Blocked — do not call",
+    no_phone: "Missing phone",
+    invalid_phone: "Invalid phone",
+    enrichment_not_attempted_budget: "Not enriched — campaign budget reached",
+    missing_identity: "Missing identity data",
+  };
+  return {
+    label: labels[reason] || (membership.qualificationStatus === "pending" ? "Preparing" : "Not eligible"),
+    blocked: membership.status === "blocked" || membership.qualificationStatus === "rejected",
+  };
+}
+
 function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
   const hasPhone = Boolean(lead.phone?.trim());
   const stopped = STOPPED_STATUSES.has(status);
-  const canEmailNow = showEmail && hasEmail && lead.campaignId && status !== "contacted" && !stopped;
-  const canCallNow = showPhone && isAiVoice && hasPhone && lead.campaignId && !stopped;
+  const eligibility = campaignEligibility(lead);
+  const campaignBlocked = Boolean(eligibility?.blocked || (lead.campaignMembership && lead.campaignMembership.qualificationStatus !== "qualified"));
+  const canEmailNow = showEmail && hasEmail && lead.campaignId && status !== "contacted" && !stopped && !campaignBlocked;
+  const canCallNow = showPhone && isAiVoice && hasPhone && lead.campaignId && !stopped && !campaignBlocked;
   const sending = actionKey === `email:${lead.id}`;
   const calling = actionKey === `call:${lead.id}`;
 
@@ -110,7 +132,12 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone,
       </td>
       {showEmail && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.email || "Not revealed"}</span></td>}
       {showPhone && <td><span style={{ fontWeight: 700, fontSize: 13 }}>{lead.phone || "No phone"}</span></td>}
-      <td><span className="badge" style={leadStatusStyle(status)}>{LEAD_STATUS_LABELS[status] || status.replace(/_/g, " ")}</span></td>
+      <td>
+        <div className="col" style={{ gap: 4, alignItems: "flex-start" }}>
+          <span className="badge" style={leadStatusStyle(status)}>{LEAD_STATUS_LABELS[status] || status.replace(/_/g, " ")}</span>
+          {eligibility && <span className="faint" style={{ fontSize: 11.5 }}>{eligibility.label}</span>}
+        </div>
+      </td>
       <td>
         {attempt ? (
           <div className="col" style={{ gap: 2 }}>
@@ -138,7 +165,7 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone,
               className="btn btn-ghost btn-sm"
               type="button"
               disabled={!canCallNow || Boolean(actionKey)}
-              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : !hasPhone ? "Lead needs a phone number" : stopped ? "Calls are stopped for this lead" : "Call this lead immediately"}
+              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : !hasPhone ? "Lead needs a phone number" : campaignBlocked ? eligibility?.label || "Lead is not ready" : stopped ? "Calls are stopped for this lead" : "Call this lead now only within their permitted local hours"}
               style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
               onClick={() => onCallNow(lead.id)}
             >

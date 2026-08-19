@@ -77,7 +77,7 @@ const groups = [
       },
       {
         q: "What does the product integrate with?",
-        a: "Gmail or custom SMTP + IMAP for email, our lead sourcing and enrichment provider, Retell for AI voice calls, Google Calendar for booking, Razorpay for billing, Supabase for authentication and data, and PostHog for product analytics.",
+        a: "Gmail or custom SMTP + IMAP for email, our lead sourcing and enrichment provider, our AI voice calling provider, Google Calendar for booking, Razorpay for billing, Supabase for authentication and data, and PostHog for product analytics.",
       },
       {
         q: "Do voice campaigns come with every plan?",
