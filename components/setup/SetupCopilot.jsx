@@ -47,7 +47,7 @@ function Field({ label, hint, children }) {
   );
 }
 
-/** Renders whatever the backend actually reported — never an assumed state. */
+/** Renders whatever the backend actually reported. Never use an assumed state. */
 function ConnectionRow({ icon, name, state, required, onFix }) {
   const connected = Boolean(state?.connected);
   const unavailable = state?.status === "not_configured";
@@ -348,7 +348,7 @@ export default function SetupCopilot() {
               {current?.id === "channel" ? (
                 <div className="copilot-step">
                   <p className="copilot-lead">
-                    How should this campaign reach people? You can run both — leads with an email get the sequence,
+                    How should this campaign reach people? You can run both. Leads with an email get the sequence,
                     leads with a phone number get called.
                   </p>
                   <div className="copilot-choices">
@@ -408,12 +408,12 @@ export default function SetupCopilot() {
               {current?.id === "audience" ? (
                 <div className="copilot-step">
                   <p className="copilot-lead">
-                    Describe who this campaign targets. Apollo enrichment uses this to fill in company size,
+                    Describe who this campaign targets. Lead enrichment uses this to fill in company size,
                     technologies, and hiring signals, so the agent can reference something real instead of a template.
                   </p>
                   {integrations?.apollo?.status === "not_configured" ? (
                     <div className="copilot-note">
-                      Apollo is not enabled on this workspace. Your campaign will use the lead data you already have.
+                      Lead enrichment is not enabled on this workspace. Your campaign will use the lead data you already have.
                     </div>
                   ) : (
                     <div className="copilot-note">{integrations?.apollo?.detail}</div>
@@ -470,7 +470,7 @@ export default function SetupCopilot() {
                   <Field label="Calling mode">
                     <select className="input" value={draft.voiceMode} onChange={event => set("voiceMode", event.target.value)}>
                       <option value="ai">AI caller places the calls</option>
-                      <option value="manual">Manual — build the call list for a human</option>
+                      <option value="manual">Manual: build the call list for a human</option>
                     </select>
                   </Field>
                   <Field label="Calls per hour" hint="A conservative cadence protects your number's reputation.">
@@ -501,7 +501,7 @@ export default function SetupCopilot() {
                     <div className="copilot-empty">
                       <Icon name="users" size={26} color="var(--faint)" />
                       <strong>No leads yet</strong>
-                      <p>Import a CSV, add someone manually, or run an Apollo search from Prospects.</p>
+                      <p>Import a CSV, add someone manually, or run a lead database search from Prospects.</p>
                       <button type="button" className="btn btn-primary btn-sm" onClick={() => { close(); router.push("/prospects"); }}>
                         Go to Prospects
                       </button>
@@ -561,7 +561,7 @@ export default function SetupCopilot() {
                       value={draft.campaignName}
                       onChange={event => set("campaignName", event.target.value)}
                       maxLength={120}
-                      placeholder="Series B SaaS VP Sales — Q3"
+                      placeholder="Series B SaaS VP Sales: Q3"
                     />
                   </Field>
 
@@ -583,7 +583,7 @@ export default function SetupCopilot() {
                       <input className="input" type="time" value={draft.businessHoursEnd} onChange={event => set("businessHoursEnd", event.target.value)} />
                     </Field>
                     <Field label="Maximum leads">
-                      <input className="input" type="number" min="1" max="10000" value={draft.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
+                      <input className="input" type="number" min="1" max="25" value={draft.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
                     </Field>
                     {emailOn ? (
                       <Field label="Daily send cap" hint="Conservative caps protect deliverability on a new domain.">
@@ -661,7 +661,7 @@ export default function SetupCopilot() {
               {current?.id === "preview" ? (
                 <div className="copilot-step">
                   <p className="copilot-lead">
-                    A sample of what this campaign will say. Each real message is personalised per lead at send time —
+                    A sample of what this campaign will say. Each real message is personalised per lead at send time.
                     nothing has been sent.
                   </p>
 
@@ -725,7 +725,7 @@ export default function SetupCopilot() {
                     ) : (
                       <ul>
                         <li>Plan: <strong>{usage.plan}</strong> ({usage.subscriptionStatus})</li>
-                        <li>Emails sent this month: <strong>{usage.emailsSentThisMonth}</strong></li>
+                        <li>Credits left: <strong>{Number(usage.credits?.remainingCredits ?? 0).toLocaleString()}</strong></li>
                         <li>Active campaigns: <strong>{usage.activeCampaigns}</strong></li>
                       </ul>
                     )}

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Pricing — GNX sales",
+  title: "GNX Sales pricing",
   description: "Choose a GNX sales plan for AI outbound, replies, voice calls, and booked meetings.",
 };
 
@@ -7,55 +7,18 @@ import Link from "next/link";
 import Icon from "../../components/ui/Icon";
 import PublicNav from "../../components/layout/PublicNav";
 import PublicFooter from "../../components/layout/PublicFooter";
+import PlanCards from "../../components/marketing/PlanCards";
 
-const plans = [
-  {
-    name: "Starter",
-    price: "$59",
-    annual: "$588/year",
-    description: "For founders validating outbound with one AI sales agent.",
-    cta: "Start Starter",
-    featured: false,
-    features: [
-      "1 user and 1 AI agent",
-      "Up to 1,000 outbound emails/month",
-      "Apollo search and CSV upload",
-      "Human-approved AI replies",
-      "Basic dashboard and inbox",
-    ],
-  },
-  {
-    name: "Growth",
-    price: "$179",
-    annual: "$1,788/year",
-    description: "For small sales teams ready to run email and voice campaigns.",
-    cta: "Start Growth",
-    featured: true,
-    features: [
-      "3 users and 3 AI agents",
-      "Up to 5,000 outbound emails/month",
-      "AI voice campaigns via Retell",
-      "Inbound AI receptionist: 20 connected minutes/day",
-      "Campaign analytics and hot lead tracking",
-      "Priority onboarding support",
-    ],
-  },
-  {
-    name: "Scale",
-    price: "$479",
-    annual: "$4,788/year",
-    description: "For teams that need higher volume, tighter controls, and admin visibility.",
-    cta: "Talk to sales",
-    featured: false,
-    features: [
-      "10 users and 10 AI agents",
-      "Up to 20,000 outbound emails/month",
-      "Inbound AI receptionist: 60 connected minutes/day",
-      "Advanced send caps and approval controls",
-      "Admin, support, and impersonation tools",
-      "Dedicated launch review",
-    ],
-  },
+// The contrast that used to sit on the landing page. It belongs here, next to
+// the prices, where someone is actually deciding.
+const comparison = [
+  { them: 'Buy a list and send to all of it', us: 'Every account checked against your profile first' },
+  { them: 'Pay to enrich, then find out they were a bad fit', us: 'Fit is settled before a credit is spent' },
+  { them: 'Email only — calling is a different tool and a second bill', us: 'Email and AI voice from one shared pool' },
+  { them: 'The model writes whatever sounds convincing', us: 'It is handed an explicit list of what it does not know' },
+  { them: 'A voice agent goes live untested', us: 'Stress-test it against adversarial calls before it dials, if you want the check' },
+  { them: 'You remember to stop the sequence after a reply', us: 'A reply stops the follow-ups on its own' },
+  { them: 'Buy and configure your own calling number separately', us: 'A phone number is provisioned for you automatically' },
 ];
 
 export default function PricingPage() {
@@ -67,33 +30,36 @@ export default function PricingPage() {
         <section className="pricing-hero public-section">
           <span className="eyebrow">Pricing</span>
           <h1 className="display">Hire your AI sales rep without adding headcount.</h1>
-          <p>Choose a monthly or annual paid plan, start with email outbound, and keep every AI reply under human control.</p>
+          <p>Choose a monthly or annual paid plan. Every tier includes the same core sales loop; credits set the ceiling and flex across enrichment, drafting, and calling.</p>
         </section>
 
         <section className="pricing-grid public-section" aria-label="Pricing plans">
-          {plans.map((plan) => (
-            <article key={plan.name} className={plan.featured ? "pricing-card featured" : "pricing-card"}>
-              {plan.featured ? <span className="pricing-badge">Most popular</span> : null}
-              <h2>{plan.name}</h2>
-              <p>{plan.description}</p>
-              <div className="pricing-price"><strong>{plan.price}</strong><span>/month</span></div>
-              <p className="muted" style={{ marginTop: 6 }}>or {plan.annual}</p>
-              <Link className={plan.featured ? "btn btn-primary btn-block" : "btn btn-ghost btn-block"} href="/signup">
-                {plan.cta} <Icon name="arrow" size={16} color="currentColor" />
-              </Link>
-              <ul>
-                {plan.features.map((feature) => (
-                  <li key={feature}><Icon name="checkCircle" size={18} color="var(--g-600)" />{feature}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
+          <PlanCards />
+        </section>
+
+        <section className="pricing-compare public-section">
+          <div className="content-section-head">
+            <h2>Why this costs less than the alternative</h2>
+            <p>Not a cheaper version of the same thing. A different way of deciding who gets contacted.</p>
+          </div>
+          <div className="cmp">
+            <div className="cmp-head">
+              <span>The usual way</span>
+              <span className="cmp-head-us">GNX Sales</span>
+            </div>
+            {comparison.map((row) => (
+              <div key={row.us} className="cmp-row">
+                <div className="cmp-them"><Icon name="close" size={15} color="var(--stop)" /><p>{row.them}</p></div>
+                <div className="cmp-us"><Icon name="check" size={15} color="var(--g-800)" /><p>{row.us}</p></div>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="pricing-note public-section">
           <div>
             <h2>Every plan includes the core sales loop.</h2>
-            <p>Gmail or custom SMTP + IMAP sending, Apollo and CSV lead sourcing, AI-generated email sequences, reply drafting, inbox review, dashboard metrics, and support access are included.</p>
+            <p>Every plan includes AI email sequences, lead enrichment from verified data providers, AI voice calling with a phone number provisioned for you, human-approved replies, inbox review, dashboard metrics, and support access. One credit is one cent of reported provider cost.</p>
           </div>
           <Link className="btn btn-primary btn-lg" href="/signup">
             Create account <Icon name="arrow" size={16} color="#06231a" />

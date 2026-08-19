@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Refund Policy — GNX sales",
+  title: "Refund policy for GNX Sales",
   description: "Refund Policy for GNX sales subscriptions.",
 };
 

@@ -16,7 +16,7 @@ function getAgentName() {
   return window.__agentName || "GNX sales";
 }
 
-/* Icons — consistent stroke set. Exposed on window.Icon */
+/* Icons: consistent stroke set. Exposed on window.Icon */
 const Icon = ({ name, size = 22, stroke = 1.8, color = 'currentColor', fill = 'none', style }) => {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill, stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round', style };
   const paths = {
@@ -762,7 +762,7 @@ function Step4({ d, set }) {
       <div className="card" style={{ padding: 16, background: 'var(--g-50)', border: '1px solid var(--g-100)' }}>
         <div className="eyebrow" style={{ marginBottom: 10 }}>Sample opening line</div>
         <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--ink-2)', fontStyle: 'italic' }}>
-          "Hi [First Name] — noticed {d.company} is expanding into new markets. Most {d.role}s we talk to say their biggest challenge right now is booking enough qualified meetings. Worth a 20-min chat?"
+          "Hi [First Name], I noticed {d.company} is expanding into new markets. Most {d.role}s we talk to say their biggest challenge right now is booking enough qualified meetings. Worth a 20-min chat?"
         </p>
       </div>
     </div>
@@ -774,11 +774,7 @@ function Step5({ d, toggle }) {
   const tools = [
     { t: 'Gmail', d: 'Send & track outreach emails', i: 'mail', group: 'Email' },
     { t: 'Outlook', d: 'Alternative email sender', i: 'mail', group: 'Email' },
-    { t: 'HubSpot', d: 'Sync contacts, deals & activities', i: 'funnel', group: 'CRM' },
-    { t: 'Salesforce', d: 'Enterprise CRM sync', i: 'funnel', group: 'CRM' },
     { t: 'Google Calendar', d: 'Auto-book meetings on open slots', i: 'calendar', group: 'Calendar' },
-    { t: 'LinkedIn', d: 'Reach prospects via DM', i: 'users', group: 'Channels' },
-    { t: 'Slack', d: 'Get notified on hot replies', i: 'chat', group: 'Notifications' },
   ];
   const groups = [...new Set(tools.map(t => t.group))];
   return (
@@ -823,8 +819,8 @@ function Step6({ d, set }) {
     { l: 'Role', v: d.role },
     { l: 'Company', v: d.company },
     { l: 'Industry', v: d.industry },
-    { l: 'Target titles', v: d.titles.join(', ') || '—' },
-    { l: 'Target market', v: d.companySizes.join(', ') || '—' },
+    { l: 'Target titles', v: d.titles.join(', ') || 'Not provided' },
+    { l: 'Target market', v: d.companySizes.join(', ') || 'Not provided' },
     { l: 'Meeting goal', v: `${d.meetingTarget} / week` },
     { l: 'Deal size', v: d.dealSize },
     { l: 'Tone', v: d.tone },
@@ -1089,7 +1085,7 @@ const ACTIVITY = [
   { ico: 'send', text: 'Sent intro to Devon Cole · Brightloop', t: '2m', hot: false },
   { ico: 'chat', text: 'Positive reply from Mara Ito · Northwind', t: '14m', hot: true },
   { ico: 'target', text: '23 new accounts matched your ICP', t: '31m', hot: false },
-  { ico: 'calendar', text: 'Meeting booked — Acme demo, Fri 9am', t: '1h', hot: true },
+  { ico: 'calendar', text: 'Meeting booked: Acme demo, Fri 9am', t: '1h', hot: true },
   { ico: 'send', text: 'Follow-up sent to Sara Nilsen · Polar Freight', t: '2h', hot: false },
   { ico: 'flame', text: 'Brightloop opened email 4× in 20 min', t: '3h', hot: true },
 ];
@@ -1097,7 +1093,7 @@ const ACTIVITY = [
 const TASKS = [
   { ico: 'chat', text: 'Approve reply to Mara Ito (Northwind)', cta: 'Review', hot: true },
   { ico: 'mail', text: 'Review 3 draft intros before sending', cta: 'Review', hot: false },
-  { ico: 'calendar', text: 'Confirm Acme demo slot — Fri 9am', cta: 'Confirm', hot: false },
+  { ico: 'calendar', text: 'Confirm Acme demo slot: Fri 9am', cta: 'Confirm', hot: false },
 ];
 
 function Dashboard({ setTab }) {
@@ -1195,7 +1191,7 @@ function Dashboard({ setTab }) {
           <div className="card" style={{ padding: 14 }}>
             <div className="eyebrow">Next meeting</div>
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontWeight: 800, fontSize: 14 }}>Northwind — Discovery call</div>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Northwind: Discovery call</div>
               <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>Today at 2:30 PM · 30 min</div>
             </div>
             <div className="row" style={{ gap: 8, marginTop: 12 }}>
@@ -1216,10 +1212,10 @@ function Dashboard({ setTab }) {
 const SEED_MSGS = [
   { who: 'agent', kind: 'text', text: "Morning, Mara 👋 Overnight I worked your Tier-1 list. Here's where things stand:" },
   { who: 'agent', kind: 'stats' },
-  { who: 'agent', kind: 'text', text: "Northwind replied to our funding-angle email — asking about onboarding time. Want me to propose 3 meeting times and send a tailored reply?" },
+  { who: 'agent', kind: 'text', text: "Northwind replied to our funding-angle email and asked about onboarding time. Want me to propose 3 meeting times and send a tailored reply?" },
   { who: 'agent', kind: 'draft' },
   { who: 'user', kind: 'text', text: "Looks great. Send it, and prioritize the accounts hiring SDRs." },
-  { who: 'agent', kind: 'text', text: "Done ✅ Reply sent to Mara at Northwind. I've re-ranked your queue — 12 accounts actively hiring SDRs are now at the top. I'll book straight to your calendar when they reply." },
+  { who: 'agent', kind: 'text', text: "Done ✅ Reply sent to Mara at Northwind. I've re-ranked your queue. Twelve accounts actively hiring SDRs are now at the top. I'll book straight to your calendar when they reply." },
 ];
 
 const QUICK = ['Draft follow-ups for no-replies', 'Find 50 new ICP accounts', 'Summarize hottest leads', 'Pause weekend sending'];
@@ -1240,7 +1236,7 @@ function AgentWorkspace() {
     setTyping(true);
     setTimeout(() => {
       setTyping(false);
-      setMsgs(m => [...m, { who: 'agent', kind: 'text', text: "On it — I'll handle that and report back. Anything worth your attention will land in your Inbox with a summary." }]);
+      setMsgs(m => [...m, { who: 'agent', kind: 'text', text: "On it. I'll handle that and report back. Anything worth your attention will land in your Inbox with a summary." }]);
     }, 1400);
   };
 
@@ -1381,7 +1377,7 @@ function Bubble({ m, name }) {
             <span className="chip" style={{ height: 22, fontSize: 11 }}>AI written</span>
           </div>
           <div style={{ padding: '12px 14px', fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink-2)' }}>
-            Hi Mara — great question. Most teams your size are fully ramped in <b style={{ color: 'var(--g-700)' }}>under 2 weeks</b>. I'd love to walk you through it. Are you free Tue 10:00, Wed 14:30, or Fri 09:00?
+            Hi Mara, great question. Most teams your size are fully ramped in <b style={{ color: 'var(--g-700)' }}>under 2 weeks</b>. I'd love to walk you through it. Are you free Tue 10:00, Wed 14:30, or Fri 09:00?
           </div>
           <div className="row" style={{ gap: 9, padding: '10px 14px', borderTop: '1px solid var(--line)' }}>
             <button className="btn btn-primary btn-sm"><Icon name="send" size={14} color="#06231a" /> Approve & send</button>
@@ -1583,10 +1579,10 @@ function LeadCard({ l }) {
 
 /* =================== CAMPAIGNS =================== */
 const CAMPAIGNS_DATA = [
-  { name: 'SaaS VP Sales — Q3 push', status: 'Active', enrolled: 142, sent: 284, opens: '68%', replies: '24%', meetings: 18, created: '2 weeks ago' },
-  { name: 'Series B funded — hiring signal', status: 'Active', enrolled: 87, sent: 174, opens: '72%', replies: '31%', meetings: 12, created: '10 days ago' },
+  { name: 'SaaS VP Sales: Q3 push', status: 'Active', enrolled: 142, sent: 284, opens: '68%', replies: '24%', meetings: 18, created: '2 weeks ago' },
+  { name: 'Series B funded: hiring signal', status: 'Active', enrolled: 87, sent: 174, opens: '72%', replies: '31%', meetings: 12, created: '10 days ago' },
   { name: 'Re-engage cold Q1 pipeline', status: 'Paused', enrolled: 63, sent: 126, opens: '54%', replies: '18%', meetings: 5, created: '3 weeks ago' },
-  { name: 'Enterprise healthcare outbound', status: 'Draft', enrolled: 0, sent: 0, opens: '—', replies: '—', meetings: 0, created: '1 day ago' },
+  { name: 'Enterprise healthcare outbound', status: 'Draft', enrolled: 0, sent: 0, opens: 'Not available', replies: 'Not available', meetings: 0, created: '1 day ago' },
 ];
 const STATUS_STYLES = {
   Active: { bg: 'var(--g-50)', color: 'var(--g-700)', dot: 'var(--g-500)' },
@@ -1656,7 +1652,7 @@ function Campaigns() {
 
 /* =================== INBOX =================== */
 const THREADS = [
-  { n: 'Mara Ito', c: 'Northwind', sub: 'Re: Cutting ramp time for your 12 new AEs', prev: "This is helpful — can we do Friday at 9?", t: '14m', unread: true, hot: true, tag: 'Positive' },
+  { n: 'Mara Ito', c: 'Northwind', sub: 'Re: Cutting ramp time for your 12 new AEs', prev: "This is helpful. Can we do Friday at 9?", t: '14m', unread: true, hot: true, tag: 'Positive' },
   { n: 'Devon Cole', c: 'Brightloop', sub: "Re: Quick idea for Brightloop's Q3", prev: "Opened your deck. What's pricing for 40 seats?", t: '1h', unread: true, tag: 'Pricing' },
   { n: 'Lena Park', c: 'Cobalt', sub: 'Re: RevOps benchmark report', prev: "Thanks, forwarding to my VP.", t: '3h', tag: 'Forwarded' },
   { n: 'Amir Haddad', c: 'Acme', sub: 'Re: Following up', prev: "Not right now, circle back in Q4.", t: '5h', tag: 'Nurture' },
@@ -1719,7 +1715,7 @@ function Inbox() {
               <Avatar name={th.n} size={32} />
               <div className="col"><span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{th.n}</span><span className="faint" style={{ fontSize: 12 }}>to me · {th.t} ago</span></div>
             </div>
-            <p style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>{th.prev} Looking forward to it — let me know what works.</p>
+            <p style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>{th.prev} Looking forward to it. Let me know what works.</p>
           </div>
           <div className="card" style={{ padding: 0, maxWidth: 620, marginTop: 16, overflow: 'hidden', boxShadow: 'var(--sh-md)' }}>
             <div className="row spread" style={{ padding: '11px 16px', background: 'linear-gradient(90deg,var(--g-50),#fff)', borderBottom: '1px solid var(--g-100)' }}>
@@ -1727,7 +1723,7 @@ function Inbox() {
               <span className="chip" style={{ height: 22, fontSize: 11 }}>Recommended</span>
             </div>
             <div style={{ padding: '14px 16px', fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>
-              Hi {th.n.split(' ')[0]} — Friday at 9:00 works perfectly. I'll send a calendar invite with a short agenda so we keep it to 25 minutes. Talk soon!
+              Hi {th.n.split(' ')[0]}, Friday at 9:00 works perfectly. I'll send a calendar invite with a short agenda so we keep it to 25 minutes. Talk soon!
             </div>
             <div className="row" style={{ gap: 9, padding: '12px 16px', borderTop: '1px solid var(--line)' }}>
               <button className="btn btn-primary btn-sm"><Icon name="send" size={14} color="#06231a" /> Approve & send</button>
@@ -1943,9 +1939,9 @@ function FunnelChart() {
 function Billing() {
   const [annual, setAnnual] = useStateSB(true);
   const plans = [
-    { name: 'Starter', price: annual ? 49 : 59, desc: 'For solo reps getting started', feats: ['1 seat', '50 emails/day', 'Basic ICP targeting', 'Email only', '3 active campaigns'] },
-    { name: 'Growth', price: annual ? 149 : 179, desc: 'For small sales teams', feats: ['5 seats', '200 emails/day', 'Advanced ICP + signals', 'Email + LinkedIn', 'Unlimited campaigns', 'CRM sync'], current: true },
-    { name: 'Scale', price: annual ? 399 : 479, desc: 'For high-velocity teams', feats: ['20 seats', 'Unlimited emails', 'Priority intent data', 'All channels incl. SMS', 'Custom AI training', 'Dedicated CSM'] },
+    { name: 'Starter', price: annual ? 49 : 59, desc: 'For solo reps getting started with the core sales loop.', feats: ['2,645 credits/month', '3 email campaigns', '1 voice campaign', 'AI email sequences', 'Apollo lead enrichment', 'AI voice calling'] },
+    { name: 'Growth', price: annual ? 149 : 179, desc: 'For small sales teams running more of the same core loop.', feats: ['5,370 credits/month', '10 email campaigns', '4 voice campaigns', 'AI email sequences', 'Apollo lead enrichment', 'AI voice calling'], current: true },
+    { name: 'Scale', price: annual ? 399 : 479, desc: 'For teams that need higher volume and admin cost visibility.', feats: ['14,370 credits/month', '25 email campaigns', '10 voice campaigns', 'AI email sequences', 'Apollo lead enrichment', 'AI voice calling'] },
   ];
   return (
     <div className="scroll grow" style={{ padding: '24px 32px', minHeight: 0 }}>
@@ -1964,16 +1960,16 @@ function Billing() {
         </div>
         {/* Usage */}
         <div className="card" style={{ padding: 24, marginBottom: 28 }}>
-          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 18 }}>Current usage</div>
+          <div className="row spread" style={{ marginBottom: 18 }}><div style={{ fontWeight: 800, fontSize: 15 }}>Credit balance</div><strong style={{ color: 'var(--g-700)', fontSize: 22 }}>3,680</strong></div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
-            {[{ k: 'Emails sent this month', v: 584, max: 6000, unit: '' }, { k: 'Seats used', v: 3, max: 5, unit: '' }, { k: 'Active campaigns', v: 2, max: 'Unlimited', unit: '' }].map(u => (
+            {[{ k: 'Credits used', v: 1690, max: 5370 }, { k: 'Credits reserved', v: 0, max: 5370 }, { k: 'Active campaigns', v: 2, max: 14 }].map(u => (
               <div key={u.k}>
                 <div className="row spread" style={{ marginBottom: 10 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink-2)' }}>{u.k}</span>
-                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{u.v}{u.max !== 'Unlimited' ? ` / ${u.max}` : ' / ∞'}</span>
+                  <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--g-700)' }}>{u.v.toLocaleString()} / {u.max.toLocaleString()}</span>
                 </div>
                 <div style={{ height: 9, background: 'var(--bg-2)', borderRadius: 99 }}>
-                  <div style={{ height: '100%', width: (u.max !== 'Unlimited' ? (u.v / u.max) * 100 : 10) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
+                  <div style={{ height: '100%', width: Math.min((u.v / u.max) * 100, 100) + '%', borderRadius: 99, background: 'linear-gradient(90deg,var(--g-400),var(--teal))' }} />
                 </div>
               </div>
             ))}
@@ -2012,7 +2008,7 @@ function Billing() {
 function Settings() {
   const [tone, setTone] = useStateSB('Consultative');
   const [vol, setVol] = useStateSB(120);
-  const [chans, setChans] = useStateSB(['Email', 'LinkedIn']);
+  const [chans, setChans] = useStateSB(['Email', 'Voice']);
   const toggleChan = c => setChans(chans.includes(c) ? chans.filter(x => x !== c) : [...chans, c]);
   const [autos, setAutos] = useStateSB({ firstTouch: true, approveReplies: true, autoBook: true, weekends: false });
   const toggle = k => setAutos(a => ({ ...a, [k]: !a[k] }));
@@ -2042,7 +2038,7 @@ function Settings() {
         </SetCard>
         <SetCard title="Channels" ico="link" sub="Where the agent can reach out.">
           <div className="col" style={{ gap: 10 }}>
-            {[['Email', 'mail'], ['LinkedIn', 'users'], ['SMS', 'phone']].map(([c, i]) => (
+            {[['Email', 'mail'], ['Voice', 'phone']].map(([c, i]) => (
               <SToggle key={c} ico={i} label={c} on={chans.includes(c)} onChange={() => toggleChan(c)} />
             ))}
           </div>

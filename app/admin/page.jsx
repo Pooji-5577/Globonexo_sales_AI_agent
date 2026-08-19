@@ -18,7 +18,8 @@ const NAV_ITEMS = [
   { id: "orgs", label: "Organizations", ico: "building" },
   { id: "users", label: "Users", ico: "users" },
   { id: "campaigns", label: "Campaigns", ico: "send" },
-  { id: "apollo", label: "Apollo usage", ico: "chart" },
+  { id: "apollo", label: "Lead database usage", ico: "chart" },
+  { id: "costs", label: "Cost & margin", ico: "trend" },
   { id: "support", label: "Support", ico: "chat" },
 ];
 
@@ -116,6 +117,181 @@ function StatChips({ items }) {
   );
 }
 
+function formatCredits(value) {
+  return Number(value ?? 0).toLocaleString();
+}
+
+function formatProviderCost(cents) {
+  return cents == null ? "Not available" : `$${(Number(cents) / 100).toFixed(4)}`;
+}
+
+function providerLabel(provider) {
+  return {
+    azure_openai: "AI generation",
+    apollo: "Apollo",
+    retell: "Retell",
+  }[provider] || provider;
+}
+
+function attributionLabel(event) {
+  if (!event.userId) return "Unattributed / system";
+  if (event.isSelectedUser) {
+    return event.attributionMethod === "actor" ? "This user · recorded actor" : "This user · historical sole member";
+  }
+  return `Other member${event.attributedUserName ? ` · ${event.attributedUserName}` : ""}`;
+}
+
+function CreditState({ value }) {
+  const styles = {
+    settled: { background: "var(--g-50)", color: "var(--g-700)", border: "var(--g-100)" },
+    reserved: { background: "#fff7ed", color: "#c2410c", border: "#fed7aa" },
+    released: { background: "var(--bg-2)", color: "var(--muted)", border: "var(--line)" },
+    rejected: { background: "#fef2f2", color: "#b91c1c", border: "#fecaca" },
+    unmetered: { background: "#fff7ed", color: "#c2410c", border: "#fed7aa" },
+  };
+  const tone = styles[value] || styles.released;
+  return <span className="badge" style={{ background: tone.background, color: tone.color, border: `1px solid ${tone.border}` }}>{value}</span>;
+}
+
+function UserCreditDrawer({ user, usage, loading, error, onClose }) {
+  if (!user) return null;
+
+  const summary = usage?.summary;
+  const attribution = usage?.attribution;
+  const providerRows = Object.entries(summary?.byProvider ?? {});
+  const events = usage?.events ?? [];
+
+  return (
+    <div
+      role="presentation"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}
+      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(6, 35, 26, .22)", display: "flex", justifyContent: "flex-end" }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-credit-drawer-title"
+        style={{ width: "min(760px, 100vw)", height: "100%", overflowY: "auto", background: "#fff", boxShadow: "-18px 0 50px rgba(6, 35, 26, .16)", padding: 24 }}
+      >
+        <div className="row spread" style={{ alignItems: "flex-start", gap: 16 }}>
+          <div className="row" style={{ gap: 12, minWidth: 0 }}>
+            <Avatar name={user.name} size={44} />
+            <div className="col" style={{ minWidth: 0, gap: 3 }}>
+              <span className="eyebrow">Individual credit usage</span>
+              <h2 id="user-credit-drawer-title" style={{ margin: 0, fontSize: 22 }}>{user.name}</h2>
+              <span className="faint ellip">{user.email} · {user.organizationName}</span>
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={onClose} aria-label="Close credit usage details">
+            <Icon name="close" size={16} /> Close
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="soft-empty" style={{ marginTop: 28 }}><Spinner size={18} /> Loading settled credit events…</div>
+        ) : error ? (
+          <div className="notice-warn" style={{ marginTop: 20 }}>{error}</div>
+        ) : usage ? (
+          <>
+            <div className="row spread" style={{ marginTop: 20, alignItems: "baseline", gap: 12 }}>
+              <div>
+                <span className="eyebrow">Billing period</span>
+                <strong style={{ display: "block", marginTop: 4 }}>{new Date(usage.period.start).toLocaleDateString()} – {new Date(usage.period.end).toLocaleDateString()}</strong>
+              </div>
+              <span className="chip">{usage.user.planId}</span>
+            </div>
+
+            <div className="metric-grid" style={{ marginTop: 16, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+              <Metric label="attributed credits" value={formatCredits(summary?.creditsDebited)} icon="chart" />
+              <Metric label="reported provider cost" value={formatProviderCost(summary?.reportedCostCents)} icon="trend" />
+              <Metric label="settled events" value={summary?.settledEvents ?? 0} icon="check" />
+              <Metric label="org credits not attributed here" value={formatCredits((attribution?.organizationCredits ?? 0) - (attribution?.thisUserCredits ?? 0))} icon="users" tone="warn" />
+            </div>
+
+            <div className="card" style={{ marginTop: 16, padding: 16, background: "#fbfdfc" }}>
+              <div className="row spread" style={{ gap: 12 }}>
+                <div>
+                  <span className="eyebrow">Balance snapshot</span>
+                  <p className="muted" style={{ margin: "5px 0 0", fontSize: 12.5 }}>Organization balance; the ledger does not maintain separate per-user balances.</p>
+                </div>
+                <strong style={{ color: "var(--g-700)" }}>{formatCredits(usage.balance.remainingCredits)} remaining</strong>
+              </div>
+              <div className="admin-pill-list" style={{ marginTop: 12 }}>
+                <span className="chip">included · {formatCredits(usage.balance.includedCredits)}</span>
+                <span className="chip">top-up · {formatCredits(usage.balance.topUpCredits)}</span>
+                <span className="chip">used · {formatCredits(usage.balance.creditsUsed)}</span>
+                <span className="chip">reserved · {formatCredits(usage.balance.creditsReserved)}</span>
+              </div>
+            </div>
+
+            <div className="notice-good" style={{ marginTop: 16, lineHeight: 1.5 }}>
+              Only <strong>settled</strong> provider events count as spend. Recorded actor events are verified user activity; historical sole-member rows are labeled as historical attribution. Organization spend is never silently presented as this user’s spend.
+              {attribution?.unattributedCredits > 0 ? ` ${formatCredits(attribution.unattributedCredits)} organization credits remain unattributed.` : ""}
+            </div>
+
+            <div style={{ marginTop: 22 }}>
+              <div className="row spread" style={{ marginBottom: 10 }}>
+                <div>
+                  <span className="eyebrow">Provider breakdown</span>
+                  <p className="faint" style={{ margin: "4px 0 0" }}>Settled events attributed to this user.</p>
+                </div>
+                <span className="faint">{attribution?.attributionCoveragePercent ?? 100}% org coverage</span>
+              </div>
+              <div className="card table-shell">
+                <div className="table-scroll">
+                  <table className="data-table" style={{ minWidth: 520 }}>
+                    <thead><tr>{["Provider", "Events", "Credits", "Reported cost"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                    <tbody>
+                      {providerRows.length === 0 ? <tr><td colSpan={4} className="table-empty">No settled provider events for this user in the current period.</td></tr> : providerRows.map(([provider, row]) => (
+                        <tr className="data-row" key={provider}>
+                          <td><strong>{providerLabel(provider)}</strong><div className="faint">{provider}</div></td>
+                          <td>{row.events}</td>
+                          <td>{formatCredits(row.creditsDebited)}</td>
+                          <td>{formatProviderCost(row.reportedCostCents)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 22 }}>
+              <div className="row spread" style={{ marginBottom: 10, gap: 12 }}>
+                <div>
+                  <span className="eyebrow">Event ledger</span>
+                  <p className="faint" style={{ margin: "4px 0 0" }}>Every current-period event for the organization, with attribution shown per row.</p>
+                </div>
+                <span className="faint">{events.length}{usage.truncated ? "+" : ""} events</span>
+              </div>
+              {usage.truncated ? <div className="notice-warn" style={{ marginBottom: 10 }}>This table is showing the newest 1,000 events. The totals above include the full current-period ledger.</div> : null}
+              <div className="card table-shell">
+                <div className="table-scroll">
+                  <table className="data-table" style={{ minWidth: 900 }}>
+                    <thead><tr>{["Time", "Provider / operation", "Campaign", "Credits", "Attribution", "State"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                    <tbody>
+                      {events.length === 0 ? <tr><td colSpan={6} className="table-empty">No provider credit events in this billing period.</td></tr> : events.map(event => (
+                        <tr className="data-row" key={event.id} style={{ background: event.isSelectedUser ? "#f0fdf4" : undefined }}>
+                          <td><span className="faint">{new Date(event.createdAt).toLocaleString()}</span></td>
+                          <td><strong>{providerLabel(event.provider)}</strong><div className="faint">{event.operation}</div></td>
+                          <td>{event.campaignName || "System / no campaign"}</td>
+                          <td>{event.status === "settled" ? formatCredits(event.creditsDebited) : `reserved ${formatCredits(event.reservedCredits)}`}</td>
+                          <td><span style={{ fontSize: 12.5, color: event.isSelectedUser ? "var(--g-700)" : "var(--ink-2)" }}>{attributionLabel(event)}</span></td>
+                          <td><CreditState value={event.status} /></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : null}
+      </section>
+    </div>
+  );
+}
+
 function appendMessageOnce(messages = [], message) {
   if (!message || messages.some(item => item.id === message.id)) return messages;
   return [...messages, message];
@@ -137,6 +313,11 @@ export default function AdminPage() {
   const [notice, setNotice] = useState("");
   const [adminUser, setAdminUser] = useState(null);
   const [apolloUsage, setApolloUsage] = useState(null);
+  const [costUsage, setCostUsage] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userCreditUsage, setUserCreditUsage] = useState(null);
+  const [userCreditLoading, setUserCreditLoading] = useState(false);
+  const [userCreditError, setUserCreditError] = useState("");
   const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
@@ -193,7 +374,12 @@ export default function AdminPage() {
     if (tab === "apollo") {
       api.get("/admin/apollo-credits")
         .then(res => setApolloUsage(res.data))
-        .catch(() => setError("Apollo credit usage could not be loaded."));
+        .catch(() => setError("Lead database credit usage could not be loaded."));
+    }
+    if (tab === "costs") {
+      api.get("/admin/costs")
+        .then(res => setCostUsage(res.data))
+        .catch(() => setError("Provider cost usage could not be loaded."));
     }
   }, [tab]);
 
@@ -209,6 +395,25 @@ export default function AdminPage() {
       .catch(() => setError("Support ticket details could not be loaded."))
       .finally(() => setSupportLoading(false));
   }, [selectedTicketId]);
+
+  useEffect(() => {
+    if (!selectedUser) {
+      setUserCreditUsage(null);
+      setUserCreditError("");
+      return undefined;
+    }
+
+    let active = true;
+    setUserCreditLoading(true);
+    setUserCreditUsage(null);
+    setUserCreditError("");
+    api.get(`/admin/users/${selectedUser.id}/credit-usage`)
+      .then(res => { if (active) setUserCreditUsage(res.data); })
+      .catch(err => { if (active) setUserCreditError(err?.response?.data?.error || "User credit usage could not be loaded."); })
+      .finally(() => { if (active) setUserCreditLoading(false); });
+
+    return () => { active = false; };
+  }, [selectedUser]);
 
   const metrics = data?.metrics ?? {};
   const organizations = data?.organizations ?? [];
@@ -241,7 +446,8 @@ export default function AdminPage() {
     ? "Search organizations by name or website..."
     : tab === "users"
       ? "Search users by name or email..."
-      : "Search campaigns by name or organization...";
+      : tab === "costs" ? "Search costs by organization or provider..."
+        : "Search campaigns by name or organization...";
 
   const suspendOrg = async org => {
     if (!window.confirm(`Suspend ${org.name}? They will immediately lose access to the app.`)) return;
@@ -306,7 +512,7 @@ export default function AdminPage() {
     <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
       <AdminSidebar
         tab={tab}
-        onTabChange={(value) => { setTab(value); setSearch(""); }}
+        onTabChange={(value) => { setTab(value); setSearch(""); setSelectedUser(null); }}
         adminName={adminName}
         adminEmail={adminEmail}
         onLogout={handleLogout}
@@ -347,7 +553,7 @@ export default function AdminPage() {
         </div>
       </section>
 
-      {tab !== "support" && (
+      {tab !== "support" && tab !== "costs" && (
         <div className="input-wrap" style={{ width: 280, marginBottom: 12 }}>
           <span className="lead-ico"><Icon name="search" size={15} /></span>
           <input
@@ -412,24 +618,30 @@ export default function AdminPage() {
         <div className="card table-shell">
           <div className="table-scroll">
             <table className="data-table">
-              <thead><tr>{["User", "Organization", "Role", "Created"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+              <thead><tr>{["User", "Organization", "Role", "Created", "Credit spending"].map(header => <th key={header}>{header}</th>)}</tr></thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
-                  <tr><td colSpan={4} className="table-empty">No users match your search.</td></tr>
+                  <tr><td colSpan={5} className="table-empty">No users match your search.</td></tr>
                 ) : filteredUsers.map(user => (
                   <tr className="data-row" key={user.id}>
                     <td>
-                      <div className="row" style={{ gap: 11 }}>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedUser(user)}
+                        aria-label={`View credit spending for ${user.name}`}
+                        style={{ display: "flex", alignItems: "center", gap: 11, padding: 0, border: 0, background: "transparent", color: "inherit", textAlign: "left", cursor: "pointer" }}
+                      >
                         <Avatar name={user.name} size={34} />
                         <div className="col">
                           <strong style={{ fontSize: 14 }}>{user.name}</strong>
                           <span className="faint" style={{ fontSize: 12 }}>{user.email}</span>
                         </div>
-                      </div>
+                      </button>
                     </td>
                     <td>{user.organizationName}</td>
                     <td><span className="chip">{user.role}</span></td>
                     <td><span className="faint">{new Date(user.createdAt).toLocaleDateString()}</span></td>
+                    <td><button className="btn btn-ghost btn-sm" type="button" onClick={() => setSelectedUser(user)}>View details <Icon name="arrow" size={13} /></button></td>
                   </tr>
                 ))}
               </tbody>
@@ -467,7 +679,7 @@ export default function AdminPage() {
         <div className="col" style={{ gap: 16 }}>
           <div className="metric-grid">
             <Metric label="total credits" value={apolloUsage?.summary?.totalCredits ?? 0} icon="chart" />
-            <Metric label="Apollo calls" value={apolloUsage?.summary?.calls ?? 0} icon="send" />
+            <Metric label="lead database calls" value={apolloUsage?.summary?.calls ?? 0} icon="send" />
             <Metric label="email credits" value={apolloUsage?.summary?.emailCredits ?? 0} icon="mail" />
             <Metric label="voice credits" value={apolloUsage?.summary?.voiceCredits ?? 0} icon="phone" />
           </div>
@@ -476,18 +688,66 @@ export default function AdminPage() {
               <table className="data-table" style={{ minWidth: 1180 }}>
                 <thead><tr>{["Time", "Organization", "Campaign", "Operation", "Channel", "Requested", "Returned", "Credits", "State", "Duration"].map(header => <th key={header}>{header}</th>)}</tr></thead>
                 <tbody>
-                  {(apolloUsage?.items ?? []).length === 0 ? <tr><td colSpan={10} className="table-empty">No Apollo calls recorded yet.</td></tr> : (apolloUsage?.items ?? []).map(call => (
+                  {(apolloUsage?.items ?? []).length === 0 ? <tr><td colSpan={10} className="table-empty">No lead database calls recorded yet.</td></tr> : (apolloUsage?.items ?? []).map(call => (
                     <tr className="data-row" key={call.id}>
                       <td>{new Date(call.started_at).toLocaleString()}</td>
                       <td>{call.organizationName}</td>
-                      <td>{call.campaignName || "—"}</td>
+                      <td>{call.campaignName || "Campaign not provided"}</td>
                       <td><strong>{call.operation}</strong><div className="faint">{call.endpoint}</div></td>
                       <td><span className="chip">{call.channel || "shared"}</span></td>
                       <td>{call.requested_records}</td>
                       <td>{call.channel === "voice" ? call.phone_records : call.email_records}</td>
                       <td>{call.credit_status === "final" ? Number(call.credits_consumed ?? 0) : call.credit_status}</td>
                       <td><StatusBadge value={call.status} /></td>
-                      <td>{call.duration_ms == null ? "—" : `${call.duration_ms} ms`}</td>
+                      <td>{call.duration_ms == null ? "Not available" : `${call.duration_ms} ms`}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : tab === "costs" ? (
+        <div className="col" style={{ gap: 16 }}>
+          <div className="metric-grid">
+            <Metric label="reported provider cost" value={`$${((costUsage?.summary?.reportedCostCents ?? 0) / 100).toFixed(2)}`} icon="trend" />
+            <Metric label="credits debited" value={(costUsage?.summary?.creditsDebited ?? 0).toLocaleString()} icon="chart" />
+            <Metric label="settled events" value={costUsage?.summary?.settledEvents ?? 0} icon="check" />
+            <Metric label="unmetered events" value={costUsage?.summary?.unmeteredEvents ?? 0} icon="alertCircle" tone="warn" />
+          </div>
+          <div className="card table-shell">
+            <div className="table-scroll">
+              <table className="data-table" style={{ minWidth: 980 }}>
+                <thead><tr>{["Organization", "Plan", "Reported cost", "Credits", "Est. margin", "Events"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                <tbody>
+                  {(costUsage?.organizations ?? []).length === 0 ? <tr><td colSpan={6} className="table-empty">No provider cost events recorded this period.</td></tr> : (costUsage?.organizations ?? []).map(org => (
+                    <tr className="data-row" key={org.organizationId}>
+                      <td><strong>{org.organizationName}</strong></td>
+                      <td><span className="chip">{org.planId}</span></td>
+                      <td>${(org.reportedCostCents / 100).toFixed(2)}</td>
+                      <td>{org.creditsDebited.toLocaleString()}</td>
+                      <td style={{ color: org.estimatedMarginCents < 0 ? "#b42318" : "var(--g-700)", fontWeight: 800 }}>${(org.estimatedMarginCents / 100).toFixed(2)}</td>
+                      <td>{org.events}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="card table-shell">
+            <div className="table-scroll">
+              <table className="data-table" style={{ minWidth: 1080 }}>
+                <thead><tr>{["Time", "Organization", "Provider", "Operation", "Reported cost", "Credits", "State"].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                <tbody>
+                  {(costUsage?.items ?? []).slice(0, 100).map(item => (
+                    <tr className="data-row" key={item.id}>
+                      <td>{new Date(item.createdAt).toLocaleString()}</td>
+                      <td>{item.organizationName}</td>
+                      <td><span className="chip">{item.provider}</span></td>
+                      <td>{item.operation}</td>
+                      <td>{item.reportedCostCents == null ? "Not reported" : `$${(item.reportedCostCents / 100).toFixed(4)}`}</td>
+                      <td>{item.creditsDebited.toLocaleString()}</td>
+                      <td><StatusBadge value={item.status} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -579,6 +839,13 @@ export default function AdminPage() {
         </section>
       )}
       </div>
+      <UserCreditDrawer
+        user={selectedUser}
+        usage={userCreditUsage}
+        loading={userCreditLoading}
+        error={userCreditError}
+        onClose={() => setSelectedUser(null)}
+      />
     </div>
   );
 }

@@ -185,7 +185,7 @@ export default function SetupChecklist({ variant = "full" }) {
         ) : (
           <p className="setup-compact-next">
             <span className="setup-compact-label">Next</span>
-            {nextMeta?.title} — {nextMeta?.summary}
+            {nextMeta?.title}: {nextMeta?.summary}
           </p>
         )}
 

@@ -8,50 +8,66 @@ import Icon from "../components/ui/Icon";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import { useAuth } from "../hooks/useAuth";
+import { PLAN_CONFIG } from "../lib/plans";
+import QualifyDemo from "../components/landing/QualifyDemo";
+import VoiceTestDemo from "../components/landing/VoiceTestDemo";
 
 export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  const steps = [
-    { icon: 'target', title: 'Find & qualify', text: 'Scans millions of signals to find your ideal buyers and qualify them automatically.' },
-    { icon: 'doc', title: 'Write & outreach', text: 'Writes personalized messages that start conversations and follows up at the right time.' },
-    { icon: 'chat', title: 'Handle replies', text: 'Replies like a human, answers questions, and keeps every prospect moving.' },
-    { icon: 'calendar', title: 'Book meetings', text: 'Qualifies interest and books meetings directly on your team\'s calendar.' },
+  const copilotPoints = [
+    'Ask it in plain English — no hunting through screens',
+    'Pause every live campaign with one sentence',
+    'It keeps working between your campaigns, not just inside them',
+    'Autopilot changes who approves a message, never what gets checked',
   ];
 
-  const outcomes = [
-    { value: '3.2x', label: 'More meetings booked' },
-    { value: '75%', label: 'Reply-rate increase' },
-    { value: '40+', label: 'Hours saved per rep/month' },
-    { value: '2–4 weeks', label: 'Time to first meetings' },
+  const chat = [
+    { from: 'you', text: 'Which leads need me today?' },
+    { from: 'agent', text: 'Three replied overnight and are waiting on you.', rows: [
+      { name: 'Head of RevOps · Bluepeak', note: 'Asked about pricing' },
+      { name: 'VP Sales · Fernpoint', note: 'Wants a call Thursday' },
+      { name: 'Founder · Oakline', note: 'Replied to step 2' },
+    ] },
+    { from: 'you', text: 'Pause everything until Monday.' },
+    { from: 'agent', text: 'Paused 4 live campaigns. Nothing will send or dial until you resume.' },
   ];
 
-  const upcoming = [
-    { day: 'Tomorrow', date: '10', initials: 'DC', type: 'Product demo', color: '#e5aa43' },
-    { day: 'Wed', date: '11', initials: 'AH', type: 'Follow-up call', color: '#70c98c' },
-    { day: 'Thu', date: '12', initials: 'LP', type: 'Technical review', color: '#69c2c0' },
+  // Sourced from context-readiness.service.ts and email-validation.service.ts.
+  const accuracy = [
+    { icon: 'doc', title: 'It states what it does not know', text: 'The model is handed an explicit list of missing facts, not a vague instruction to avoid making things up. Telling it exactly what is absent is far stronger.' },
+    { icon: 'target', title: 'Facts and guesses stay separate', text: 'A verified headcount is a fact. "They are struggling with pipeline" is a hypothesis, and hypotheses become questions, never claims.' },
+    { icon: 'sliders', title: 'Readiness you can act on', text: 'A lead reads as "7 of 10 ready" with the missing pieces named. You can act on a missing fact. You cannot act on "68% quality".' },
+    { icon: 'lock', title: 'Nothing is written on thin air', text: 'Without the required facts about a person and their company, no message is drafted at all. Silence beats a confident guess.' },
   ];
 
-  const googleScopes = [
-    {
-      icon: 'send',
-      scope: 'gmail.send',
-      title: 'Send your outreach and follow-ups',
-      text: 'GNX Sales sends the outreach emails and scheduled follow-ups you have approved from your own Gmail account, so prospects see your address and every message stays in your Sent mail.',
-    },
-    {
-      icon: 'inbox',
-      scope: 'gmail.readonly',
-      title: 'Detect replies and stop follow-ups',
-      text: 'GNX Sales reads the message threads it started on your behalf to detect when a prospect replies. That is how a pending follow-up is cancelled automatically and how the conversation appears in your Inbox view. We do not read unrelated mail in your mailbox.',
-    },
-    {
-      icon: 'user',
-      scope: 'userinfo.email',
-      title: 'Show which account is connected',
-      text: 'We read the email address of the Google account you connect so we can display it in Settings and send from the right mailbox.',
-    },
+  const voicePoints = [
+    'Adversarial scenarios, judged before a campaign dials, if you choose to test it',
+    'Refuses to invent customers, pricing, or ROI it was never given',
+    'Ends the call immediately on a do-not-call request',
+    'Books only real calendar slots, never an invented time',
+    'A calling number is provisioned for you automatically, nothing to set up',
+  ];
+
+  // Rotates through the real plan catalogue so the numbers can never drift from
+  // what checkout actually sells. Every figure here comes from PLAN_CONFIG.
+  const [planIndex, setPlanIndex] = React.useState(0);
+  const [autoRotate, setAutoRotate] = React.useState(true);
+  const plan = PLAN_CONFIG[planIndex];
+
+  React.useEffect(() => {
+    if (!autoRotate) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const id = setInterval(() => setPlanIndex((i) => (i + 1) % PLAN_CONFIG.length), 4000);
+    return () => clearInterval(id);
+  }, [autoRotate]);
+
+  const capacity = [
+    { value: plan.monthlyCredits.toLocaleString(), label: 'credits / month, one shared pool' },
+    { value: plan.emailCampaigns, label: 'email campaigns' },
+    { value: plan.voiceCampaigns, label: plan.voiceCampaigns === 1 ? 'voice campaign' : 'voice campaigns' },
+    { value: plan.dailyEmailCap, label: 'emails / day sending cap' },
   ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -72,25 +88,27 @@ export default function LandingPage() {
               <h1 className="display">
                 Your AI sales rep.
                 <span>Always prospecting.</span>
-                <span>Always closing.</span>
+                <span>
+                  Always <span className="landing-hero-rotator"><em>Calling</em><em aria-hidden="true">Mailing</em></span>.
+                </span>
               </h1>
-              <p>Finds buyers, writes outreach, handles replies, and books meetings while your team focuses on closing.</p>
-              <div className="landing-hero-actions">
-                {!loading && user ? (
+              <p>Finds buyers, researches why they would care, writes outreach, and reaches them by email or voice. You can focus on closing.</p>
+              <div className="landing-hero-actions" style={loading ? { visibility: 'hidden' } : undefined} aria-hidden={loading || undefined}>
+                {user ? (
                   <button className="btn btn-primary btn-lg" onClick={() => router.push('/dashboard')}>
                     Back to dashboard <Icon name="arrow" size={18} color="#06231a" />
                   </button>
-                ) : !loading ? (
+                ) : (
                   <>
                     <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
                       Start with a paid plan <Icon name="arrow" size={18} color="#06231a" />
                     </button>
-                    <button className="landing-outline-btn" onClick={handleSignIn}>Sign in</button>
+                    <button className="landing-outline-btn" onClick={() => scrollTo('accuracy')}>See how it works</button>
                   </>
-                ) : null}
+                )}
               </div>
               <div className="landing-assurances">
-                <span><Icon name="check" size={15} color="var(--g-300)" /> Monthly or annual billing</span>
+                <span><Icon name="check" size={15} color="var(--g-300)" /> For an individual, an agency, or a startup</span>
                 <span><Icon name="check" size={15} color="var(--g-300)" /> Live in 5 minutes</span>
               </div>
             </div>
@@ -134,7 +152,11 @@ export default function LandingPage() {
                   </div>
                   <span className="landing-list-label">Upcoming</span>
                   <div className="landing-upcoming">
-                    {upcoming.map((meeting) => (
+                    {[
+                      { day: 'Tomorrow', date: '10', initials: 'DC', type: 'Product demo', color: '#e5aa43' },
+                      { day: 'Wed', date: '11', initials: 'AH', type: 'Follow-up call', color: '#70c98c' },
+                      { day: 'Thu', date: '12', initials: 'LP', type: 'Technical review', color: '#69c2c0' },
+                    ].map((meeting) => (
                       <div key={meeting.type}>
                         <time><b>{meeting.day}</b><strong>{meeting.date}</strong></time>
                         <span className="landing-preview-avatar" style={{ background: meeting.color }}>{meeting.initials}</span>
@@ -149,118 +171,156 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="how-it-works" className="landing-how landing-section">
-          <div className="landing-section-intro">
-            <h2 className="display">How it works</h2>
-            <p>Your AI agent runs end-to-end, so your team can focus on closing.</p>
-          </div>
-          <div className="landing-steps">
-            {steps.map((step, index) => (
-              <article key={step.title}>
-                <span>{index + 1}</span>
-                <div className="landing-step-icon"><Icon name={step.icon} size={22} color="var(--g-800)" /></div>
-                <h3>{step.title}</h3>
-                <p>{step.text}</p>
-              </article>
-            ))}
-          </div>
+        <section className="landing-problem landing-section">
+          <QualifyDemo
+            intro={(
+              <div className="landing-section-intro">
+                <h2 className="display">Volume was <em className="hl">never</em> the problem</h2>
+                <p>A faster way to reach the wrong person is still the wrong person. Before anyone gets contacted, GNX works out:</p>
+              </div>
+            )}
+          />
         </section>
 
-        <section id="what-we-do" className="landing-usecase landing-section">
+        <section id="accuracy" className="landing-accuracy landing-section">
           <div className="landing-section-intro">
-            <h2 className="display">What GNX Sales does</h2>
-            <p>
-              GNX Sales helps sales teams and founders write personalized outreach messages and automatically
-              follow up with prospects at the right time. Instead of manually drafting emails or tracking who to
-              follow up with, GNX Sales handles the writing and timing so you can focus on closing deals.
-            </p>
+            <span className="landing-fit-label">No guessing</span>
+            <h2 className="display">It won&apos;t write what it <em className="hl">doesn&apos;t know</em></h2>
+            <p>Most AI outreach fails on a sentence that sounds confident and was never true. Yours is handed a list of the gaps instead.</p>
           </div>
-
-          <div className="landing-usecase-head">
-            <h3>How GNX Sales uses your Google account data</h3>
-            <p>
-              Connecting Gmail is optional and takes one click in Settings. You can also use a custom SMTP + IMAP
-              mailbox. When you connect Gmail, GNX Sales requests only the permissions below, and uses each one for
-              a single purpose in the product.
-            </p>
-          </div>
-
-          <div className="landing-usecase-grid">
-            {googleScopes.map((item) => (
-              <article key={item.scope}>
-                <div className="landing-usecase-icon"><Icon name={item.icon} size={20} color="var(--g-800)" /></div>
-                <code>{item.scope}</code>
+          <div className="landing-accuracy-grid">
+            {accuracy.map((item) => (
+              <article key={item.title}>
+                <div className="landing-usecase-icon landing-usecase-icon--accent">
+                  <Icon name={item.icon} size={20} color="#fff" />
+                </div>
                 <h4>{item.title}</h4>
                 <p>{item.text}</p>
               </article>
             ))}
           </div>
+          <p className="landing-accuracy-note">
+            <Icon name="alertCircle" size={16} color="var(--g-800)" />
+            <span>The line every prospect has learned to distrust — &ldquo;I know your team is struggling with X&rdquo; — written by a system that never knew that. GNX is built so it cannot write it.</span>
+          </p>
+        </section>
 
-          <div className="landing-usecase-note">
-            <div className="landing-usecase-icon"><Icon name="lock" size={20} color="var(--g-800)" /></div>
-            <div>
-              <h4>Limited Use disclosure</h4>
-              <p>
-                GNX Sales&apos; use and transfer of information received from Google APIs to any other app will
-                adhere to the{' '}
-                <a
-                  href="https://developers.google.com/terms/api-services-user-data-policy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Google API Services User Data Policy
-                </a>
-                , including the Limited Use requirements. We do not sell Google user data, do not use it for
-                advertising, and do not use it to train generalized AI or machine learning models. Google user data
-                is used only to provide the sending and reply-tracking features described above.
-              </p>
-              <p>
-                You can disconnect Google at any time from Settings, which deletes the access and refresh tokens we
-                store, and you can also revoke access from your{' '}
-                <a
-                  href="https://myaccount.google.com/permissions"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Google Account permissions page
-                </a>
-                . See our <Link href="/privacy">Privacy Policy</Link> and <Link href="/terms">Terms of Service</Link> for
-                full details.
-              </p>
+        <section id="voice" className="landing-voice landing-section">
+          <div className="landing-voice-copy">
+            <span className="landing-fit-label">AI voice calling</span>
+            <h2 className="display"><em className="hl">Tested</em> before it phones anyone</h2>
+            <p>
+              Before a voice campaign can go live, the agent is put through adversarial calls and scored on every
+              transcript — the busy prospect, the skeptic, the wrong person, the one who asks where you got their number.
+            </p>
+            <ul className="landing-copilot-points">
+              {voicePoints.map((point) => (
+                <li key={point}>
+                  <div className="landing-usecase-icon landing-usecase-icon--accent landing-usecase-icon--sm">
+                    <Icon name="check" size={14} color="#fff" />
+                  </div>
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <Link className="landing-text-link" href="/voice">
+              How voice calling works <Icon name="arrow" size={15} color="var(--g-700)" />
+            </Link>
+          </div>
+          <VoiceTestDemo />
+        </section>
+
+        <section id="copilot" className="landing-copilot landing-section">
+          <div className="landing-copilot-copy">
+            <span className="landing-fit-label">AI Co-Pilot</span>
+            <h2 className="display">Just <em className="hl">tell it</em> what to do</h2>
+            <p>
+              Your co-pilot runs the outreach on its own — but you never have to hunt through screens to steer it.
+              Ask in plain English and it does the work.
+            </p>
+            <ul className="landing-copilot-points">
+              {copilotPoints.map((point) => (
+                <li key={point}>
+                  <div className="landing-usecase-icon landing-usecase-icon--accent landing-usecase-icon--sm">
+                    <Icon name="check" size={14} color="#fff" />
+                  </div>
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <Link className="landing-text-link" href="/platform">
+              Everything the agent handles <Icon name="arrow" size={15} color="var(--g-700)" />
+            </Link>
+          </div>
+
+          <div className="cp" aria-hidden="true">
+            <div className="qd-bar"><span /><span /><span /><em>Agent</em></div>
+            <div className="cp-thread">
+              {chat.map((m) => (
+                <div key={m.text} className={`cp-msg is-${m.from}`}>
+                  {m.from === 'agent' && <span className="cp-ava"><Icon name="bolt" size={13} color="#fff" /></span>}
+                  <div>
+                    <p>{m.text}</p>
+                    {m.rows && (
+                      <div className="cp-rows">
+                        {m.rows.map((r) => (
+                          <div key={r.name}><strong>{r.name}</strong><span>{r.note}</span></div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
+            <div className="cp-input"><Icon name="chat" size={13} color="var(--faint)" /><span>Ask your agent anything…</span></div>
           </div>
         </section>
 
         <section id="results" className="landing-results landing-section">
           <div className="landing-results-copy">
-            <h2 className="display">Results that compound</h2>
-            <p>More pipeline, more meetings, and more closed deals without adding more manual work.</p>
+            <h2 className="display">
+              What <span key={plan.id} className="landing-plan-price">${plan.monthly}</span> gets you
+            </h2>
+            <p>Every plan includes all three capabilities. Tiers differ by volume, never by locked features.</p>
+            <div className="landing-plan-tabs" role="tablist" aria-label="Choose a plan to compare">
+              {PLAN_CONFIG.map((p, i) => (
+                <button
+                  key={p.id}
+                  role="tab"
+                  aria-selected={i === planIndex}
+                  className={i === planIndex ? 'is-active' : ''}
+                  onClick={() => { setPlanIndex(i); setAutoRotate(false); }}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="landing-outcomes">
-            {outcomes.map((outcome) => (
-              <div key={outcome.label}><strong>{outcome.value}</strong><span>{outcome.label}</span></div>
+          <div key={plan.id} className="landing-outcomes">
+            {capacity.map((item) => (
+              <div key={item.label}><strong>{item.value}</strong><span>{item.label}</span></div>
             ))}
           </div>
         </section>
 
         <section className="landing-cta landing-section">
           <div>
-            <h2 className="display">Put your AI sales rep to work.</h2>
-            <p>Choose a paid plan, connect your inbox, and get your outbound workflow moving.</p>
+            <h2 className="display">Put your agent to work</h2>
+            <p>Choose a plan, connect your inbox, and get moving.</p>
           </div>
-          <div className="landing-cta-actions">
-            {!loading && user ? (
+          <div className="landing-cta-actions" style={loading ? { visibility: 'hidden' } : undefined} aria-hidden={loading || undefined}>
+            {user ? (
               <button className="btn btn-primary btn-lg" onClick={() => router.push('/dashboard')}>
                 Back to dashboard <Icon name="arrow" size={18} color="#06231a" />
               </button>
-            ) : !loading ? (
+            ) : (
               <>
                 <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
                   Choose a plan <Icon name="arrow" size={18} color="#06231a" />
                 </button>
                 <Link className="landing-outline-btn" href="/pricing">View pricing</Link>
               </>
-            ) : null}
+            )}
           </div>
         </section>
 

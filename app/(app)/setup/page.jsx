@@ -10,7 +10,7 @@ export default function SetupPage() {
         <div>
           <h1 className="display page-title">Get set up</h1>
           <p className="muted page-subtitle">
-            Everything your agent needs before it can run outreach. Each step reflects your real account —
+            Everything your agent needs before it can run outreach. Each step reflects your real account.
             a tool only shows as connected once it genuinely is.
           </p>
         </div>

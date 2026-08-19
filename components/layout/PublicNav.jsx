@@ -6,7 +6,7 @@ import Logo from "../ui/Logo";
 import Icon from "../ui/Icon";
 
 // variant: "light" (default, white pages) or "dark" (homepage hero over Aurora background)
-// scrollTo: pass on the homepage so Product/How it works/Results scroll the current page instead of linking to /#anchor
+// scrollTo: pass on the homepage so the logo scrolls to top instead of navigating
 // onSignIn: pass on the homepage for the smart returning-user redirect; otherwise Sign in links to /login
 export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -17,13 +17,6 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
     scrollTo?.(id);
     setMobileOpen(false);
   };
-
-  const NavLink = ({ id, href, children }) =>
-    scrollTo ? (
-      <button onClick={() => handleScroll(id)}>{children}</button>
-    ) : (
-      <Link href={href} onClick={() => setMobileOpen(false)}>{children}</Link>
-    );
 
   return (
     <header className={`site-nav${dark ? " site-nav--dark" : ""}`}>
@@ -38,19 +31,19 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
       )}
 
       <nav className="site-nav-links">
-        <NavLink id="product" href="/#product">Product</NavLink>
-        <NavLink id="how-it-works" href="/#how-it-works">How it works</NavLink>
-        <NavLink id="results" href="/#results">Results</NavLink>
-        <Link href="/solutions" onClick={() => setMobileOpen(false)}>Solutions</Link>
+        <Link href="/platform" onClick={() => setMobileOpen(false)}>The Agent</Link>
+        <Link href="/voice" onClick={() => setMobileOpen(false)}>AI Calls</Link>
+        <Link href="/accuracy" onClick={() => setMobileOpen(false)}>No Guessing</Link>
+        <Link href="/solutions" onClick={() => setMobileOpen(false)}>Who It&apos;s For</Link>
         <Link href="/pricing" onClick={() => setMobileOpen(false)}>Pricing</Link>
       </nav>
 
-      <div className="site-nav-actions">
-        {!loading && user ? (
+      <div className="site-nav-actions" style={loading ? { visibility: "hidden" } : undefined} aria-hidden={loading || undefined}>
+        {user ? (
           <Link className="btn btn-primary btn-sm" href="/dashboard">
             Back to dashboard <Icon name="arrow" size={16} color="#06231a" />
           </Link>
-        ) : !loading ? (
+        ) : (
           <>
             {onSignIn ? (
               <button className="public-link" onClick={onSignIn}>Sign in</button>
@@ -61,7 +54,7 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
               Choose a plan <Icon name="arrow" size={16} color="#06231a" />
             </Link>
           </>
-        ) : null}
+        )}
       </div>
 
       <button
@@ -75,18 +68,18 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
 
       {mobileOpen && (
         <div className="site-nav-mobile">
-          <NavLink id="product" href="/#product">Product</NavLink>
-          <NavLink id="how-it-works" href="/#how-it-works">How it works</NavLink>
-          <NavLink id="results" href="/#results">Results</NavLink>
-          <Link href="/solutions" onClick={() => setMobileOpen(false)}>Solutions</Link>
+          <Link href="/platform" onClick={() => setMobileOpen(false)}>The Agent</Link>
+          <Link href="/voice" onClick={() => setMobileOpen(false)}>AI Calls</Link>
+          <Link href="/accuracy" onClick={() => setMobileOpen(false)}>No Guessing</Link>
+          <Link href="/solutions" onClick={() => setMobileOpen(false)}>Who It&apos;s For</Link>
           <Link href="/pricing" onClick={() => setMobileOpen(false)}>Pricing</Link>
 
-          <div className="site-nav-mobile-actions">
-            {!loading && user ? (
+          <div className="site-nav-mobile-actions" style={loading ? { visibility: "hidden" } : undefined} aria-hidden={loading || undefined}>
+            {user ? (
               <Link className="btn btn-primary btn-lg" href="/dashboard" onClick={() => setMobileOpen(false)}>
                 Back to dashboard
               </Link>
-            ) : !loading ? (
+            ) : (
               <>
                 {onSignIn ? (
                   <button className="btn btn-ghost btn-lg" onClick={() => { onSignIn(); setMobileOpen(false); }}>Sign in</button>
@@ -95,7 +88,7 @@ export default function PublicNav({ variant = "light", scrollTo, onSignIn }) {
                 )}
                 <Link className="btn btn-primary btn-lg" href="/signup" onClick={() => setMobileOpen(false)}>Choose a plan</Link>
               </>
-            ) : null}
+            )}
           </div>
         </div>
       )}

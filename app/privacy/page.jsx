@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Privacy Policy — GNX sales",
+  title: "Privacy policy for GNX Sales",
   description: "Privacy Policy for GNX sales.",
 };
 
@@ -12,7 +12,7 @@ const sections = [
   },
   {
     title: "2. Connected Services",
-    body: "If you connect Gmail, a custom SMTP/IMAP mailbox, Razorpay, Apollo, Retell, Supabase, PostHog, or other providers, we process the information needed to provide the requested workflow, such as sending emails, reading campaign replies, processing payments, enriching leads, and logging product events.",
+    body: "If you connect Gmail, a custom SMTP/IMAP mailbox, Razorpay, our lead sourcing and enrichment provider, Retell, Supabase, PostHog, or other providers, we process the information needed to provide the requested workflow, such as sending emails, reading campaign replies, processing payments, enriching leads, and logging product events.",
   },
   {
     title: "2d. Inbound AI Calls",

@@ -223,24 +223,24 @@ export default function OnboardingPage() {
   const s = STEPS[step];
 
   const reviewRows = [
-    { l: 'Name', v: [d.firstName, d.lastName].filter(Boolean).join(' ') || '—' },
-    { l: 'Company', v: d.company || '—' },
+    { l: 'Name', v: [d.firstName, d.lastName].filter(Boolean).join(' ') || 'Not provided' },
+    { l: 'Company', v: d.company || 'Not provided' },
     { l: 'Role', v: d.role },
-    { l: 'Industry', v: d.industry || '—' },
-    { l: 'Product', v: d.productDescription || '—' },
-    { l: 'Value prop', v: d.valueProp || '—' },
-    { l: 'Pain points', v: d.painPoints || '—' },
-    { l: 'Target titles', v: d.titles.join(', ') || '—' },
-    { l: 'Target industries', v: d.targetIndustries.join(', ') || '—' },
-    { l: 'Target market', v: d.companySizes.join(', ') || '—' },
-    { l: 'Geographies', v: d.geos.join(', ') || '—' },
+    { l: 'Industry', v: d.industry || 'Not provided' },
+    { l: 'Product', v: d.productDescription || 'Not provided' },
+    { l: 'Value prop', v: d.valueProp || 'Not provided' },
+    { l: 'Pain points', v: d.painPoints || 'Not provided' },
+    { l: 'Target titles', v: d.titles.join(', ') || 'Not provided' },
+    { l: 'Target industries', v: d.targetIndustries.join(', ') || 'Not provided' },
+    { l: 'Target market', v: d.companySizes.join(', ') || 'Not provided' },
+    { l: 'Geographies', v: d.geos.join(', ') || 'Not provided' },
     { l: 'Meeting target', v: `${d.meetingTarget || 15} meetings / month` },
-    { l: 'Deal size', v: d.dealSize || '—' },
-    { l: 'Sales cycle', v: d.salesCycle || '—' },
+    { l: 'Deal size', v: d.dealSize || 'Not provided' },
+    { l: 'Sales cycle', v: d.salesCycle || 'Not provided' },
     { l: 'Tone', v: d.tone },
     { l: 'Hook style', v: d.hookStyle },
     { l: 'Follow-up cadence', v: d.followUpCadence },
-    { l: 'Tools', v: d.tools.join(', ') || '—' },
+    { l: 'Tools', v: d.tools.join(', ') || 'Not provided' },
     { l: 'Agent name', v: d.agentName },
   ];
 
@@ -399,7 +399,7 @@ export default function OnboardingPage() {
                 <OSelect label="Follow-up cadence" value={d.followUpCadence} onChange={v => set('followUpCadence', v)}
                   options={['Day 0, Day 3, Day 7', 'Day 0, Day 2, Day 5', 'Day 0, Day 4, Day 10', 'Custom later']} />
                 <OMulti label="Tools you already use" hint="Helps GNX sales understand the sales workflow it should fit into."
-                  options={['Gmail', 'Apollo', 'HubSpot', 'Salesforce', 'Pipedrive', 'Slack', 'Google Calendar', 'Calendly / Cal.com']}
+                  options={['Gmail', 'Lead database tool', 'HubSpot', 'Salesforce', 'Pipedrive', 'Slack', 'Google Calendar', 'Calendly / Cal.com']}
                   value={d.tools} onChange={v => toggle('tools', v)} />
               </div>
             )}

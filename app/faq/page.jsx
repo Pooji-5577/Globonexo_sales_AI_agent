@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "FAQs — GNX sales",
+  title: "GNX Sales frequently asked questions",
   description: "Answers to common questions about GNX sales pricing, subscriptions, AI replies, deliverability, integrations, and data handling.",
 };
 
@@ -26,7 +26,7 @@ const groups = [
       },
       {
         q: "Can I import my existing leads?",
-        a: "Yes. Upload a CSV and map your columns, or search Apollo directly inside the product to build a new list against your ideal customer profile.",
+        a: "Yes. Upload a CSV and map your columns, or search our lead database directly inside the product to build a new list against your ideal customer profile.",
       },
     ],
   },
@@ -77,7 +77,7 @@ const groups = [
       },
       {
         q: "What does the product integrate with?",
-        a: "Gmail or custom SMTP + IMAP for email, Apollo for lead sourcing and enrichment, Retell for AI voice calls, Google Calendar for booking, Razorpay for billing, Supabase for authentication and data, and PostHog for product analytics.",
+        a: "Gmail or custom SMTP + IMAP for email, our lead sourcing and enrichment provider, our AI voice calling provider, Google Calendar for booking, Razorpay for billing, Supabase for authentication and data, and PostHog for product analytics.",
       },
       {
         q: "Do voice campaigns come with every plan?",

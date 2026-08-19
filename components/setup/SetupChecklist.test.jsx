@@ -137,7 +137,7 @@ describe("skipping optional steps", () => {
     mockSetup({ steps: [step("calendar"), step("gmail")] });
     render(<SetupChecklist />);
 
-    // Calendar is skippable, Gmail is not — so exactly one skip control.
+    // Calendar is skippable, but Gmail is not, so exactly one skip control.
     expect(screen.getAllByRole("button", { name: /Skip for now/i })).toHaveLength(1);
   });
 

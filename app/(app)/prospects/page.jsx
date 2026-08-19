@@ -33,6 +33,7 @@ const TECHNOLOGY_OPTIONS = [
 const INDUSTRY_OPTIONS = ["B2B SaaS", "IT Services", "Marketing Agencies", "Recruiting", "Fintech", "Healthcare", "Manufacturing", "Real Estate", "E-commerce", "Education"];
 const STAGE_OPTIONS = ["all", "new", "queued", "contacted", "engaged", "meeting_booked", "not_interested", "unsubscribed"];
 const SOURCE_OPTIONS = ["all", "apollo", "csv", "manual"];
+const SOURCE_LABELS = { all: "All sources", apollo: "Lead database", csv: "CSV", manual: "Manual" };
 const SORT_OPTIONS = [
   { value: "created_desc", label: "Newest" },
   { value: "created_asc", label: "Oldest" },
@@ -466,9 +467,9 @@ export default function ProspectsPage() {
       const activeImport = { runId: data.runId, campaignId, status: "queued", requested: leadLimit, qualified: 0 };
       setImportProgress(activeImport);
       window.localStorage.setItem("gnx-active-apollo-import", JSON.stringify(activeImport));
-      setNotice(`Apollo import queued${data?.jobId ? ` as job ${data.jobId}` : ""}. Search, enrichment, and campaign checks will continue in the background.`);
+      setNotice(`Lead import queued${data?.jobId ? ` as job ${data.jobId}` : ""}. Search, enrichment, and campaign checks will continue in the background.`);
     } catch (err) {
-      setError(err?.response?.data?.error || "Apollo import could not be started. Check the filters and Apollo connection.");
+      setError(err?.response?.data?.error || "Lead import could not be started. Check the filters and your lead database connection.");
     } finally {
       setLoading(false);
     }
@@ -629,9 +630,9 @@ export default function ProspectsPage() {
     try {
       const { data } = await api.post("/leads/apollo-enrich", { leadId: id });
       setLeads(current => current.map(lead => lead.id === id ? data : lead));
-      setNotice(data?.email ? "Email revealed for this lead." : "Apollo returned lead details, but no email was available on your plan.");
+      setNotice(data?.email ? "Email revealed for this lead." : "We found lead details, but no email was available on your plan.");
     } catch (err) {
-      setError(err?.response?.data?.error || "Could not reveal this lead's email from Apollo.");
+      setError(err?.response?.data?.error || "Could not reveal this lead's email.");
     } finally {
       setEnrichingId("");
     }
@@ -675,7 +676,7 @@ export default function ProspectsPage() {
       }
     }
 
-    setNotice(`${revealed} emails revealed from ${checked} Apollo lead${checked === 1 ? "" : "s"} checked.`);
+    setNotice(`${revealed} emails revealed from ${checked} lead${checked === 1 ? "" : "s"} checked.`);
     setBulkEnriching(false);
   };
 
@@ -692,7 +693,7 @@ export default function ProspectsPage() {
           options={[
             { label: "Lead table", value: "table" },
             { label: "Manual add", value: "manual" },
-            { label: "Apollo search", value: "apollo" },
+            { label: "Lead database search", value: "apollo" },
             { label: "CSV upload", value: "csv" },
           ]}
           value={tab}
@@ -731,7 +732,7 @@ export default function ProspectsPage() {
                   {STAGE_OPTIONS.map(status => <option key={status} value={status}>{STAGE_LABELS[status]}</option>)}
                 </select>
                 <select className="input compact-select" value={sourceFilter} onChange={event => setSourceFilter(event.target.value)}>
-                  {SOURCE_OPTIONS.map(source => <option key={source} value={source}>{source === "all" ? "All sources" : source}</option>)}
+                  {SOURCE_OPTIONS.map(source => <option key={source} value={source}>{SOURCE_LABELS[source] || source}</option>)}
                 </select>
                 <select className="input compact-select" value={sortBy} onChange={event => setSortBy(event.target.value)}>
                   {SORT_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -852,8 +853,8 @@ export default function ProspectsPage() {
             <div className="source-panel-head">
               <span><Icon name="search" size={18} /></span>
               <div>
-                <h2>Apollo search</h2>
-                <p className="faint">Choose a campaign and audience. We search Apollo, enrich each match, and only admit contactable leads.</p>
+                <h2>Lead database search</h2>
+                <p className="faint">Choose a campaign and audience. We search our lead database, enrich each match, and only admit contactable leads.</p>
               </div>
             </div>
             <div className="apollo-required-note">Required setup</div>
@@ -889,7 +890,7 @@ export default function ProspectsPage() {
             </label>
 
             <button className="btn btn-ghost btn-sm apollo-more-button" type="button" onClick={() => setShowMoreFilters(value => !value)}>
-              <Icon name="sliders" size={14} /> {showMoreFilters ? "Hide additional filters" : "More Apollo filters"}
+              <Icon name="sliders" size={14} /> {showMoreFilters ? "Hide additional filters" : "More filters"}
             </button>
 
             {showMoreFilters ? (
@@ -904,11 +905,11 @@ export default function ProspectsPage() {
                   <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={revenueMax} onChange={event => setRevenueMax(event.target.value)} placeholder="50000000" /></label>
                   <label className="field"><span>Leads to prepare</span><select className="input" value={leadLimit} onChange={event => setLeadLimit(Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
                 </div>
-                {keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. Apollo treats this as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setKeywords(current => current === keyword ? "" : keyword)}>{keyword}</button>)}</div></div> : null}
+                {keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. This is treated as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setKeywords(current => current === keyword ? "" : keyword)}>{keyword}</button>)}</div></div> : null}
               </div>
             ) : null}
             <div style={{ marginTop: 14, padding: 12, border: "1px solid var(--line)", borderRadius: 8, background: "#fff" }}>
-              <strong style={{ fontSize: 12.5 }}>Final Apollo audience</strong>
+              <strong style={{ fontSize: 12.5 }}>Final audience</strong>
               <p className="faint" style={{ fontSize: 12, marginTop: 5, lineHeight: 1.55 }}>
                 {uniqueApolloValues([...titles, ...splitList(customTitles)]).join(", ") || "No titles"} · {normalizeApolloLocations([...locations, ...splitList(customLocations)]).join(", ") || "No locations"} · {uniqueApolloValues([...industries, ...splitList(customIndustries)]).join(", ") || "No industries"} · {companySizes.length} company-size range{companySizes.length === 1 ? "" : "s"}
               </p>

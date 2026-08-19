@@ -18,7 +18,7 @@ const STATUS_OPTIONS = [
 
 const SOURCE_OPTIONS = [
   { label: "All sources", value: "" },
-  { label: "Apollo", value: "apollo" },
+  { label: "Lead database", value: "apollo" },
   { label: "CSV", value: "csv" },
   { label: "Manual", value: "manual" },
 ];
@@ -64,7 +64,7 @@ function LeadRow({ lead, onEnrich, enrichingId }) {
         <span className="faint" style={{ fontSize: 13 }}>{lead.location || "-"}</span>
       </td>
       <td style={{ padding: "12px 18px" }}>
-        <span className="badge" style={{ background: lead.source === "apollo" ? "var(--g-50)" : "var(--bg-2)", color: lead.source === "apollo" ? "var(--g-700)" : "var(--ink-2)", fontSize: 12, textTransform: "capitalize" }}>{lead.source}</span>
+        <span className="badge" style={{ background: lead.source === "apollo" ? "var(--g-50)" : "var(--bg-2)", color: lead.source === "apollo" ? "var(--g-700)" : "var(--ink-2)", fontSize: 12, textTransform: "capitalize" }}>{lead.source === "apollo" ? "Lead database" : lead.source}</span>
       </td>
       <td style={{ padding: "12px 18px" }}>
         <span className="badge" style={{ background: colors.bg, color: colors.color, fontSize: 12, textTransform: "capitalize" }}>{statusLabel(lead.status)}</span>
@@ -75,7 +75,7 @@ function LeadRow({ lead, onEnrich, enrichingId }) {
           style={{ height: 30, padding: "0 10px", fontSize: 12 }}
           disabled={isEnriching}
           onClick={() => onEnrich(lead.id)}
-          title="Enrich via Apollo"
+          title="Enrich lead details"
         >
           <Icon name="spark" size={14} /> {isEnriching ? "Enriching..." : "Enrich"}
         </button>
@@ -85,7 +85,7 @@ function LeadRow({ lead, onEnrich, enrichingId }) {
 }
 
 const LEAD_FIELDS = [
-  { value: "", label: "— Skip —" },
+  { value: "", label: "Skip this field" },
   { value: "firstName", label: "First Name" },
   { value: "lastName", label: "Last Name" },
   { value: "name", label: "Full Name" },
@@ -273,7 +273,7 @@ function CsvUploadModal({ onClose, onImportComplete }) {
               <h2 style={{ fontSize: 18, fontWeight: 800 }}>Import CSV</h2>
               <p className="muted" style={{ fontSize: 12.5, marginTop: 1 }}>
                 {step === "upload" && "Upload a CSV file to import leads."}
-                {step === "mapping" && `${totalRows} rows found — map columns to lead fields.`}
+                {step === "mapping" && `${totalRows} rows found. Map the columns to lead fields.`}
                 {step === "importing" && "Importing leads..."}
                 {step === "done" && "Import complete."}
               </p>
@@ -326,7 +326,7 @@ function CsvUploadModal({ onClose, onImportComplete }) {
           {step === "mapping" && (
             <div className="col" style={{ gap: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--ink-2)" }}>
-                File: <span style={{ color: "var(--g-700)" }}>{file?.name}</span> — {totalRows} rows, {headers.length} columns
+                File: <span style={{ color: "var(--g-700)" }}>{file?.name}</span>. {totalRows} rows and {headers.length} columns.
               </div>
 
               {/* Mapping table */}
@@ -360,7 +360,7 @@ function CsvUploadModal({ onClose, onImportComplete }) {
                           </select>
                         </td>
                         <td style={{ padding: "8px 16px", fontSize: 12.5, color: "var(--ink-2)", maxWidth: 200 }} className="ellip">
-                          {previewRows[0]?.[h] || "—"}
+                          {previewRows[0]?.[h] || "Not provided"}
                         </td>
                       </tr>
                     ))}
@@ -388,7 +388,7 @@ function CsvUploadModal({ onClose, onImportComplete }) {
                           <tr key={i} style={{ borderBottom: "1px solid var(--line-2)" }}>
                             {Object.entries(columnMapping).filter(([,v]) => v).map(([csvCol]) => (
                               <td key={csvCol} style={{ padding: "6px 12px", whiteSpace: "nowrap", color: "var(--ink-2)" }}>
-                                {row[csvCol] || "—"}
+                                {row[csvCol] || "Not provided"}
                               </td>
                             ))}
                           </tr>
@@ -589,7 +589,7 @@ export default function LeadsPage() {
       const name = data.name || data.firstName || "Lead";
       setNotice(`${name} enriched and saved.`);
     } catch (err) {
-      setError(err?.response?.data?.error || "Enrichment failed. Check Apollo API key.");
+      setError(err?.response?.data?.error || "Enrichment failed. Check your lead database connection.");
     } finally {
       setEnrichingId(null);
     }

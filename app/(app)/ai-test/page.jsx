@@ -55,19 +55,19 @@ export default function AITestPage() {
 
   const tests = [
     {
-      label: "Generate Email — Step 1 (Cold Intro)",
+      label: "Generate Email: Step 1 (Cold Intro)",
       url: "/ai/generate-email",
       body: { campaignId: selectedCampaign, leadId: selectedLead, stepNumber: 1 },
       disabled: !hasCampaign || !hasLead,
     },
     {
-      label: "Generate Email — Step 2 (Follow-up)",
+      label: "Generate Email: Step 2 (Follow-up)",
       url: "/ai/generate-email",
       body: { campaignId: selectedCampaign, leadId: selectedLead, stepNumber: 2 },
       disabled: !hasCampaign || !hasLead,
     },
     {
-      label: "Generate Email — Step 3 (Breakup)",
+      label: "Generate Email: Step 3 (Breakup)",
       url: "/ai/generate-email",
       body: { campaignId: selectedCampaign, leadId: selectedLead, stepNumber: 3 },
       disabled: !hasCampaign || !hasLead,

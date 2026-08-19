@@ -12,15 +12,18 @@ import {
   normalizeApolloLocations,
   uniqueApolloValues,
 } from "../../../../lib/apollo-targeting";
+import { normalizeSavedCampaignForm } from "../../../../lib/campaign-draft";
+import { findPlan } from "../../../../lib/plans";
 
 const DEFAULT_FORM = {
   name: "",
   channel: "email",
   promptNotes: "",
-  maxLeads: 100,
+  maxLeads: 25,
   dailySendCap: 75,
   callCadencePerHour: 5,
   voiceMode: "ai",
+  simulationEnabled: true,
   businessHoursStart: "09:00",
   businessHoursEnd: "17:00",
   timezone: "America/New_York",
@@ -29,6 +32,7 @@ const DEFAULT_FORM = {
   weeklyQualifiedLeadTarget: 25,
   voicePermissionConfirmed: false,
   maxCallAttempts: 3,
+  researchPolicy: "strict",
 };
 
 // The backend accepts 1-10 steps. Step numbers are derived from list position
@@ -97,6 +101,12 @@ const SENIORITY_OPTIONS = [["owner", "Owner"], ["founder", "Founder"], ["c_suite
 const INDUSTRY_OPTIONS = ["B2B SaaS", "IT Services", "Marketing Agencies", "Recruiting", "Fintech", "Healthcare", "Manufacturing", "Real Estate", "E-commerce", "Education"];
 const TECHNOLOGY_OPTIONS = [["salesforce", "Salesforce"], ["hubspot", "HubSpot"], ["marketo", "Marketo"], ["outreach", "Outreach"], ["salesloft", "Salesloft"], ["intercom", "Intercom"], ["stripe", "Stripe"], ["shopify", "Shopify"]];
 const splitTargetList = value => value.split(",").map(item => item.trim()).filter(Boolean);
+function clampNumberInput(value, min, max) {
+  if (value === "") return value;
+  const number = Number(value);
+  if (Number.isNaN(number)) return value;
+  return String(Math.min(max, Math.max(min, number)));
+}
 
 function CampaignApolloMultiSelect({ label, options, value, onChange, placeholder, required = false }) {
   const selectedLabels = options.filter(option => value.includes(Array.isArray(option) ? option[0] : option)).map(option => Array.isArray(option) ? option[1] : option);
@@ -185,6 +195,8 @@ export default function NewCampaignPage() {
   const [error, setError] = useState("");
   const [draftRestored, setDraftRestored] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
+  const [dailyEmailCap, setDailyEmailCap] = useState(100);
+  const [planId, setPlanId] = useState("starter");
 
   const [allLeads, setAllLeads] = useState([]);
   const [leadsLoading, setLeadsLoading] = useState(true);
@@ -205,6 +217,18 @@ export default function NewCampaignPage() {
       setValidationErrors(current => current.filter(message => message !== VOICE_PERMISSION_ERROR));
     }
   }, []);
+  useEffect(() => {
+    api.get("/billing/usage")
+      .then(({ data }) => {
+        const plan = findPlan(data?.plan) ?? findPlan("starter");
+        const cap = Number(plan?.dailyEmailCap ?? 100);
+        setPlanId(plan?.id ?? "starter");
+        setDailyEmailCap(cap);
+        setForm(current => ({ ...current, dailySendCap: Math.min(Number(current.dailySendCap) || 75, cap) }));
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     api.get("/leads")
       .then(({ data }) => setAllLeads(Array.isArray(data?.items) ? data.items : []))
@@ -241,7 +265,10 @@ export default function NewCampaignPage() {
       const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        if (saved.form) setForm(current => ({ ...current, ...saved.form, ...migrateIcpSource(saved.form) }));
+        if (saved.form) {
+          const restoredForm = normalizeSavedCampaignForm(saved.form);
+          setForm(current => ({ ...current, ...restoredForm, ...migrateIcpSource(restoredForm) }));
+        }
         const restored = normalizeSteps(saved.steps);
         if (restored) {
           setSteps(restored);
@@ -426,9 +453,15 @@ export default function NewCampaignPage() {
     if (Number(form.maxLeads) < 1) {
       errors.push("Maximum leads must be at least 1.");
     }
+    if (Number(form.maxLeads) > 25) {
+      errors.push("Maximum leads cannot exceed 25 per campaign.");
+    }
 
     if (usesEmail(form.channel) && Number(form.dailySendCap) < 1) {
       errors.push("Daily send cap must be at least 1.");
+    }
+    if (usesEmail(form.channel) && Number(form.dailySendCap) > dailyEmailCap) {
+      errors.push(`Daily send cap cannot exceed ${dailyEmailCap} on the ${planId} plan.`);
     }
 
     if (usesVoice(form.channel) && Number(form.callCadencePerHour) < 1) {
@@ -458,7 +491,7 @@ export default function NewCampaignPage() {
     }
 
     return errors;
-  }, [automaticAudience, form, leadSource, voiceEnabled]);
+  }, [automaticAudience, dailyEmailCap, form, leadSource, planId, voiceEnabled]);
 
   const submit = async event => {
     event.preventDefault();
@@ -700,7 +733,7 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="Prompt notes" hint="Everything the sales agent should know about this campaign, including who you're targeting. Optional at draft stage — you can add this before launch.">
+                <Field label="Prompt notes" hint="Everything the sales agent should know about this campaign, including who you're targeting. Optional at draft stage. You can add this before launch.">
                   <textarea
                     className="input"
                     style={{ minHeight: 118, paddingTop: 14, resize: "vertical", lineHeight: 1.5 }}
@@ -726,24 +759,37 @@ export default function NewCampaignPage() {
 
               <div className="campaign-new-controls-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 14 }}>
                 <Field label="Maximum leads">
-                  <input className="input" type="number" min="1" max="10000" value={form.maxLeads} onChange={event => set("maxLeads", event.target.value)} />
+                  <input className="input" type="number" min="1" max="25" value={form.maxLeads} onChange={event => set("maxLeads", clampNumberInput(event.target.value, 1, 25))} />
+                  <span className="hint">Each campaign can contain at most 25 leads.</span>
                 </Field>
+
+                {leadSource === "automatic" && (
+                  <Field label="Research policy" hint="Strict only selects leads with enough evidence; review holds ambiguous matches for inspection.">
+                    <select className="input" value={form.researchPolicy} onChange={event => set("researchPolicy", event.target.value)}>
+                      <option value="strict">Strict: evidence required</option>
+                      <option value="review">Review: hold ambiguous matches</option>
+                      <option value="flexible">Flexible: continue with factual context</option>
+                      <option value="volume">Volume: optional research</option>
+                    </select>
+                  </Field>
+                )}
 
                 {emailEnabled && (
                   <Field label="Daily send cap" hint="Default is intentionally conservative for new outbound campaigns.">
-                    <input className="input" type="number" min="1" max="500" value={form.dailySendCap} onChange={event => set("dailySendCap", event.target.value)} />
+                    <input className="input" type="number" min="1" max={dailyEmailCap} value={form.dailySendCap} onChange={event => set("dailySendCap", clampNumberInput(event.target.value, 1, dailyEmailCap))} />
+                    <span className="hint">Up to {dailyEmailCap} emails/day on the {planId} plan.</span>
                   </Field>
                 )}
 
                 {voiceEnabled && (
                   <Field label="Calls per hour">
-                    <input className="input" type="number" min="1" max="60" value={form.callCadencePerHour} onChange={event => set("callCadencePerHour", event.target.value)} />
+                    <input className="input" type="number" min="1" max="60" value={form.callCadencePerHour} onChange={event => set("callCadencePerHour", clampNumberInput(event.target.value, 1, 60))} />
                   </Field>
                 )}
 
                 {voiceEnabled && (
                   <Field label="Maximum call attempts" hint="No-answer and voicemail retries stop after this many prospect attempts.">
-                    <input className="input" type="number" min="1" max="10" value={form.maxCallAttempts} onChange={event => set("maxCallAttempts", event.target.value)} />
+                    <input className="input" type="number" min="1" max="10" value={form.maxCallAttempts} onChange={event => set("maxCallAttempts", clampNumberInput(event.target.value, 1, 10))} />
                   </Field>
                 )}
 
@@ -754,6 +800,37 @@ export default function NewCampaignPage() {
                       <option value="manual">Manual calling</option>
                     </select>
                   </Field>
+                )}
+
+                {voiceEnabled && (
+                  <div className="field campaign-new-field" style={{ gridColumn: "1 / -1" }}>
+                    <span>Pre-launch testing</span>
+                    <label
+                      className="row"
+                      style={{
+                        gap: 10,
+                        alignItems: "flex-start",
+                        padding: 14,
+                        border: `1px solid ${form.simulationEnabled ? "var(--g-500)" : "#fdba74"}`,
+                        borderRadius: 9,
+                        cursor: "pointer",
+                        background: form.simulationEnabled ? "var(--g-50)" : "#fff",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.simulationEnabled}
+                        onChange={event => set("simulationEnabled", event.target.checked)}
+                        style={{ marginTop: 3, flex: "none" }}
+                      />
+                      <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                        <strong>Test the agent with simulated calls before launch — 100 credits.</strong>{" "}
+                        {form.simulationEnabled
+                          ? "Runs the agent through scripted scenarios to check it holds up under different prospect behavior before any real call happens."
+                          : "You're skipping this. The agent will go live untested — its first real conversation will be with an actual prospect, not a scripted test, so any issue in how it responds shows up there first."}
+                      </span>
+                    </label>
+                  </div>
                 )}
 
                 {voiceEnabled && (
@@ -800,7 +877,7 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="Lead preparation days" hint="Defaults to Saturday and Sunday. Apollo discovery, deduplication, enrichment, research, and AI drafting run on these days in the campaign timezone.">
+                <Field label="Lead preparation days" hint="Defaults to Saturday and Sunday. Lead discovery, deduplication, enrichment, research, and AI drafting run on these days in the campaign timezone.">
                   <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
                     {WEEKDAYS.map(day => {
                       const active = form.leadPreparationWeekdays.includes(day.value);
@@ -817,7 +894,7 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="Qualified leads per week" hint="The platform keeps moving through Apollo pages until this many contactable leads are prepared, or the audience is exhausted.">
+                <Field label="Qualified leads per week" hint="The platform keeps moving through the lead database until this many contactable leads are prepared, or the audience is exhausted.">
                   <input className="input" type="number" min="1" max="3500" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", event.target.value)} />
                 </Field>
 
@@ -940,7 +1017,7 @@ export default function NewCampaignPage() {
               {leadSource === "automatic" ? (
                 <div style={{ padding: 16, border: "1px solid var(--line)", borderRadius: 8, background: "var(--bg)" }}>
                   <div style={{ marginBottom: 14 }}>
-                    <strong style={{ fontSize: 14 }}>Automatic Apollo audience</strong>
+                    <strong style={{ fontSize: 14 }}>Automatic audience</strong>
                     <p className="faint" style={{ fontSize: 12.5, marginTop: 3 }}>GNX searches, deduplicates, enriches, and only admits leads with the contact method required by this campaign.</p>
                   </div>
                   <div className="form-grid">
@@ -967,7 +1044,7 @@ export default function NewCampaignPage() {
                   </label>
 
                   <button className="btn btn-ghost btn-sm apollo-more-button" type="button" onClick={() => setShowAutomaticMoreFilters(value => !value)}>
-                    <Icon name="sliders" size={14} /> {showAutomaticMoreFilters ? "Hide additional filters" : "More Apollo filters"}
+                    <Icon name="sliders" size={14} /> {showAutomaticMoreFilters ? "Hide additional filters" : "More filters"}
                   </button>
                   {showAutomaticMoreFilters ? (
                     <div className="apollo-more-panel">
@@ -981,11 +1058,11 @@ export default function NewCampaignPage() {
                         <label className="field"><span>Annual revenue (maximum)</span><input className="input" type="number" min="1" value={automaticAudience.revenueMax} onChange={event => setAutomaticAudience(current => ({ ...current, revenueMax: event.target.value }))} placeholder="50000000" /></label>
                         <label className="field"><span>Leads to prepare</span><select className="input" value={form.weeklyQualifiedLeadTarget} onChange={event => set("weeklyQualifiedLeadTarget", Number(event.target.value))}>{[10, 25, 50, 100].map(value => <option key={value} value={value}>{value} leads</option>)}</select></label>
                       </div>
-                      {automaticAudience.keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. Apollo treats this as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{automaticAudience.keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: automaticAudience.keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setAutomaticAudience(current => ({ ...current, keywords: current.keywords === keyword ? "" : keyword }))}>{keyword}</button>)}</div></div> : null}
+                      {automaticAudience.keywordSuggestions.length ? <div style={{ marginTop: 12 }}><span className="faint" style={{ fontSize: 12 }}>Choose one onboarding suggestion. This is treated as one query, not an OR list.</span><div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 7 }}>{automaticAudience.keywordSuggestions.map(keyword => <button key={keyword} type="button" className="btn btn-ghost btn-sm" style={{ background: automaticAudience.keywords === keyword ? "var(--g-50)" : "#fff" }} onClick={() => setAutomaticAudience(current => ({ ...current, keywords: current.keywords === keyword ? "" : keyword }))}>{keyword}</button>)}</div></div> : null}
                     </div>
                   ) : null}
                   <div style={{ marginTop: 14, padding: 12, border: "1px solid var(--line)", borderRadius: 8, background: "#fff" }}>
-                    <strong style={{ fontSize: 12.5 }}>Final Apollo audience</strong>
+                    <strong style={{ fontSize: 12.5 }}>Final audience</strong>
                     <p className="faint" style={{ fontSize: 12, marginTop: 5, lineHeight: 1.55 }}>
                       {uniqueApolloValues([...automaticAudience.titles, ...splitTargetList(automaticAudience.customTitles)]).join(", ") || "No titles"} · {normalizeApolloLocations([...automaticAudience.locations, ...splitTargetList(automaticAudience.customLocations)]).join(", ") || "No locations"} · {uniqueApolloValues([...automaticAudience.industries, ...splitTargetList(automaticAudience.customIndustries)]).join(", ") || "No industries"} · {automaticAudience.companySizes.length} company-size range{automaticAudience.companySizes.length === 1 ? "" : "s"}
                     </p>

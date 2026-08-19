@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Cookie Policy — GNX sales",
+  title: "Cookie policy for GNX Sales",
   description: "How GNX sales uses cookies and similar technologies.",
 };
 

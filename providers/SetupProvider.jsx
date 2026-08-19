@@ -113,7 +113,7 @@ export function SetupProvider({ children }) {
 
   // First-run auto-start: only for a customer who has never seen the tour, only
   // once the real state has loaded (so it can't flash during a refresh), and
-  // only on the dashboard — that is where the opening steps are anchored, and
+  // only on the dashboard. That is where the opening steps are anchored, and
   // it avoids ambushing someone who deep-linked into billing or a campaign.
   useEffect(() => {
     if (autoStarted.current || state.loading || state.error) return undefined;

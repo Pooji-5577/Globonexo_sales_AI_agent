@@ -118,7 +118,7 @@ const ACTIVITY = [
   { ico: 'send', text: 'Sent intro to Devon Cole · Brightloop', t: '2m', hot: false },
   { ico: 'chat', text: 'Positive reply from Mara Ito · Northwind', t: '14m', hot: true },
   { ico: 'target', text: '23 new accounts matched your ICP', t: '31m', hot: false },
-  { ico: 'calendar', text: 'Meeting booked — Acme demo, Fri 9am', t: '1h', hot: true },
+  { ico: 'calendar', text: 'Meeting booked: Acme demo, Fri 9am', t: '1h', hot: true },
   { ico: 'send', text: 'Follow-up sent to Sara Nilsen · Polar Freight', t: '2h', hot: false },
   { ico: 'flame', text: 'Brightloop opened email 4× in 20 min', t: '3h', hot: true },
 ];
@@ -126,7 +126,7 @@ const ACTIVITY = [
 const TASKS = [
   { ico: 'chat', text: 'Approve reply to Mara Ito (Northwind)', cta: 'Review', hot: true },
   { ico: 'mail', text: 'Review 3 draft intros before sending', cta: 'Review', hot: false },
-  { ico: 'calendar', text: 'Confirm Acme demo slot — Fri 9am', cta: 'Confirm', hot: false },
+  { ico: 'calendar', text: 'Confirm Acme demo slot: Fri 9am', cta: 'Confirm', hot: false },
 ];
 
 function Dashboard({ setTab }) {
@@ -224,7 +224,7 @@ function Dashboard({ setTab }) {
           <div className="card" style={{ padding: 14 }}>
             <div className="eyebrow">Next meeting</div>
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontWeight: 800, fontSize: 14 }}>Northwind — Discovery call</div>
+              <div style={{ fontWeight: 800, fontSize: 14 }}>Northwind: Discovery call</div>
               <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>Today at 2:30 PM · 30 min</div>
             </div>
             <div className="row" style={{ gap: 8, marginTop: 12 }}>
@@ -245,10 +245,10 @@ function Dashboard({ setTab }) {
 const SEED_MSGS = [
   { who: 'agent', kind: 'text', text: "Morning, Mara 👋 Overnight I worked your Tier-1 list. Here's where things stand:" },
   { who: 'agent', kind: 'stats' },
-  { who: 'agent', kind: 'text', text: "Northwind replied to our funding-angle email — asking about onboarding time. Want me to propose 3 meeting times and send a tailored reply?" },
+  { who: 'agent', kind: 'text', text: "Northwind replied to our funding-angle email and asked about onboarding time. Want me to propose 3 meeting times and send a tailored reply?" },
   { who: 'agent', kind: 'draft' },
   { who: 'user', kind: 'text', text: "Looks great. Send it, and prioritize the accounts hiring SDRs." },
-  { who: 'agent', kind: 'text', text: "Done ✅ Reply sent to Mara at Northwind. I've re-ranked your queue — 12 accounts actively hiring SDRs are now at the top. I'll book straight to your calendar when they reply." },
+  { who: 'agent', kind: 'text', text: "Done ✅ Reply sent to Mara at Northwind. I've re-ranked your queue. Twelve accounts actively hiring SDRs are now at the top. I'll book straight to your calendar when they reply." },
 ];
 
 const QUICK = ['Draft follow-ups for no-replies', 'Find 50 new ICP accounts', 'Summarize hottest leads', 'Pause weekend sending'];
@@ -269,7 +269,7 @@ function AgentWorkspace() {
     setTyping(true);
     setTimeout(() => {
       setTyping(false);
-      setMsgs(m => [...m, { who: 'agent', kind: 'text', text: "On it — I'll handle that and report back. Anything worth your attention will land in your Inbox with a summary." }]);
+      setMsgs(m => [...m, { who: 'agent', kind: 'text', text: "On it. I'll handle that and report back. Anything worth your attention will land in your Inbox with a summary." }]);
     }, 1400);
   };
 
@@ -410,7 +410,7 @@ function Bubble({ m, name }) {
             <span className="chip" style={{ height: 22, fontSize: 11 }}>AI written</span>
           </div>
           <div style={{ padding: '12px 14px', fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink-2)' }}>
-            Hi Mara — great question. Most teams your size are fully ramped in <b style={{ color: 'var(--g-700)' }}>under 2 weeks</b>. I'd love to walk you through it. Are you free Tue 10:00, Wed 14:30, or Fri 09:00?
+            Hi Mara, great question. Most teams your size are fully ramped in <b style={{ color: 'var(--g-700)' }}>under 2 weeks</b>. I'd love to walk you through it. Are you free Tue 10:00, Wed 14:30, or Fri 09:00?
           </div>
           <div className="row" style={{ gap: 9, padding: '10px 14px', borderTop: '1px solid var(--line)' }}>
             <button className="btn btn-primary btn-sm"><Icon name="send" size={14} color="#06231a" /> Approve & send</button>
