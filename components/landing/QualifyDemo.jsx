@@ -42,6 +42,7 @@ const SWEEP_B = [
   [9.75, ROW_TOP + 3 * ROW_H + 46],
 ];
 const END = 12.4;
+const A_OFFSET = 64; // vertical nudge that centres the shorter lead-A card in the panel
 const B_SWITCH = 5.85; // when the left-hand list flips from lead A's states to lead B's
 
 const cl = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -168,7 +169,7 @@ function leftLineState(t, row) {
   return "idle";
 }
 
-export default function QualifyDemo() {
+export default function QualifyDemo({ intro = null }) {
   const rootRef = React.useRef(null);
   const startedRef = React.useRef(false);
   const rafRef = React.useRef(null);
@@ -233,6 +234,10 @@ export default function QualifyDemo() {
 
   const cardAStyle = {
     ...CARD_BASE,
+    // Lead A's card is ~128px shorter than lead B's (one banner, no action
+    // rows). Left at top:0 it hangs off the top of the box with a dead gap
+    // underneath, so it sits centred in the same slot instead.
+    top: A_OFFSET,
     opacity: (aIn * (1 - aOut)).toFixed(3),
     transform: `translateY(${(10 * (1 - aIn) + 8 * aOut).toFixed(2)}px)`,
     pointerEvents: "none",
@@ -254,18 +259,21 @@ export default function QualifyDemo() {
 
   return (
     <div className="landing-problem-grid" ref={rootRef}>
-      <ol className="landing-problem-list" aria-label="What GNX works out before contacting anyone">
-        {CHECKS.map((text, i) => (
-          <li key={text} className={`landing-problem-row is-${lineState[i]}`}>
-            <span className="landing-problem-index">{String(i + 1).padStart(2, "0")}</span>
-            <span className="landing-problem-mark" aria-hidden="true">
-              {lineState[i] === "pass" && <Icon name="check" size={15} color="#fff" stroke={3} />}
-              {lineState[i] === "fail" && <Icon name="close" size={14} color="#fff" stroke={3} />}
-            </span>
-            <p>{text}</p>
-          </li>
-        ))}
-      </ol>
+      <div className="landing-problem-col">
+        {intro}
+        <ol className="landing-problem-list" aria-label="What GNX works out before contacting anyone">
+          {CHECKS.map((text, i) => (
+            <li key={text} className={`landing-problem-row is-${lineState[i]}`}>
+              <span className="landing-problem-index">{String(i + 1).padStart(2, "0")}</span>
+              <span className="landing-problem-mark" aria-hidden="true">
+                {lineState[i] === "pass" && <Icon name="check" size={15} color="#fff" stroke={3} />}
+                {lineState[i] === "fail" && <Icon name="close" size={14} color="#fff" stroke={3} />}
+              </span>
+              <p>{text}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
 
       <div className="qdemo" aria-hidden="true">
         <div style={cardAStyle}>

@@ -16,8 +16,9 @@ const comparison = [
   { them: 'Pay to enrich, then find out they were a bad fit', us: 'Fit is settled before a credit is spent' },
   { them: 'Email only — calling is a different tool and a second bill', us: 'Email and AI voice from one shared pool' },
   { them: 'The model writes whatever sounds convincing', us: 'It is handed an explicit list of what it does not know' },
-  { them: 'A voice agent goes live untested', us: 'Stress-tested against adversarial calls before it dials' },
+  { them: 'A voice agent goes live untested', us: 'Stress-test it against adversarial calls before it dials, if you want the check' },
   { them: 'You remember to stop the sequence after a reply', us: 'A reply stops the follow-ups on its own' },
+  { them: 'Buy and configure your own calling number separately', us: 'A phone number is provisioned for you automatically' },
 ];
 
 export default function PricingPage() {
@@ -58,7 +59,7 @@ export default function PricingPage() {
         <section className="pricing-note public-section">
           <div>
             <h2>Every plan includes the core sales loop.</h2>
-            <p>Every plan includes AI email sequences, lead enrichment from verified data providers, AI voice calling, human-approved replies, inbox review, dashboard metrics, and support access. One credit is one cent of reported provider cost.</p>
+            <p>Every plan includes AI email sequences, lead enrichment from verified data providers, AI voice calling with a phone number provisioned for you, human-approved replies, inbox review, dashboard metrics, and support access. One credit is one cent of reported provider cost.</p>
           </div>
           <Link className="btn btn-primary btn-lg" href="/signup">
             Create account <Icon name="arrow" size={16} color="#06231a" />

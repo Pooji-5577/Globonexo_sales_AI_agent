@@ -43,10 +43,11 @@ export default function LandingPage() {
   ];
 
   const voicePoints = [
-    'Adversarial scenarios, judged before a campaign ever dials',
+    'Adversarial scenarios, judged before a campaign dials, if you choose to test it',
     'Refuses to invent customers, pricing, or ROI it was never given',
     'Ends the call immediately on a do-not-call request',
     'Books only real calendar slots, never an invented time',
+    'A calling number is provisioned for you automatically, nothing to set up',
   ];
 
   // Rotates through the real plan catalogue so the numbers can never drift from
@@ -171,11 +172,14 @@ export default function LandingPage() {
         </section>
 
         <section className="landing-problem landing-section">
-          <div className="landing-section-intro">
-            <h2 className="display">Volume was <em className="hl">never</em> the problem</h2>
-            <p>A faster way to reach the wrong person is still the wrong person. Before anyone gets contacted, GNX works out:</p>
-          </div>
-          <QualifyDemo />
+          <QualifyDemo
+            intro={(
+              <div className="landing-section-intro">
+                <h2 className="display">Volume was <em className="hl">never</em> the problem</h2>
+                <p>A faster way to reach the wrong person is still the wrong person. Before anyone gets contacted, GNX works out:</p>
+              </div>
+            )}
+          />
         </section>
 
         <section id="accuracy" className="landing-accuracy landing-section">

@@ -5,14 +5,25 @@ import React from "react";
 // scenes play in sequence on a fixed schedule (not a continuous clock like
 // QualifyDemo — this design is a discrete setTimeout chain per scene, so it's
 // ported the same way: a flags object updated on a matching schedule).
-const DWELL = [4600, 5000, 4400, 0];
+// Scene 0 runs longer than the rest: it has to show a scenario fail, get
+// corrected, and re-run before it passes, and that arc needs room to read.
+const DWELL = [7900, 5000, 4400, 0];
 const PILL_COUNT = 8; // 2 slots x 4 days, in DOM order; index 3 is the real slot (Tue 10:20)
 const REAL_SLOT_INDEX = 3;
 
+// The three scenarios shown in scene 0. Names match the real batch-testing
+// suite; the middle one is deliberately shown failing and then being fixed —
+// that arc is illustrative, not a replay of a specific logged failure.
+export const RUNS = [
+  { name: "Busy prospect" },
+  { name: "Skeptical prospect", reason: "Too pushy — adjusting tone" },
+  { name: "Wrong person" },
+];
+
 const initialFlags = {
   scene: 0,
-  ring: [false, false, false],
-  check: [false, false, false],
+  runs: ["idle", "idle", "idle"],
+  total0: false,
   caption0: false,
   b1p: false, b1g: false, b1gStruck: false, b1gDissolve: false, b1r: false, caption1: false,
   dnc: false, waveFlat: false, statusEnded: false, caption2: false,
@@ -23,14 +34,23 @@ const initialFlags = {
 
 const finalFlags = {
   scene: 3,
-  ring: [true, true, true],
-  check: [true, true, true],
+  runs: ["passed", "passed", "passed"],
+  total0: true,
   caption0: true,
   b1p: true, b1g: false, b1gStruck: false, b1gDissolve: false, b1r: true, caption1: true,
   dnc: true, waveFlat: true, statusEnded: true, caption2: true,
   scanning: [false, false, false, false, false, false, false, false],
   dim: true, locked: true, confirm: true, caption3: true,
   mounted: true,
+};
+
+const RUN_LABEL = {
+  idle: "Queued",
+  running: "Running",
+  failed: "Failed",
+  fixing: "Fixing",
+  retesting: "Retesting",
+  passed: "Passed",
 };
 
 export default function VoiceTestDemo() {
@@ -48,14 +68,23 @@ export default function VoiceTestDemo() {
       return;
     }
 
+    const setRun = (i, state) =>
+      setF((prev) => ({ ...prev, runs: prev.runs.map((v, idx) => (idx === i ? state : v)) }));
+
     const playScene0 = () => {
-      [0, 1, 2].forEach((i) => {
-        schedule(() => {
-          setF((prev) => ({ ...prev, ring: prev.ring.map((v, idx) => (idx === i ? true : v)) }));
-          schedule(() => setF((prev) => ({ ...prev, check: prev.check.map((v, idx) => (idx === i ? true : v)) })), 900);
-        }, 500 + i * 420);
-      });
-      schedule(() => patch({ caption0: true }), 2600);
+      // Rows resolve one at a time, then row 1 fails, gets corrected and is
+      // re-run before it passes — the whole point of the scene.
+      schedule(() => setRun(0, "running"), 500);
+      schedule(() => setRun(0, "passed"), 1100);
+      schedule(() => setRun(1, "running"), 1300);
+      schedule(() => setRun(1, "failed"), 2200);
+      schedule(() => setRun(2, "running"), 2400);
+      schedule(() => setRun(2, "passed"), 3000);
+      schedule(() => setRun(1, "fixing"), 3300);
+      schedule(() => setRun(1, "retesting"), 4300);
+      schedule(() => setRun(1, "passed"), 5300);
+      schedule(() => patch({ total0: true }), 5800);
+      schedule(() => patch({ caption0: true }), 6300);
     };
 
     const playScene1 = () => {
@@ -124,6 +153,7 @@ export default function VoiceTestDemo() {
   }, []);
 
   const cx = (...parts) => parts.filter(Boolean).join(" ");
+
   const days = [
     { label: "MON", slots: [{ t: "9:00", booked: true }, { t: "2:00", booked: true }] },
     { label: "TUE", slots: [{ t: "9:40", booked: true }, { t: "10:20", real: true }] },
@@ -148,23 +178,26 @@ export default function VoiceTestDemo() {
               <h3 className="vd-scene-title">Judged before it ever dials</h3>
             </div>
             <div className="vd-scene-body">
-              <div className="vd-chips">
-                {["Busy prospect", "Skeptic", "Wrong number"].map((label, i) => (
-                  <div key={label} className="vd-chip">
-                    <div className="vd-ring-wrap">
-                      <svg className="vd-ring-svg" width="44" height="44" viewBox="0 0 44 44">
-                        <circle className="vd-ring-track" cx="22" cy="22" r="18" fill="none" strokeWidth="3" />
-                        <circle
-                          className={cx("vd-ring-fill", f.ring[i] && "is-filled")}
-                          cx="22" cy="22" r="18" fill="none" strokeWidth="3"
-                        />
-                      </svg>
-                      <span className={cx("vd-ring-tick", f.check[i] && "is-show")} />
+              <div className="vd-runs">
+                {RUNS.map((run, i) => {
+                  const state = f.runs[i];
+                  return (
+                    <div key={run.name} className={cx("vd-run", `is-${state}`)}>
+                      <div className="vd-run-copy">
+                        <div className="vd-run-name">{run.name}</div>
+                        <div className="vd-run-reason">{run.reason}</div>
+                      </div>
+                      <div className="vd-run-pill">
+                        {state === "running" || state === "retesting" || state === "fixing"
+                          ? <span className="vd-run-spin" />
+                          : <span className="vd-run-dot" />}
+                        <span>{RUN_LABEL[state]}</span>
+                      </div>
                     </div>
-                    <div className="vd-chip-label">{label}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
+              <div className={cx("vd-run-total", f.total0 && "is-show")}>10 scenarios tested</div>
               <div className={cx("vd-caption", f.caption0 && "is-show")}>Every scenario scored before a campaign goes live</div>
             </div>
           </div>
@@ -179,8 +212,8 @@ export default function VoiceTestDemo() {
               <div className="vd-thread">
                 <div className={cx("vd-bubble vd-prospect", f.b1p && "is-show")}>&quot;Which customers have seen results?&quot;</div>
                 <div className="vd-reply-stack">
-                  <div className={cx("vd-bubble vd-invented", f.b1g && "is-show", f.b1gDissolve && "is-dissolve")}>
-                    <span className={cx("vd-invented-copy", f.b1gStruck && "is-struck")}>
+                  <div className={cx("vd-bubble vd-invented", f.b1g && "is-show", f.b1gStruck && "is-struck", f.b1gDissolve && "is-dissolve")}>
+                    <span className="vd-invented-copy">
                       &quot;We&apos;ve helped companies like Acme boost revenue 40%...&quot;
                     </span>
                   </div>

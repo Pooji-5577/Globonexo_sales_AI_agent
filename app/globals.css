@@ -2513,10 +2513,10 @@ a { color: inherit; text-decoration: none; }
 .landing-steps-6 p { margin-top: 9px; font-size: 13px; }
 
 /* Problem framing: what sending-automation tools do not solve */
-.landing-problem { padding-top: 100px; padding-bottom: 104px; background: #fff; }
-.landing-problem-grid { margin-top: 46px; display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.landing-problem { padding-top: 88px; padding-bottom: 88px; background: #fff; }
+.landing-problem-grid { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 80px; align-items: start; }
 
-.landing-problem-list { list-style: none; }
+.landing-problem-list { list-style: none; margin-top: 46px; }
 .landing-problem-row { display: flex; align-items: center; gap: 16px; padding: 20px 0; border-top: 1px solid var(--line); transition: opacity .35s ease; }
 .landing-problem-row:last-child { border-bottom: 1px solid var(--line); }
 .landing-problem-index { flex: none; width: 30px; color: var(--g-800); font-family: var(--font-display); font-size: 16px; font-weight: 700; }
@@ -2539,7 +2539,7 @@ a { color: inherit; text-decoration: none; }
    Cards A and B are absolutely positioned and carry their own inline
    styling from the exported animation, so this wrapper only needs to give
    them a sized, positioned parent to stack inside. */
-.qdemo { position: relative; width: 100%; max-width: 560px; height: 560px; margin: 0 auto; }
+.qdemo { position: relative; width: 100%; max-width: 560px; height: 548px; margin: 0 0 0 auto; }
 @media (max-width: 640px) { .qdemo { height: 500px; } }
 
 /* ---- the demo panel ---- */
@@ -2598,6 +2598,7 @@ a { color: inherit; text-decoration: none; }
   .landing-steps-6 { grid-template-columns: repeat(2,1fr); }
   .landing-fit-grid { grid-template-columns: 1fr; }
   .landing-copilot, .landing-voice, .landing-problem-grid { grid-template-columns: 1fr; gap: 44px; }
+  .qdemo { margin: 0 auto; }
   .cmp-head { display: none; }
   .cmp-row { grid-template-columns: 1fr; }
   .cmp-them { border-bottom: 1px solid var(--line-2); }
@@ -2751,17 +2752,59 @@ a { color: inherit; text-decoration: none; }
 .vd-caption { min-height: 32px; max-width: 320px; font-size: 12.5px; font-weight: 700; color: var(--vd-muted); text-align: center; line-height: 1.4; opacity: 0; transform: translateY(6px); transition: opacity .6s ease, transform .6s ease; }
 .vd-caption.is-show { opacity: 1; transform: none; }
 
-/* Scene 1: scored scenarios */
-.vd-chips { display: flex; gap: 10px; }
-.vd-chip { width: 108px; padding: 16px 10px 14px; border-radius: 14px; background: linear-gradient(160deg,#fff,#fafffd); border: 1px solid var(--vd-line); box-shadow: 0 8px 16px rgba(10,23,18,.05); display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.vd-ring-wrap { position: relative; width: 44px; height: 44px; }
-.vd-ring-svg { position: absolute; inset: 0; display: block; }
-.vd-ring-track { stroke: var(--vd-line); }
-.vd-ring-fill { stroke: var(--vd-green); stroke-linecap: round; stroke-dasharray: 113; stroke-dashoffset: 113; transform-box: fill-box; transform-origin: center; transform: rotate(-90deg); transition: stroke-dashoffset 1.05s cubic-bezier(.4,0,.2,1); }
-.vd-ring-fill.is-filled { stroke-dashoffset: 0; }
-.vd-ring-tick { position: absolute; left: 50%; top: 50%; width: 6px; height: 11px; margin: -7px 0 0 -3px; border-right: 2.4px solid var(--vd-green); border-bottom: 2.4px solid var(--vd-green); opacity: 0; transform: rotate(45deg) scale(.4); transform-origin: center; transition: opacity .35s ease, transform .4s cubic-bezier(.2,1.4,.4,1); }
-.vd-ring-tick.is-show { opacity: 1; transform: rotate(45deg) scale(1); }
-.vd-chip-label { font-size: 12px; font-weight: 700; color: var(--vd-ink); text-align: center; line-height: 1.3; }
+/* Scene 1: the adversarial scenarios being run as a batch of tests. Mirrors
+   the real batch-testing screen: one row per scenario, a status pill on the
+   right. The middle row fails, is corrected and re-run before it passes. */
+.vd-runs { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 8px; }
+.vd-run {
+  display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 12px;
+  border: 1px solid var(--vd-line); border-radius: 12px;
+  background: linear-gradient(160deg,#fff,#fafffd);
+  box-shadow: 0 6px 14px rgba(10,23,18,.04);
+  transition: border-color .35s ease, box-shadow .35s ease;
+}
+.vd-run.is-idle { opacity: .55; }
+.vd-run.is-failed { border-color: #f6d5d1; }
+.vd-run.is-fixing { border-color: #f0dfbe; }
+
+/* Fixed height so the reason line can appear under the name without pushing
+   the rows below it down. */
+.vd-run-copy { flex: 1; min-width: 0; height: 32px; display: flex; flex-direction: column; justify-content: center; }
+.vd-run-name { font-size: 12.5px; font-weight: 700; color: var(--vd-ink); line-height: 1.2; }
+.vd-run-reason {
+  height: 0; overflow: hidden; font-size: 10.5px; font-weight: 600; line-height: 1.2;
+  color: var(--vd-muted); opacity: 0;
+  transition: height .3s ease, opacity .3s ease, margin-top .3s ease;
+}
+.vd-run.is-failed .vd-run-reason,
+.vd-run.is-fixing .vd-run-reason,
+.vd-run.is-retesting .vd-run-reason { height: 13px; margin-top: 3px; opacity: 1; }
+
+.vd-run-pill {
+  flex: none; min-width: 78px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 4px 9px; border-radius: 999px; border: 1px solid var(--vd-line); background: #f5f8f6;
+  font-size: 10.5px; font-weight: 800; color: var(--vd-faint);
+  transition: background .35s ease, border-color .35s ease, color .35s ease;
+}
+.vd-run.is-running .vd-run-pill,
+.vd-run.is-retesting .vd-run-pill { color: var(--vd-muted); }
+.vd-run.is-fixing .vd-run-pill { background: #fff8ec; border-color: #f0dfbe; color: #8a5a12; }
+.vd-run.is-passed .vd-run-pill { background: var(--vd-green-tint); border-color: var(--vd-green-border); color: var(--vd-green-deep); }
+.vd-run.is-failed .vd-run-pill { background: #fdecea; border-color: #f6d5d1; color: var(--vd-stop); }
+.vd-run-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+.vd-run-spin {
+  width: 10px; height: 10px; border-radius: 50%; flex: none;
+  border: 1.8px solid var(--vd-line); border-top-color: var(--vd-green);
+  animation: vdSpin .75s linear infinite;
+}
+.vd-run.is-fixing .vd-run-spin { border-top-color: #c98a1e; }
+@keyframes vdSpin { to { transform: rotate(360deg); } }
+
+.vd-run-total {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--vd-faint); opacity: 0; transition: opacity .5s ease;
+}
+.vd-run-total.is-show { opacity: 1; }
 
 /* Scene 2: honest answer */
 .vd-thread { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
@@ -2773,7 +2816,8 @@ a { color: inherit; text-decoration: none; }
 .vd-invented { background: #fff; color: var(--vd-ink); border: 1px solid var(--vd-line); opacity: 0; transform: translateY(6px); transition: opacity .5s ease, transform .5s ease, filter .5s ease; }
 .vd-invented.is-show { opacity: 1; transform: none; }
 .vd-invented-copy { display: inline; -webkit-box-decoration-break: clone; box-decoration-break: clone; background-image: linear-gradient(var(--vd-stop),var(--vd-stop)); background-repeat: no-repeat; background-position: 0 .68em; background-size: 0 2px; transition: background-size .45s cubic-bezier(.2,.85,.2,1), color .3s ease; }
-.vd-invented.is-struck .vd-invented-copy { color: #8f7c79; background-size: 100% 2px; }
+.vd-invented.is-struck .vd-invented-copy,
+.vd-invented-copy.is-struck { color: #8f7c79; background-size: 100% 2px; }
 .vd-invented.is-dissolve { opacity: 0; filter: blur(3px); transform: translateY(-8px); pointer-events: none; }
 .vd-real { background: linear-gradient(160deg,#fff,var(--vd-green-tint)); border: 1px solid var(--vd-green-border); color: var(--vd-green-deep); opacity: 0; transform: translateY(8px); transition: opacity .55s ease, transform .55s ease; }
 .vd-real.is-show { opacity: 1; transform: none; }
@@ -2808,8 +2852,9 @@ a { color: inherit; text-decoration: none; }
 .vd-confirm-tag { margin-top: 2px; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; color: var(--vd-green-deep); }
 
 @media (prefers-reduced-motion: reduce) {
-  .vd-panel, .vd-scene, .vd-bubble, .vd-ring-fill, .vd-ring-tick, .vd-scene-title,
-  .vd-caption, .vd-dnc-line, .vd-confirm-line, .vd-wave i, .vd-slot-pill, .vd-invented-copy {
+  .vd-panel, .vd-scene, .vd-bubble, .vd-run, .vd-run-pill, .vd-run-reason, .vd-run-spin,
+  .vd-run-total, .vd-scene-title, .vd-caption, .vd-dnc-line, .vd-confirm-line,
+  .vd-wave i, .vd-slot-pill, .vd-invented-copy {
     animation: none !important; transition: none !important;
   }
 }
@@ -3178,7 +3223,7 @@ a { color: inherit; text-decoration: none; }
   .landing-product-topbar > div { width: 200px; }
   .landing-product-title button, .landing-upcoming em { display: none; }
   .landing-problem { padding-top: 72px; padding-bottom: 76px; }
-  .landing-problem-grid { margin-top: 32px; }
+  .landing-problem-list { margin-top: 32px; }
   .landing-problem-row { gap: 12px; padding: 16px 0; }
   .landing-problem-row p { font-size: 14.5px; }
   .qd-body { min-height: 0; padding: 16px; }
