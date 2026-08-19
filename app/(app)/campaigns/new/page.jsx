@@ -23,6 +23,7 @@ const DEFAULT_FORM = {
   dailySendCap: 75,
   callCadencePerHour: 5,
   voiceMode: "ai",
+  simulationEnabled: true,
   businessHoursStart: "09:00",
   businessHoursEnd: "17:00",
   timezone: "America/New_York",
@@ -799,6 +800,37 @@ export default function NewCampaignPage() {
                       <option value="manual">Manual calling</option>
                     </select>
                   </Field>
+                )}
+
+                {voiceEnabled && (
+                  <div className="field campaign-new-field" style={{ gridColumn: "1 / -1" }}>
+                    <span>Pre-launch testing</span>
+                    <label
+                      className="row"
+                      style={{
+                        gap: 10,
+                        alignItems: "flex-start",
+                        padding: 14,
+                        border: `1px solid ${form.simulationEnabled ? "var(--g-500)" : "#fdba74"}`,
+                        borderRadius: 9,
+                        cursor: "pointer",
+                        background: form.simulationEnabled ? "var(--g-50)" : "#fff",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.simulationEnabled}
+                        onChange={event => set("simulationEnabled", event.target.checked)}
+                        style={{ marginTop: 3, flex: "none" }}
+                      />
+                      <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                        <strong>Test the agent with simulated calls before launch — 100 credits.</strong>{" "}
+                        {form.simulationEnabled
+                          ? "Runs the agent through scripted scenarios to check it holds up under different prospect behavior before any real call happens."
+                          : "You're skipping this. The agent will go live untested — its first real conversation will be with an actual prospect, not a scripted test, so any issue in how it responds shows up there first."}
+                      </span>
+                    </label>
+                  </div>
                 )}
 
                 {voiceEnabled && (
