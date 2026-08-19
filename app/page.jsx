@@ -9,31 +9,29 @@ import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import { useAuth } from "../hooks/useAuth";
 import { PLAN_CONFIG } from "../lib/plans";
+import QualifyDemo from "../components/landing/QualifyDemo";
+import VoiceTestDemo from "../components/landing/VoiceTestDemo";
 
 export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  const problems = [
-    { icon: 'target', text: 'Which companies fit what you sell' },
-    { icon: 'users', text: 'Which person there is worth reaching' },
-    { icon: 'doc', text: 'Whether they have the problem now' },
-    { icon: 'chat', text: 'Why they should care today' },
+  const copilotPoints = [
+    'Ask it in plain English — no hunting through screens',
+    'Pause every live campaign with one sentence',
+    'It keeps working between your campaigns, not just inside them',
+    'Autopilot changes who approves a message, never what gets checked',
   ];
 
-  const steps = [
-    { icon: 'target', title: 'Target', text: 'You define the ICP once. GNX works from it.' },
-    { icon: 'search', title: 'Find', text: 'Matches companies to your ICP, then finds the right person at each.' },
-    { icon: 'doc', title: 'Research', text: 'Checks fit and context before contact, not after.' },
-    { icon: 'chat', title: 'Draft', text: 'Writes the email sequence, grounded in what it found.' },
-    { icon: 'check', title: 'Approve', text: 'You review before anything sends. Or let it run.' },
-    { icon: 'send', title: 'Reach', text: 'Email or AI voice call. Replies stop follow-ups automatically.' },
-  ];
-
-  const differentiators = [
-    { icon: 'search', title: 'Qualified before it costs you', text: 'Fit is checked against your ICP before a single enrichment credit is spent, so your allowance goes to people who could actually buy.' },
-    { icon: 'link', title: 'One brain, both channels', text: 'Email and voice work from the same context. The call knows what the emails said, because neither one improvises its own version of the prospect.' },
-    { icon: 'checkCircle', title: 'Checked before you see it', text: 'A draft addressed to the wrong person or describing the wrong company is caught automatically, not left for you to spot on the thirtieth review.' },
+  const chat = [
+    { from: 'you', text: 'Which leads need me today?' },
+    { from: 'agent', text: 'Three replied overnight and are waiting on you.', rows: [
+      { name: 'Head of RevOps · Bluepeak', note: 'Asked about pricing' },
+      { name: 'VP Sales · Fernpoint', note: 'Wants a call Thursday' },
+      { name: 'Founder · Oakline', note: 'Replied to step 2' },
+    ] },
+    { from: 'you', text: 'Pause everything until Monday.' },
+    { from: 'agent', text: 'Paused 4 live campaigns. Nothing will send or dial until you resume.' },
   ];
 
   // Sourced from context-readiness.service.ts and email-validation.service.ts.
@@ -49,12 +47,6 @@ export default function LandingPage() {
     'Refuses to invent customers, pricing, or ROI it was never given',
     'Ends the call immediately on a do-not-call request',
     'Books only real calendar slots, never an invented time',
-  ];
-
-  const trust = [
-    { icon: 'check', title: 'You approve every send', text: 'Nothing reaches a prospect without your sign-off.' },
-    { icon: 'lock', title: 'Suppression built in', text: 'Unsubscribed and bounced records are excluded before drafting.' },
-    { icon: 'calendar', title: 'Do-not-call respected', text: 'Voice outreach checks status before dialing.' },
   ];
 
   // Rotates through the real plan catalogue so the numbers can never drift from
@@ -110,7 +102,7 @@ export default function LandingPage() {
                     <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
                       Start with a paid plan <Icon name="arrow" size={18} color="#06231a" />
                     </button>
-                    <button className="landing-outline-btn" onClick={() => scrollTo('how-it-works')}>See how it works</button>
+                    <button className="landing-outline-btn" onClick={() => scrollTo('accuracy')}>See how it works</button>
                   </>
                 )}
               </div>
@@ -180,83 +172,17 @@ export default function LandingPage() {
 
         <section className="landing-problem landing-section">
           <div className="landing-section-intro">
-            <h2 className="display">Volume was never the problem</h2>
+            <h2 className="display">Volume was <em className="hl">never</em> the problem</h2>
             <p>A faster way to reach the wrong person is still the wrong person. Before anyone gets contacted, GNX works out:</p>
           </div>
-          <div className="landing-problem-list">
-            {problems.map((item, index) => (
-              <div key={item.text} className="landing-problem-row">
-                <span className="landing-problem-index">{String(index + 1).padStart(2, '0')}</span>
-                <Icon name={item.icon} size={20} color="var(--g-600)" />
-                <p>{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="copilot" className="landing-copilot landing-section">
-          <div className="landing-copilot-copy">
-            <span className="landing-fit-label">AI Co-Pilot</span>
-            <h2 className="display">One agent runs the whole thing</h2>
-            <p>Your co-pilot works the outreach cycle end to end. It picks the targets, does the research, writes the sequence, sends it, and handles the follow-ups. You step in only where you want to.</p>
-            <ul className="landing-copilot-points">
-              {[
-                'Runs end to end, not step by step',
-                'Keeps working between your campaigns',
-                'Stops follow-ups the moment someone replies',
-                'Hands you the controls whenever you want them',
-              ].map((point) => (
-                <li key={point}>
-                  <div className="landing-usecase-icon landing-usecase-icon--accent landing-usecase-icon--sm">
-                    <Icon name="check" size={14} color="#fff" />
-                  </div>
-                  {point}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="landing-copilot-visual" data-illustration="copilot" />
-        </section>
-
-        <section id="how-it-works" className="landing-how landing-section">
-          <div className="landing-section-intro">
-            <h2 className="display">How GNX works</h2>
-            <p>Six stages, run for you. Your approval wherever you want it.</p>
-          </div>
-          <div className="landing-steps landing-steps-6">
-            {steps.map((step, index) => (
-              <article key={step.title}>
-                <div className="landing-step-icon"><Icon name={step.icon} size={19} color="#fff" /></div>
-                <h3><span className="landing-step-num">{String(index + 1).padStart(2, '0')}</span>{step.title}</h3>
-                <p>{step.text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-usecase landing-section">
-          <div className="landing-section-intro">
-            <h2 className="display">What sets it apart</h2>
-            <p>Not another email blaster with an AI label.</p>
-          </div>
-          <div className="landing-usecase-grid">
-            {differentiators.map((item) => (
-              <article key={item.title}>
-                <div className="landing-usecase-icon landing-usecase-icon--accent">
-                  <Icon name={item.icon} size={20} color="#fff" />
-                </div>
-                <h4>{item.title}</h4>
-                <p>{item.text}</p>
-              </article>
-            ))}
-          </div>
+          <QualifyDemo />
         </section>
 
         <section id="accuracy" className="landing-accuracy landing-section">
           <div className="landing-section-intro">
-            <span className="landing-fit-label">Accuracy</span>
-            <h2 className="display">It knows what it doesn&apos;t know</h2>
-            <p>The fastest way to lose a prospect is a confident message about something that was never true. Most of this system exists to stop that.</p>
+            <span className="landing-fit-label">No guessing</span>
+            <h2 className="display">It won&apos;t write what it <em className="hl">doesn&apos;t know</em></h2>
+            <p>Most AI outreach fails on a sentence that sounds confident and was never true. Yours is handed a list of the gaps instead.</p>
           </div>
           <div className="landing-accuracy-grid">
             {accuracy.map((item) => (
@@ -270,17 +196,17 @@ export default function LandingPage() {
             ))}
           </div>
           <p className="landing-accuracy-note">
-            <Icon name="alertCircle" size={16} color="var(--g-700)" />
-            <span>The classic bad AI sales line is &ldquo;I know your team is struggling with X&rdquo; — written by a system that never knew that. GNX is built so it cannot write that sentence.</span>
+            <Icon name="alertCircle" size={16} color="var(--g-800)" />
+            <span>The line every prospect has learned to distrust — &ldquo;I know your team is struggling with X&rdquo; — written by a system that never knew that. GNX is built so it cannot write it.</span>
           </p>
         </section>
 
         <section id="voice" className="landing-voice landing-section">
           <div className="landing-voice-copy">
             <span className="landing-fit-label">AI voice calling</span>
-            <h2 className="display">It gets tested before it calls anyone</h2>
+            <h2 className="display"><em className="hl">Tested</em> before it phones anyone</h2>
             <p>
-              Before a voice campaign goes live, the agent is put through adversarial scenarios and scored on each
+              Before a voice campaign can go live, the agent is put through adversarial calls and scored on every
               transcript — the busy prospect, the skeptic, the wrong person, the one who asks where you got their number.
             </p>
             <ul className="landing-copilot-points">
@@ -297,7 +223,53 @@ export default function LandingPage() {
               How voice calling works <Icon name="arrow" size={15} color="var(--g-700)" />
             </Link>
           </div>
-          <div className="landing-voice-visual" data-illustration="voice" />
+          <VoiceTestDemo />
+        </section>
+
+        <section id="copilot" className="landing-copilot landing-section">
+          <div className="landing-copilot-copy">
+            <span className="landing-fit-label">AI Co-Pilot</span>
+            <h2 className="display">Just <em className="hl">tell it</em> what to do</h2>
+            <p>
+              Your co-pilot runs the outreach on its own — but you never have to hunt through screens to steer it.
+              Ask in plain English and it does the work.
+            </p>
+            <ul className="landing-copilot-points">
+              {copilotPoints.map((point) => (
+                <li key={point}>
+                  <div className="landing-usecase-icon landing-usecase-icon--accent landing-usecase-icon--sm">
+                    <Icon name="check" size={14} color="#fff" />
+                  </div>
+                  {point}
+                </li>
+              ))}
+            </ul>
+            <Link className="landing-text-link" href="/platform">
+              Everything the agent handles <Icon name="arrow" size={15} color="var(--g-700)" />
+            </Link>
+          </div>
+
+          <div className="cp" aria-hidden="true">
+            <div className="qd-bar"><span /><span /><span /><em>Agent</em></div>
+            <div className="cp-thread">
+              {chat.map((m) => (
+                <div key={m.text} className={`cp-msg is-${m.from}`}>
+                  {m.from === 'agent' && <span className="cp-ava"><Icon name="bolt" size={13} color="#fff" /></span>}
+                  <div>
+                    <p>{m.text}</p>
+                    {m.rows && (
+                      <div className="cp-rows">
+                        {m.rows.map((r) => (
+                          <div key={r.name}><strong>{r.name}</strong><span>{r.note}</span></div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="cp-input"><Icon name="chat" size={13} color="var(--faint)" /><span>Ask your agent anything…</span></div>
+          </div>
         </section>
 
         <section id="results" className="landing-results landing-section">
@@ -324,37 +296,6 @@ export default function LandingPage() {
             {capacity.map((item) => (
               <div key={item.label}><strong>{item.value}</strong><span>{item.label}</span></div>
             ))}
-          </div>
-        </section>
-
-        <section className="landing-trust landing-section">
-          <div className="landing-section-intro">
-            <h2 className="display">Trust and control</h2>
-            <p>The parts of outreach that are easy to get wrong, handled by default.</p>
-          </div>
-          <div className="landing-trust-band">
-            {trust.map((item) => (
-              <div key={item.title} className="landing-trust-item">
-                <div className="landing-usecase-icon landing-usecase-icon--accent">
-                  <Icon name={item.icon} size={20} color="#fff" />
-                </div>
-                <h4>{item.title}</h4>
-                <p>{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="landing-fit landing-section">
-          <div className="landing-fit-grid">
-            <div>
-              <span className="landing-fit-label">Built for</span>
-              <h3>An individual, agency, or startup with a defined target market.</h3>
-            </div>
-            <div>
-              <span className="landing-fit-label">Not built for</span>
-              <h3>Blasting a database and hoping volume covers relevance.</h3>
-            </div>
           </div>
         </section>
 

@@ -153,7 +153,7 @@ export default function PlatformPage() {
             <ul className="platform-points">
               {area.points.map((point) => (
                 <li key={point}>
-                  <Icon name="check" size={15} color="var(--g-600)" stroke={2.4} />
+                  <Icon name="check" size={15} color="var(--g-700)" stroke={2.4} />
                   <span>{point}</span>
                 </li>
               ))}

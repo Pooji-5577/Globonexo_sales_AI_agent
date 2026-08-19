@@ -7,16 +7,18 @@ import Link from "next/link";
 import Icon from "../../components/ui/Icon";
 import PublicNav from "../../components/layout/PublicNav";
 import PublicFooter from "../../components/layout/PublicFooter";
-import { MOST_POPULAR_PLAN_ID, PLAN_CONFIG } from "../../lib/plans";
+import PlanCards from "../../components/marketing/PlanCards";
 
-const plans = PLAN_CONFIG.map((plan) => ({
-  ...plan,
-  price: `$${plan.monthly}`,
-  annual: `$${plan.annualTotal.toLocaleString()}/year`,
-  cta: `Start ${plan.name}`,
-  featured: plan.id === MOST_POPULAR_PLAN_ID,
-  features: plan.feats,
-}));
+// The contrast that used to sit on the landing page. It belongs here, next to
+// the prices, where someone is actually deciding.
+const comparison = [
+  { them: 'Buy a list and send to all of it', us: 'Every account checked against your profile first' },
+  { them: 'Pay to enrich, then find out they were a bad fit', us: 'Fit is settled before a credit is spent' },
+  { them: 'Email only — calling is a different tool and a second bill', us: 'Email and AI voice from one shared pool' },
+  { them: 'The model writes whatever sounds convincing', us: 'It is handed an explicit list of what it does not know' },
+  { them: 'A voice agent goes live untested', us: 'Stress-tested against adversarial calls before it dials' },
+  { them: 'You remember to stop the sequence after a reply', us: 'A reply stops the follow-ups on its own' },
+];
 
 export default function PricingPage() {
   return (
@@ -31,23 +33,26 @@ export default function PricingPage() {
         </section>
 
         <section className="pricing-grid public-section" aria-label="Pricing plans">
-          {plans.map((plan) => (
-            <article key={plan.name} className={plan.featured ? "pricing-card featured" : "pricing-card"}>
-              {plan.featured ? <span className="pricing-badge">Most popular</span> : null}
-              <h2>{plan.name}</h2>
-              <p>{plan.description}</p>
-              <div className="pricing-price"><strong>{plan.price}</strong><span>/month</span></div>
-              <p className="muted" style={{ marginTop: 6 }}>or {plan.annual}</p>
-              <Link className={plan.featured ? "btn btn-primary btn-block" : "btn btn-ghost btn-block"} href="/signup">
-                {plan.cta} <Icon name="arrow" size={16} color="currentColor" />
-              </Link>
-              <ul>
-                {plan.features.map((feature) => (
-                  <li key={feature}><Icon name="checkCircle" size={18} color="var(--g-600)" />{feature}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
+          <PlanCards />
+        </section>
+
+        <section className="pricing-compare public-section">
+          <div className="content-section-head">
+            <h2>Why this costs less than the alternative</h2>
+            <p>Not a cheaper version of the same thing. A different way of deciding who gets contacted.</p>
+          </div>
+          <div className="cmp">
+            <div className="cmp-head">
+              <span>The usual way</span>
+              <span className="cmp-head-us">GNX Sales</span>
+            </div>
+            {comparison.map((row) => (
+              <div key={row.us} className="cmp-row">
+                <div className="cmp-them"><Icon name="close" size={15} color="var(--stop)" /><p>{row.them}</p></div>
+                <div className="cmp-us"><Icon name="check" size={15} color="var(--g-800)" /><p>{row.us}</p></div>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="pricing-note public-section">
