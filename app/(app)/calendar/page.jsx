@@ -76,7 +76,7 @@ function MeetingCard({ meeting, onCancel, canceling }) {
           <Avatar name={meeting.name} size={28} />
           <div className="col" style={{ minWidth: 0 }}>
             <span style={{ fontWeight: 800, fontSize: 13 }} className="ellip">{meeting.name}</span>
-            <span className="muted ellip" style={{ fontSize: 11.5 }}>{meeting.companyLine || "—"}</span>
+            <span className="muted ellip" style={{ fontSize: 11.5 }}>{meeting.companyLine || "Company not provided"}</span>
           </div>
         </div>
         <span className="badge" style={{ background: style.bg, color: style.color, fontSize: 10.5, flex: "none" }}>{style.label}</span>

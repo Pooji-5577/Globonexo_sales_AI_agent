@@ -157,7 +157,7 @@ function Step1({ d, set }) {
       </div>
       <div className="field">
         <label>What makes you different?</label>
-        <span className="faint" style={{ fontSize: 12.5, marginTop: -4 }}>Your unique value proposition — why should prospects pick you over alternatives?</span>
+        <span className="faint" style={{ fontSize: 12.5, marginTop: -4 }}>Your unique value proposition. Why should prospects pick you over alternatives?</span>
         <textarea className="input" style={{ minHeight: 80, resize: 'vertical', padding: '12px 14px', fontFamily: 'inherit' }}
           placeholder="e.g. Unlike traditional CRMs, we cut admin time by 60% and increase pipeline visibility with zero manual logging."
           value={d.valueProp} onChange={e => set('valueProp', e.target.value)} />
@@ -217,12 +217,12 @@ function Step3({ d, set }) {
 function Step4({ d, set }) {
   const sampleLines = {
     'Pain-based (problem-first)': d.painPoints
-      ? `"Hi [First Name] — ${d.painPoints.split('.')[0].trim().toLowerCase()}. ${d.company || 'We'} help teams like yours fix that. Open to a quick chat?"`
-      : `"Hi [First Name] — most ${d.titles[0] || 'sales leaders'} tell us their team wastes hours on low-value tasks. ${d.company || 'We'} built a better way. Worth 15 minutes?"`,
-    'Insight-based (data/trend)': `"Hi [First Name] — we've seen teams like yours cut sales cycle time by 30%+ after switching their approach. Happy to share how ${d.company || 'we'} can help. Quick call this week?"`,
-    'Social proof (customer story)': `"Hi [First Name] — one of our customers in ${d.targetIndustries[0] || 'your space'} booked 3× more qualified meetings in their first month. Want to see how?"`,
-    'Personalized signal (news/hire)': `"Hi [First Name] — saw [Company] just [recent trigger]. When that happens, teams usually need ${d.productDescription ? d.productDescription.split(' ').slice(0,6).join(' ').toLowerCase() + '…' : 'help scaling fast'}. Worth exploring?"`,
-    'Question-led': `"Hi [First Name] — quick question: how is your team currently handling ${d.painPoints ? d.painPoints.split('.')[0].trim().toLowerCase() : 'outbound prospecting'}? We might be able to help."`,
+      ? `"Hi [First Name], ${d.painPoints.split('.')[0].trim().toLowerCase()}. ${d.company || 'We'} help teams like yours fix that. Open to a quick chat?"`
+      : `"Hi [First Name], most ${d.titles[0] || 'sales leaders'} tell us their team wastes hours on low-value tasks. ${d.company || 'We'} built a better way. Worth 15 minutes?"`,
+    'Insight-based (data/trend)': `"Hi [First Name], we've seen teams like yours cut sales cycle time by 30%+ after switching their approach. Happy to share how ${d.company || 'we'} can help. Quick call this week?"`,
+    'Social proof (customer story)': `"Hi [First Name], one of our customers in ${d.targetIndustries[0] || 'your space'} booked 3× more qualified meetings in their first month. Want to see how?"`,
+    'Personalized signal (news/hire)': `"Hi [First Name], I saw [Company] just [recent trigger]. When that happens, teams usually need ${d.productDescription ? d.productDescription.split(' ').slice(0,6).join(' ').toLowerCase() + '…' : 'help scaling fast'}. Worth exploring?"`,
+    'Question-led': `"Hi [First Name], quick question: how is your team currently handling ${d.painPoints ? d.painPoints.split('.')[0].trim().toLowerCase() : 'outbound prospecting'}? We might be able to help."`,
   };
   return (
     <div className="col" style={{ gap: 24 }}>
@@ -292,17 +292,17 @@ function Step5({ d, toggle }) {
 
 /* ----- Step 6: Review ----- */
 function Step6({ d, set }) {
-  const truncate = (s, len) => s && s.length > len ? s.slice(0, len) + '…' : (s || '—');
+  const truncate = (s, len) => s && s.length > len ? s.slice(0, len) + '…' : (s || 'Not provided');
   const rows = [
-    { l: 'Name', v: `${d.firstName} ${d.lastName}`.trim() || '—' },
-    { l: 'Company', v: d.company || '—' },
+    { l: 'Name', v: `${d.firstName} ${d.lastName}`.trim() || 'Not provided' },
+    { l: 'Company', v: d.company || 'Not provided' },
     { l: 'Role', v: d.role },
     { l: 'Product', v: truncate(d.productDescription, 60) },
     { l: 'Value prop', v: truncate(d.valueProp, 60) },
-    { l: 'Target titles', v: d.titles.join(', ') || '—' },
-    { l: 'Target industries', v: d.targetIndustries.join(', ') || '—' },
-    { l: 'Target market', v: d.companySizes.join(', ') || '—' },
-    { l: 'Geographies', v: d.geos.join(', ') || '—' },
+    { l: 'Target titles', v: d.titles.join(', ') || 'Not provided' },
+    { l: 'Target industries', v: d.targetIndustries.join(', ') || 'Not provided' },
+    { l: 'Target market', v: d.companySizes.join(', ') || 'Not provided' },
+    { l: 'Geographies', v: d.geos.join(', ') || 'Not provided' },
     { l: 'Meeting goal', v: `${d.meetingTarget} / week` },
     { l: 'Deal size', v: d.dealSize },
     { l: 'Tone', v: `${d.tone} · ${d.hook}` },

@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Terms of Service — GNX sales",
+  title: "Terms of service for GNX Sales",
   description: "Terms of Service for GNX sales.",
 };
 
@@ -16,7 +16,7 @@ const sections = [
   },
   {
     title: "3. Lead Targets Are Not Guaranteed",
-    body: "A campaign's Maximum Leads, target prospects, weekly target, or similar setting is an upper limit or requested target—not a promise, minimum commitment, service level, or guarantee that GNX Sales will find, enrich, qualify, enroll, contact, or convert that number of leads. Actual results may be lower because of audience size, duplicate or suppressed records, missing or inaccurate provider data, unavailable email addresses or phone numbers, Do Not Call and opt-out checks, campaign qualification rules, provider outages, account limits, and the campaign's approved credit budget.",
+    body: "A campaign's Maximum Leads, target prospects, weekly target, or similar setting is an upper limit or requested target, not a promise, minimum commitment, service level, or guarantee that GNX Sales will find, enrich, qualify, enroll, contact, or convert that number of leads. Actual results may be lower because of audience size, duplicate or suppressed records, missing or inaccurate provider data, unavailable email addresses or phone numbers, Do Not Call and opt-out checks, campaign qualification rules, provider outages, account limits, and the campaign's approved credit budget.",
   },
   {
     title: "4. Candidate, Lead, and Progress Measurements",

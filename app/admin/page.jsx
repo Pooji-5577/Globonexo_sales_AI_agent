@@ -122,7 +122,7 @@ function formatCredits(value) {
 }
 
 function formatProviderCost(cents) {
-  return cents == null ? "—" : `$${(Number(cents) / 100).toFixed(4)}`;
+  return cents == null ? "Not available" : `$${(Number(cents) / 100).toFixed(4)}`;
 }
 
 function providerLabel(provider) {
@@ -692,14 +692,14 @@ export default function AdminPage() {
                     <tr className="data-row" key={call.id}>
                       <td>{new Date(call.started_at).toLocaleString()}</td>
                       <td>{call.organizationName}</td>
-                      <td>{call.campaignName || "—"}</td>
+                      <td>{call.campaignName || "Campaign not provided"}</td>
                       <td><strong>{call.operation}</strong><div className="faint">{call.endpoint}</div></td>
                       <td><span className="chip">{call.channel || "shared"}</span></td>
                       <td>{call.requested_records}</td>
                       <td>{call.channel === "voice" ? call.phone_records : call.email_records}</td>
                       <td>{call.credit_status === "final" ? Number(call.credits_consumed ?? 0) : call.credit_status}</td>
                       <td><StatusBadge value={call.status} /></td>
-                      <td>{call.duration_ms == null ? "—" : `${call.duration_ms} ms`}</td>
+                      <td>{call.duration_ms == null ? "Not available" : `${call.duration_ms} ms`}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -745,7 +745,7 @@ export default function AdminPage() {
                       <td>{item.organizationName}</td>
                       <td><span className="chip">{item.provider}</span></td>
                       <td>{item.operation}</td>
-                      <td>{item.reportedCostCents == null ? "—" : `$${(item.reportedCostCents / 100).toFixed(4)}`}</td>
+                      <td>{item.reportedCostCents == null ? "Not reported" : `$${(item.reportedCostCents / 100).toFixed(4)}`}</td>
                       <td>{item.creditsDebited.toLocaleString()}</td>
                       <td><StatusBadge value={item.status} /></td>
                     </tr>

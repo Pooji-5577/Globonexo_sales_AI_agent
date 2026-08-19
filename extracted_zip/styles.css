@@ -1,5 +1,5 @@
 /* ============================================================
-   Globonexo Sales AI — Design Tokens & Base
+   Globonexo Sales AI: Design Tokens & Base
    Theme: White + Aurora Green
    ============================================================ */
 
@@ -79,7 +79,7 @@ a { color: inherit; text-decoration: none; }
 ::selection { background: var(--g-200); color: var(--ink); }
 
 /* ============================================================
-   App stage — centers the device/desktop frame
+   App stage: centers the device/desktop frame
    ============================================================ */
 .stage {
   height: 100%;

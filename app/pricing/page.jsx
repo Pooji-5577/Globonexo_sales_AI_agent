@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Pricing — GNX sales",
+  title: "GNX Sales pricing",
   description: "Choose a GNX sales plan for AI outbound, replies, voice calls, and booked meetings.",
 };
 

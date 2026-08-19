@@ -265,7 +265,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const canTestAgent = channel === "voice" && hasAgent;
 
   // Once the campaign has been launched and preparation finished, the setup
-  // checklist has nothing left to say — but acquisition keeps running, so the
+  // checklist has nothing left to say, but acquisition keeps running, so the
   // countdown, the exhausted warning and the voice test stay reachable in a
   // single line. `attention` keeps the full card so Retry stays on screen.
   const launched = Boolean(campaignStatus) && campaignStatus !== "draft";

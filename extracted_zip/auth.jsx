@@ -50,7 +50,7 @@ function Splash({ go }) {
       <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', color: '#fff', padding: 40, animation: 'rise .5s both' }}>
         <div style={{ animation: 'pop .5s both' }}><Logo size={64} light /></div>
         <p style={{ marginTop: 22, fontSize: 18, color: 'rgba(255,255,255,.74)', maxWidth: 440, marginInline: 'auto', lineHeight: 1.55 }}>
-          Your autonomous AI sales rep — finds buyers, writes outreach, handles replies, books the meeting.
+          Your autonomous AI sales rep. It finds buyers, writes outreach, handles replies, and books the meeting.
         </p>
         <div className="row center" style={{ gap: 14, marginTop: 32 }}>
           <button className="btn btn-primary btn-lg" onClick={() => go('signup')}>

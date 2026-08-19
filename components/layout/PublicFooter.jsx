@@ -5,8 +5,9 @@ const groups = [
   {
     title: "Product",
     links: [
-      { label: "Overview", href: "/#product" },
-      { label: "How it works", href: "/#how-it-works" },
+      { label: "The Agent", href: "/platform" },
+      { label: "AI Calls", href: "/voice" },
+      { label: "No Guessing", href: "/accuracy" },
       { label: "Pricing", href: "/pricing" },
     ],
   },
@@ -14,9 +15,9 @@ const groups = [
     title: "Solutions",
     links: [
       { label: "Overview", href: "/solutions" },
-      { label: "SDR teams", href: "/solutions#sdr-teams" },
-      { label: "Founders & small teams", href: "/solutions#founders" },
-      { label: "Agencies", href: "/solutions#agencies" },
+      { label: "For an individual", href: "/solutions#individual" },
+      { label: "For an agency", href: "/solutions#agency" },
+      { label: "For a startup", href: "/solutions#startup" },
     ],
   },
   {

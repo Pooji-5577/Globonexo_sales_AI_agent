@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Privacy Policy — GNX sales",
+  title: "Privacy policy for GNX Sales",
   description: "Privacy Policy for GNX sales.",
 };
 

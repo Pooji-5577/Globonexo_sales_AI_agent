@@ -1,4 +1,4 @@
-/* Icons — consistent stroke set. Exposed on window.Icon */
+/* Icons: consistent stroke set. Exposed on window.Icon */
 const Icon = ({ name, size = 22, stroke = 1.8, color = 'currentColor', fill = 'none', style }) => {
   const p = { width: size, height: size, viewBox: '0 0 24 24', fill, stroke: color, strokeWidth: stroke, strokeLinecap: 'round', strokeLinejoin: 'round', style };
   const paths = {

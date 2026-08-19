@@ -732,7 +732,7 @@ export default function NewCampaignPage() {
                   </div>
                 </Field>
 
-                <Field label="Prompt notes" hint="Everything the sales agent should know about this campaign, including who you're targeting. Optional at draft stage — you can add this before launch.">
+                <Field label="Prompt notes" hint="Everything the sales agent should know about this campaign, including who you're targeting. Optional at draft stage. You can add this before launch.">
                   <textarea
                     className="input"
                     style={{ minHeight: 118, paddingTop: 14, resize: "vertical", lineHeight: 1.5 }}
@@ -765,10 +765,10 @@ export default function NewCampaignPage() {
                 {leadSource === "automatic" && (
                   <Field label="Research policy" hint="Strict only selects leads with enough evidence; review holds ambiguous matches for inspection.">
                     <select className="input" value={form.researchPolicy} onChange={event => set("researchPolicy", event.target.value)}>
-                      <option value="strict">Strict — evidence required</option>
-                      <option value="review">Review — hold ambiguous matches</option>
-                      <option value="flexible">Flexible — continue with factual context</option>
-                      <option value="volume">Volume — optional research</option>
+                      <option value="strict">Strict: evidence required</option>
+                      <option value="review">Review: hold ambiguous matches</option>
+                      <option value="flexible">Flexible: continue with factual context</option>
+                      <option value="volume">Volume: optional research</option>
                     </select>
                   </Field>
                 )}

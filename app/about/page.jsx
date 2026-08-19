@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "About Us — GNX sales",
+  title: "About GNX Sales",
   description: "Globonexo builds AI sales agents that find buyers, start conversations, and book meetings for small sales teams.",
 };
 
@@ -61,10 +61,10 @@ export default function AboutPage() {
 
         <section className="about-stats public-section" aria-label="Company at a glance">
           {[
-            { value: "3.2x", label: "More meetings booked" },
-            { value: "40+", label: "Hours saved per rep each month" },
-            { value: "2–4 weeks", label: "To first booked meetings" },
-            { value: "24/7", label: "Agents working your pipeline" },
+            { value: "3", label: "Plans, every capability in all of them" },
+            { value: "2", label: "Channels, email and AI voice, one credit pool" },
+            { value: "0", label: "Messages sent without passing validation" },
+            { value: "1", label: "Shared context behind email and voice" },
           ].map((stat) => (
             <div key={stat.label}>
               <strong>{stat.value}</strong>

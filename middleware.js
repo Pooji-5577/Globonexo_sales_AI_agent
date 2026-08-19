@@ -14,6 +14,9 @@ const PUBLIC_PATHS = [
   '/help',
   '/faq',
   '/solutions',
+  '/platform',
+  '/voice',
+  '/accuracy',
   '/callback',
 ];
 

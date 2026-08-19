@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Help Center — GNX sales",
+  title: "GNX Sales help center",
   description: "Guides for setting up agents, sourcing leads, running campaigns, handling replies, and managing billing in GNX sales.",
 };
 

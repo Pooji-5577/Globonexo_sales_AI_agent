@@ -2,7 +2,7 @@ import { AuthAside } from "../../../components/layout/AuthAside";
 import { LoginForm } from "../../../components/auth/LoginForm";
 
 export const metadata = {
-  title: "Sign in — GNX sales",
+  title: "Sign in to GNX Sales",
 };
 
 export default function LoginPage() {

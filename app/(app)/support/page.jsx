@@ -118,7 +118,7 @@ export default function SupportPage() {
     let channel;
 
     // The browser's Supabase client only carries the anon key, which RLS
-    // treats as no identity at all — postgres_changes rows never pass the
+    // treats as no identity at all. postgres_changes rows never pass the
     // org-isolation policy without this. Fetching the caller's own Supabase
     // access token (already valid, just normally locked in an httpOnly
     // cookie) and feeding it to the Realtime socket gives it a real auth.uid()

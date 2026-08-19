@@ -46,7 +46,7 @@ const EMPTY_STATE_COPY = {
   all:         { title: "No calls yet",             body: "Launch a voice campaign to start making calls." },
   completed:   { title: "No completed calls yet",   body: "Calls will show up here once the conversation finishes." },
   in_progress: { title: "No calls in progress",      body: "Calls will appear here the moment they start dialing." },
-  failed:      { title: "No failed calls",           body: "Nice — nothing has failed to connect." },
+  failed:      { title: "No failed calls",           body: "Nice. Nothing has failed to connect." },
   voicemail:   { title: "No voicemails yet",         body: "Calls that hit voicemail will show up here." },
   rejected:    { title: "No rejected calls",         body: "Calls declined by inbound safety and budget rules will show up here." },
   no_answer:   { title: "No unanswered calls",       body: "Calls that did not connect will show up here." },
@@ -83,7 +83,7 @@ function DispositionBadge({ disposition, status }) {
     if (status === "completed") {
       return <span style={{ fontSize: 11, color: "var(--faint)" }}>Analyzing…</span>;
     }
-    return <span style={{ fontSize: 11, color: "var(--faint)" }}>—</span>;
+    return <span style={{ fontSize: 11, color: "var(--faint)" }}>Not available</span>;
   }
   const d = DISPOSITION_STYLES[disposition];
   if (!d) return <span style={{ fontSize: 11, color: "var(--muted)" }}>{disposition}</span>;
@@ -100,15 +100,15 @@ function formatDuration(startedAt, endedAt, durationSeconds) {
     : startedAt && endedAt
       ? Math.floor((new Date(endedAt) - new Date(startedAt)) / 1000)
       : null;
-  if (seconds === null) return "—";
-  if (seconds < 0) return "—";
+  if (seconds === null) return "Not available";
+  if (seconds < 0) return "Not available";
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return "Not available";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(value));
 }
 
@@ -357,7 +357,7 @@ export default function CallsPage() {
                       <div style={{ fontSize: 11, color: "var(--muted)" }}>{call.leads?.company || (call.direction === "inbound" ? call.from_number : call.to_number)}</div>
                     </td>
                     <td style={{ padding: "12px 16px", textTransform: "capitalize", color: "var(--muted)" }}>{call.direction || "outbound"}</td>
-                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{call.campaigns?.name || "—"}</td>
+                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{call.campaigns?.name || "Campaign not provided"}</td>
                     <td style={{ padding: "12px 16px" }}><StatusBadge status={call.status} /></td>
                     <td style={{ padding: "12px 16px" }}><DispositionBadge disposition={call.disposition} status={call.status} /></td>
                     <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{formatDuration(call.started_at, call.ended_at, call.duration_seconds)}</td>

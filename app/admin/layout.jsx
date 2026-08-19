@@ -1,7 +1,7 @@
 import AdminShell from "../../components/layout/AdminShell";
 
 export const metadata = {
-  title: "Admin Console — GNX sales",
+  title: "GNX Sales admin console",
 };
 
 export default function AdminLayout({ children }) {

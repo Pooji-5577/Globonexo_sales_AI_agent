@@ -92,13 +92,13 @@ function campaignEligibility(lead) {
   if (!membership || membership.qualificationStatus === "qualified") return null;
   const reason = membership.rejectionReason || lead.rejectionReason;
   const labels = {
-    dnc_found: "Blocked — DNC match",
+    dnc_found: "Blocked: DNC match",
     dnc_pending: "Awaiting DNC check",
     dnc_missing: "DNC check required",
-    internal_do_not_call: "Blocked — do not call",
+    internal_do_not_call: "Blocked: do not call",
     no_phone: "Missing phone",
     invalid_phone: "Invalid phone",
-    enrichment_not_attempted_budget: "Not enriched — campaign budget reached",
+    enrichment_not_attempted_budget: "Not enriched: campaign budget reached",
     missing_identity: "Missing identity data",
   };
   return {

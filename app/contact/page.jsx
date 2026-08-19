@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Contact Support — GNX sales",
+  title: "Contact GNX Sales support",
   description: "Reach the GNX sales team for product support, billing questions, sales, and security reports.",
 };
 

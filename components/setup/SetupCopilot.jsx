@@ -47,7 +47,7 @@ function Field({ label, hint, children }) {
   );
 }
 
-/** Renders whatever the backend actually reported — never an assumed state. */
+/** Renders whatever the backend actually reported. Never use an assumed state. */
 function ConnectionRow({ icon, name, state, required, onFix }) {
   const connected = Boolean(state?.connected);
   const unavailable = state?.status === "not_configured";
@@ -348,7 +348,7 @@ export default function SetupCopilot() {
               {current?.id === "channel" ? (
                 <div className="copilot-step">
                   <p className="copilot-lead">
-                    How should this campaign reach people? You can run both — leads with an email get the sequence,
+                    How should this campaign reach people? You can run both. Leads with an email get the sequence,
                     leads with a phone number get called.
                   </p>
                   <div className="copilot-choices">
@@ -470,7 +470,7 @@ export default function SetupCopilot() {
                   <Field label="Calling mode">
                     <select className="input" value={draft.voiceMode} onChange={event => set("voiceMode", event.target.value)}>
                       <option value="ai">AI caller places the calls</option>
-                      <option value="manual">Manual — build the call list for a human</option>
+                      <option value="manual">Manual: build the call list for a human</option>
                     </select>
                   </Field>
                   <Field label="Calls per hour" hint="A conservative cadence protects your number's reputation.">
@@ -561,7 +561,7 @@ export default function SetupCopilot() {
                       value={draft.campaignName}
                       onChange={event => set("campaignName", event.target.value)}
                       maxLength={120}
-                      placeholder="Series B SaaS VP Sales — Q3"
+                      placeholder="Series B SaaS VP Sales: Q3"
                     />
                   </Field>
 
@@ -661,7 +661,7 @@ export default function SetupCopilot() {
               {current?.id === "preview" ? (
                 <div className="copilot-step">
                   <p className="copilot-lead">
-                    A sample of what this campaign will say. Each real message is personalised per lead at send time —
+                    A sample of what this campaign will say. Each real message is personalised per lead at send time.
                     nothing has been sent.
                   </p>
 

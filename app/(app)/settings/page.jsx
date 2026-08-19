@@ -62,7 +62,7 @@ const SMTP_PRESETS = {
       imapHost: 'imap.gmail.com',
       imapPort: '993',
     },
-    note: 'For this preset, use a Google app password—not your normal Google account password. For one-click Google OAuth, use the Gmail OAuth connection below.',
+    note: 'For this preset, use a Google app password rather than your normal Google account password. For one-click Google OAuth, use the Gmail OAuth connection below.',
   },
   outlook: {
     label: 'Outlook',
@@ -84,7 +84,7 @@ const SMTP_PRESETS = {
       imapHost: '',
       imapPort: '993',
     },
-    note: 'We test both connections before saving. IMAP uses the same username and password as SMTP — use provider-specific app passwords where your mail host requires them; never paste a Google Calendar password here.',
+    note: 'We test both connections before saving. IMAP uses the same username and password as SMTP. Use provider-specific app passwords where your mail host requires them; never paste a Google Calendar password here.',
   },
 };
 
@@ -204,7 +204,7 @@ export default function SettingsPage() {
 
   const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
   // The username almost always matches the sending address, so it tracks the
-  // email field automatically — the customer can still overwrite it directly
+  // email field automatically. The customer can still overwrite it directly
   // if their provider genuinely uses something else.
   const setSmtpEmail = (e) => {
     const email = e.target.value;
@@ -292,7 +292,7 @@ export default function SettingsPage() {
     setSmtpBusy(true);
     try {
       // IMAP always authenticates with the same credentials as SMTP for every
-      // provider this form supports — asking twice was pure friction, not a
+      // provider this form supports. Asking twice was pure friction, not a
       // real capability. Secure is inferred from the port instead of a toggle.
       const { data } = await api.post('/smtp/connect', {
         ...smtpForm,

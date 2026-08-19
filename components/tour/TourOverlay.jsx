@@ -58,7 +58,7 @@ export default function TourOverlay() {
   useEffect(() => setMounted(true), []);
 
   // A step that opens the campaign onboarding built needs that campaign's id
-  // first. Fetched lazily — most steps never need it — and re-checked each
+  // first. Fetched lazily because most steps never need it, and re-checked each
   // time such a step is reached, since it may not exist yet on an earlier visit.
   useEffect(() => {
     if (!tourOpen || step?.dynamicRoute !== "onboardingCampaign" || onboardingCampaignId) return undefined;
@@ -175,7 +175,7 @@ export default function TourOverlay() {
   const handleSkip = useCallback(() => finishTour("skipped"), [finishTour]);
 
   // Lets the customer defer an optional step (calendar availability today)
-  // rather than forcing it now — mirrors "Skip for now" on the Setup Checklist.
+  // rather than forcing it now. This mirrors "Skip for now" on the Setup Checklist.
   const handleSkipStep = useCallback(async () => {
     if (!step?.requiresStepId || skipping) return;
     setSkipping(true);
@@ -190,7 +190,7 @@ export default function TourOverlay() {
   }, [step, skipping, skipStep, tourIndex, finishTour, goToTourStep]);
 
   // While a gated step is locked, poll the real setup status so Next unlocks
-  // itself the moment the customer finishes the action — no manual refresh.
+  // itself the moment the customer finishes the action. No manual refresh is needed.
   useEffect(() => {
     if (!tourOpen || !step?.requiresStepId || unlocked) return undefined;
     const timer = window.setInterval(() => refresh({ silent: true }), 3000);
@@ -209,7 +209,7 @@ export default function TourOverlay() {
       const intent = keyIntent(event.key);
       if (!intent) return;
       // Someone typing an app password shouldn't have Enter or the arrow keys
-      // hijacked into tour navigation — only Escape still works while editing.
+      // hijacked into tour navigation. Only Escape still works while editing.
       if (intent !== "skip" && isEditingTarget(event.target)) return;
       event.preventDefault();
       if (intent === "next") handleNext();
@@ -264,7 +264,7 @@ export default function TourOverlay() {
         {step.footnote ? <p className="tour-footnote">{step.footnote}</p> : null}
         {step.requiresStepId && !unlocked ? (
           <p className="tour-locked">
-            <Icon name="clock" size={13} /> Waiting for this to be done — I'll unlock automatically.
+            <Icon name="clock" size={13} /> Waiting for this to be done. I'll unlock automatically.
           </p>
         ) : null}
 

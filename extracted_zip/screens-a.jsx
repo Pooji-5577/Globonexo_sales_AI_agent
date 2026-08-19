@@ -188,10 +188,10 @@ function LeadCard({ l }) {
 
 /* =================== CAMPAIGNS =================== */
 const CAMPAIGNS_DATA = [
-  { name: 'SaaS VP Sales — Q3 push', status: 'Active', enrolled: 142, sent: 284, opens: '68%', replies: '24%', meetings: 18, created: '2 weeks ago' },
-  { name: 'Series B funded — hiring signal', status: 'Active', enrolled: 87, sent: 174, opens: '72%', replies: '31%', meetings: 12, created: '10 days ago' },
+  { name: 'SaaS VP Sales: Q3 push', status: 'Active', enrolled: 142, sent: 284, opens: '68%', replies: '24%', meetings: 18, created: '2 weeks ago' },
+  { name: 'Series B funded: hiring signal', status: 'Active', enrolled: 87, sent: 174, opens: '72%', replies: '31%', meetings: 12, created: '10 days ago' },
   { name: 'Re-engage cold Q1 pipeline', status: 'Paused', enrolled: 63, sent: 126, opens: '54%', replies: '18%', meetings: 5, created: '3 weeks ago' },
-  { name: 'Enterprise healthcare outbound', status: 'Draft', enrolled: 0, sent: 0, opens: '—', replies: '—', meetings: 0, created: '1 day ago' },
+  { name: 'Enterprise healthcare outbound', status: 'Draft', enrolled: 0, sent: 0, opens: 'Not available', replies: 'Not available', meetings: 0, created: '1 day ago' },
 ];
 const STATUS_STYLES = {
   Active: { bg: 'var(--g-50)', color: 'var(--g-700)', dot: 'var(--g-500)' },
@@ -261,7 +261,7 @@ function Campaigns() {
 
 /* =================== INBOX =================== */
 const THREADS = [
-  { n: 'Mara Ito', c: 'Northwind', sub: 'Re: Cutting ramp time for your 12 new AEs', prev: "This is helpful — can we do Friday at 9?", t: '14m', unread: true, hot: true, tag: 'Positive' },
+  { n: 'Mara Ito', c: 'Northwind', sub: 'Re: Cutting ramp time for your 12 new AEs', prev: "This is helpful. Can we do Friday at 9?", t: '14m', unread: true, hot: true, tag: 'Positive' },
   { n: 'Devon Cole', c: 'Brightloop', sub: "Re: Quick idea for Brightloop's Q3", prev: "Opened your deck. What's pricing for 40 seats?", t: '1h', unread: true, tag: 'Pricing' },
   { n: 'Lena Park', c: 'Cobalt', sub: 'Re: RevOps benchmark report', prev: "Thanks, forwarding to my VP.", t: '3h', tag: 'Forwarded' },
   { n: 'Amir Haddad', c: 'Acme', sub: 'Re: Following up', prev: "Not right now, circle back in Q4.", t: '5h', tag: 'Nurture' },
@@ -319,7 +319,7 @@ function Inbox() {
               <Avatar name={th.n} size={32} />
               <div className="col"><span style={{ fontWeight: 800, fontSize: 13.5 }} className="nw">{th.n}</span><span className="faint" style={{ fontSize: 12 }}>to me · {th.t} ago</span></div>
             </div>
-            <p style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>{th.prev} Looking forward to it — let me know what works.</p>
+            <p style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>{th.prev} Looking forward to it. Let me know what works.</p>
           </div>
           <div className="card" style={{ padding: 0, maxWidth: 620, marginTop: 16, overflow: 'hidden', boxShadow: 'var(--sh-md)' }}>
             <div className="row spread" style={{ padding: '11px 16px', background: 'linear-gradient(90deg,var(--g-50),#fff)', borderBottom: '1px solid var(--g-100)' }}>
@@ -327,7 +327,7 @@ function Inbox() {
               <span className="chip" style={{ height: 22, fontSize: 11 }}>Recommended</span>
             </div>
             <div style={{ padding: '14px 16px', fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-2)' }}>
-              Hi {th.n.split(' ')[0]} — Friday at 9:00 works perfectly. I'll send a calendar invite with a short agenda so we keep it to 25 minutes. Talk soon!
+              Hi {th.n.split(' ')[0]}, Friday at 9:00 works perfectly. I'll send a calendar invite with a short agenda so we keep it to 25 minutes. Talk soon!
             </div>
             <div className="row" style={{ gap: 9, padding: '12px 16px', borderTop: '1px solid var(--line)' }}>
               <button className="btn btn-primary btn-sm"><Icon name="send" size={14} color="#06231a" /> Approve & send</button>

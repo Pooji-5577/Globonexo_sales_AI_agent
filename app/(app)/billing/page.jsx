@@ -14,7 +14,7 @@ import api from "../../../lib/api";
 import { ACCESS_STATUSES as ACTIVE_STATUSES, MOST_POPULAR_PLAN_ID, PLAN_CONFIG } from "../../../lib/plans";
 
 function formatDate(iso) {
-  if (!iso) return '—';
+  if (!iso) return 'Not available';
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -64,7 +64,7 @@ export default function BillingPage() {
   const selectedBillingPeriod = annual ? 'annual' : 'monthly';
   const requiredNotice = searchParams.get('required') === '1';
 
-  // Send users with no active plan straight to Explore, but only once —
+  // Send users with no active plan straight to Explore, but only once.
   // afterwards let them freely switch back to "Plan you're in".
   useEffect(() => {
     if (!loading && !initializedView.current) {

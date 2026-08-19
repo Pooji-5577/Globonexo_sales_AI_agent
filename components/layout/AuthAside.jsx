@@ -31,7 +31,7 @@ export function AuthAside({ kicker, headline, sub, bullets }) {
         </div>
         <div className="row" style={{ gap: 10, paddingTop: 22, borderTop: '1px solid rgba(255,255,255,.14)' }}>
           <Icon name="globe" size={18} color="rgba(255,255,255,.7)" stroke={1.8} />
-          <span className="nw" style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', fontWeight: 600 }}>Trusted by revenue teams</span>
+          <span className="nw" style={{ fontSize: 12.5, color: 'rgba(255,255,255,.7)', fontWeight: 600 }}>Email and AI voice in one agent</span>
         </div>
       </div>
     </div>

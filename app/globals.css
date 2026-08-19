@@ -1,5 +1,5 @@
 /* ============================================================
-   GNX sales — Design Tokens & Base
+   GNX Sales: Design Tokens & Base
    Theme: White + Aurora Green
    ============================================================ */
 
@@ -80,7 +80,7 @@ a { color: inherit; text-decoration: none; }
 ::selection { background: var(--g-200); color: var(--ink); }
 
 /* ============================================================
-   App stage — centers the device/desktop frame
+   App stage: centers the device/desktop frame
    ============================================================ */
 .stage {
   height: 100%;
@@ -2374,6 +2374,37 @@ a { color: inherit; text-decoration: none; }
 .landing-hero-copy h1 { font-size: clamp(50px, 6.2vw, 82px); line-height: .98; letter-spacing: -.055em; }
 .landing-hero-copy h1 span { display: block; color: var(--g-300); }
 .landing-hero-copy h1 span:last-child { color: #fff; }
+
+.landing-hero-copy h1 .landing-hero-rotator {
+  position: relative;
+  display: inline-grid;
+  overflow: hidden;
+  height: 1.28em;
+  line-height: 1.28;
+  vertical-align: text-bottom;
+  align-items: center;
+}
+.landing-hero-copy h1 .landing-hero-rotator em {
+  grid-area: 1 / 1;
+  font-style: normal;
+  white-space: nowrap;
+  animation: heroWordRotate 5s infinite;
+  animation-fill-mode: both;
+}
+.landing-hero-copy h1 .landing-hero-rotator em:last-child { animation-delay: 2.5s; }
+
+@keyframes heroWordRotate {
+  0% { transform: translateY(-100%); opacity: 0; }
+  8% { transform: translateY(0); opacity: 1; }
+  42% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-copy h1 .landing-hero-rotator em { animation: none; position: static; }
+  .landing-hero-copy h1 .landing-hero-rotator em:last-child { display: none; }
+}
 .landing-hero-copy > p {
   max-width: 650px;
   margin: 24px auto 0;
@@ -2461,10 +2492,48 @@ a { color: inherit; text-decoration: none; }
 .landing-steps { position: relative; margin-top: 64px; display: grid; grid-template-columns: repeat(4,1fr); gap: 28px; }
 .landing-steps::before { position: absolute; top: 62px; right: 8%; left: 8%; height: 1px; background: var(--g-100); content: ''; }
 .landing-steps article { position: relative; padding-top: 112px; }
-.landing-step-icon { position: absolute; top: 34px; left: 0; z-index: 1; width: 56px; height: 56px; display: grid; place-items: center; background: var(--g-50); border: 1px solid var(--g-100); border-radius: 17px; box-shadow: var(--sh-sm); }
-.landing-steps article > span { position: absolute; top: 0; left: 0; width: 56px; text-align: center; color: var(--g-200); font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+.landing-step-icon { position: absolute; top: 34px; left: 0; z-index: 1; width: 52px; height: 52px; display: grid; place-items: center; background: var(--g-600); border: none; border-radius: 50%; }
+.landing-steps article > span { position: absolute; top: 0; left: 0; width: 52px; text-align: center; color: var(--g-600); font-family: var(--font-display); font-size: 20px; font-weight: 700; }
 .landing-steps h3 { font-size: 17px; }
 .landing-steps p { margin-top: 10px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.landing-steps-3 { grid-template-columns: repeat(3,1fr); max-width: 900px; }
+/* Six-stage flow as cards. Tinted fill + border so they read as boxes on the
+   white section, inverting the white-on-grey cards used for differentiators. */
+.landing-steps-6 { margin-top: 48px; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.landing-steps-6::before { display: none; }
+.landing-steps-6 article { min-height: 0; padding: 26px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-xl); }
+.landing-steps-6 .landing-step-icon { position: static; width: 44px; height: 44px; box-shadow: none; }
+.landing-steps-6 h3 { margin-top: 15px; display: flex; align-items: baseline; gap: 9px; font-size: 17px; }
+.landing-step-num { color: var(--g-400); font-family: var(--font-display); font-size: 13px; font-weight: 700; }
+.landing-steps-6 p { margin-top: 9px; font-size: 13px; }
+
+/* Problem framing: what sending-automation tools do not solve */
+.landing-problem { padding-top: 100px; padding-bottom: 40px; background: #fff; }
+.landing-problem-list { margin-top: 44px; max-width: 760px; }
+.landing-problem-row { display: flex; align-items: center; gap: 20px; padding: 22px 0; border-top: 1px solid var(--line); }
+.landing-problem-row:last-child { border-bottom: 1px solid var(--line); }
+.landing-problem-index { flex: none; width: 30px; color: var(--g-600); font-family: var(--font-display); font-size: 16px; font-weight: 700; }
+.landing-problem-row svg { flex: none; }
+.landing-problem-row p { color: var(--ink-2); font-size: 16.5px; line-height: 1.5; }
+
+/* Built for / not built for */
+.landing-fit { padding-top: 90px; padding-bottom: 90px; background: #fff; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.landing-fit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.landing-fit-grid > div { padding: 30px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: none; }
+.landing-fit-label { display: inline-block; margin-bottom: 14px; padding: 3px 10px; color: var(--g-700); background: var(--g-50); border-radius: var(--r-pill); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.landing-fit-grid h3 { font-family: var(--font-display); font-size: 19px; line-height: 1.4; font-weight: 600; }
+
+@media (max-width: 860px) {
+  .landing-steps-3 { grid-template-columns: 1fr; }
+  .landing-steps-6 { grid-template-columns: repeat(2,1fr); }
+  .landing-fit-grid { grid-template-columns: 1fr; }
+  .landing-copilot, .landing-voice { grid-template-columns: 1fr; gap: 44px; }
+  .landing-copilot-visual, .landing-voice-visual { min-height: 320px; }
+  .landing-accuracy-grid { grid-template-columns: repeat(2,1fr); }
+  .landing-trust-band { grid-template-columns: 1fr; gap: 28px; }
+  .landing-trust-item { padding: 0; border-left: none !important; padding-top: 24px; border-top: 1px solid var(--line); }
+  .landing-trust-item:first-child { padding-top: 0; border-top: none; }
+}
 
 /* "What GNX Sales does" + Google API data-use disclosure (OAuth verification) */
 .landing-usecase { padding-top: 100px; padding-bottom: 104px; background: var(--bg); border-top: 1px solid var(--line); }
@@ -2474,6 +2543,8 @@ a { color: inherit; text-decoration: none; }
 .landing-usecase-grid { margin-top: 30px; display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
 .landing-usecase-grid article { padding: 26px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-sm); }
 .landing-usecase-icon { width: 44px; height: 44px; display: grid; place-items: center; flex: none; background: var(--g-50); border: 1px solid var(--g-100); border-radius: 14px; }
+.landing-usecase-icon--accent { background: var(--g-600); border: none; border-radius: 50%; box-shadow: none; }
+.landing-usecase-icon--sm { width: 26px; height: 26px; border-radius: 50%; }
 .landing-usecase-grid code { margin-top: 16px; display: inline-block; padding: 3px 8px; color: var(--g-700); background: var(--g-50); border-radius: var(--r-pill); font-size: 11.5px; font-weight: 700; }
 .landing-usecase-grid h4 { margin-top: 12px; font-size: 15.5px; }
 .landing-usecase-grid p { margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.65; }
@@ -2482,11 +2553,105 @@ a { color: inherit; text-decoration: none; }
 .landing-usecase-note p { margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .landing-usecase-note a { color: var(--g-700); font-weight: 700; text-decoration: underline; }
 
-.landing-results { padding-top: 105px; padding-bottom: 110px; display: grid; grid-template-columns: .9fr 1.4fr; gap: 100px; align-items: center; background: var(--bg); }
+.landing-results { padding-top: 105px; padding-bottom: 110px; display: grid; grid-template-columns: .9fr 1.4fr; gap: 100px; align-items: center; background: #fff; border-top: 1px solid var(--line); }
 .landing-outcomes { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; overflow: hidden; background: var(--line); border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-md); }
 .landing-outcomes div { min-height: 150px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; background: #fff; }
 .landing-outcomes strong { color: var(--g-700); font-family: var(--font-display); font-size: 36px; }
 .landing-outcomes span { margin-top: 7px; color: var(--muted); font-size: 12.5px; font-weight: 700; }
+
+/* Plan rotator: the price and the stat grid cross-fade as the plan changes.
+   Both are keyed on plan.id in JSX so the animation replays on each switch. */
+.landing-plan-price { display: inline-block; color: var(--g-700); animation: planSwap .45s cubic-bezier(.2,.7,.2,1) both; }
+.landing-outcomes { animation: planSwap .45s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes planSwap {
+  from { opacity: 0; transform: translateY(7px); }
+  to   { opacity: 1; transform: none; }
+}
+/* ============================================================
+   /voice, /accuracy, /platform
+   ============================================================ */
+.voice-baseline { margin-top: 24px; padding: 20px 24px; display: flex; align-items: flex-start; gap: 12px; background: var(--g-50); border: 1px solid var(--g-100); border-radius: var(--r-xl); color: var(--ink-2); font-size: 14.5px; line-height: 1.7; }
+.voice-baseline svg { flex: none; margin-top: 3px; }
+.voice-guarantees { border-top: 1px solid var(--line); }
+.voice-plan-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.voice-plan-grid > div { padding: 26px; display: flex; flex-direction: column; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-xl); }
+.voice-plan-grid strong { color: var(--g-700); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.voice-plan-grid b { margin-top: 12px; font-family: var(--font-display); font-size: 40px; line-height: 1; }
+.voice-plan-grid > div > span { margin-top: 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+.voice-plan-grid em { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; font-style: normal; font-weight: 700; }
+
+.accuracy-quote { max-width: 760px; margin: 0 auto; padding: 40px; text-align: center; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-xl); }
+.accuracy-quote blockquote { margin-top: 16px; color: var(--ink); font-family: var(--font-display); font-size: clamp(22px, 2.6vw, 30px); line-height: 1.35; letter-spacing: -.02em; }
+.accuracy-quote > p { margin-top: 16px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+.accuracy-checks { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.accuracy-checks > div { padding: 20px; display: flex; align-items: flex-start; gap: 11px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); }
+.accuracy-checks svg { flex: none; margin-top: 2px; }
+.accuracy-checks strong { display: block; font-size: 14.5px; }
+.accuracy-checks span { margin-top: 5px; display: block; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+.platform-area { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+.platform-area--divider { border-top: 1px solid var(--line); }
+.platform-area-head h2 { margin-top: 10px; font-family: var(--font-display); font-size: 30px; letter-spacing: -.02em; }
+.platform-area-head > p { margin-top: 12px; color: var(--muted); font-size: 15px; line-height: 1.7; }
+.platform-area-head .content-card-icon { margin-bottom: 14px; }
+.platform-points { display: flex; flex-direction: column; gap: 14px; padding-top: 6px; list-style: none; }
+.platform-points li { display: flex; align-items: flex-start; gap: 11px; color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
+.platform-points svg { flex: none; margin-top: 3px; }
+
+@media (max-width: 980px) {
+  .voice-plan-grid, .accuracy-checks { grid-template-columns: 1fr; }
+  .platform-area { grid-template-columns: 1fr; gap: 28px; }
+}
+
+.solutions-plan-line { margin-top: 18px; padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; background: var(--g-50); border: 1px solid var(--g-100); border-radius: var(--r-xl); }
+.solutions-plan-line strong { color: var(--g-800); font-family: var(--font-display); font-size: 15px; }
+.solutions-plan-line span { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+
+.landing-plan-tabs { margin-top: 26px; display: flex; gap: 8px; }
+.landing-plan-tabs button {
+  height: 34px; padding: 0 16px; border-radius: var(--r-pill);
+  border: 1px solid var(--line); background: #fff; color: var(--muted);
+  font-size: 13px; font-weight: 700; transition: all .18s ease;
+}
+.landing-plan-tabs button:hover { color: var(--g-800); border-color: var(--g-200); }
+.landing-plan-tabs button.is-active { color: #fff; background: var(--g-600); border-color: var(--g-600); }
+@media (prefers-reduced-motion: reduce) {
+  .landing-plan-price, .landing-outcomes { animation: none; }
+}
+
+/* Accuracy: 4 cards on a tinted ground, plus a pull-quote style note. */
+.landing-accuracy { padding-top: 100px; padding-bottom: 96px; background: #fff; border-top: 1px solid var(--line); }
+.landing-accuracy-grid { margin-top: 44px; display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; }
+.landing-accuracy-grid article { padding: 26px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-xl); }
+.landing-accuracy-grid h4 { margin-top: 15px; font-size: 15.5px; }
+.landing-accuracy-grid p { margin-top: 9px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.landing-accuracy-note { margin-top: 24px; padding: 20px 24px; display: flex; align-items: flex-start; gap: 12px; background: var(--g-50); border: 1px solid var(--g-100); border-radius: var(--r-xl); color: var(--ink-2); font-size: 14.5px; line-height: 1.65; }
+.landing-accuracy-note svg { flex: none; margin-top: 3px; }
+
+/* Voice: split panel, mirrored from the co-pilot section. */
+.landing-voice { padding-top: 100px; padding-bottom: 104px; display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; background: var(--bg); border-top: 1px solid var(--line); }
+.landing-voice-copy h2 { margin-top: 16px; font-size: clamp(36px, 3.6vw, 50px); }
+.landing-voice-copy > p { margin-top: 16px; color: var(--muted); font-size: 16px; line-height: 1.65; }
+.landing-voice-copy .landing-copilot-points { margin-top: 26px; }
+.landing-voice-visual { min-height: 420px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-sm); }
+.landing-text-link { margin-top: 26px; display: inline-flex; align-items: center; gap: 7px; color: var(--g-700); font-size: 14px; font-weight: 700; }
+.landing-text-link:hover { gap: 10px; }
+
+.landing-copilot { padding-top: 100px; padding-bottom: 104px; display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; background: var(--bg); border-top: 1px solid var(--line); }
+.landing-copilot-copy h2 { margin-top: 16px; font-size: clamp(36px, 3.6vw, 50px); }
+.landing-copilot-copy > p { margin-top: 16px; color: var(--muted); font-size: 16px; line-height: 1.65; }
+.landing-copilot-points { margin-top: 26px; display: flex; flex-direction: column; gap: 14px; list-style: none; }
+.landing-copilot-points li { display: flex; align-items: center; gap: 12px; color: var(--ink-2); font-size: 15px; font-weight: 600; }
+.landing-copilot-visual { min-height: 420px; background: #fff; border: 1px solid var(--line); border-radius: var(--r-xl); box-shadow: var(--sh-md); }
+
+.landing-trust { padding-top: 100px; padding-bottom: 104px; background: var(--bg); border-top: 1px solid var(--line); }
+.landing-trust-band { margin-top: 48px; display: grid; grid-template-columns: repeat(3,1fr); }
+.landing-trust-item { padding: 0 32px; }
+.landing-trust-item:first-child { padding-left: 0; }
+.landing-trust-item:last-child { padding-right: 0; }
+.landing-trust-item + .landing-trust-item { border-left: 1px solid var(--line); }
+.landing-trust-item h4 { margin-top: 16px; font-size: 16px; }
+.landing-trust-item p { margin-top: 10px; color: var(--muted); font-size: 13.5px; line-height: 1.65; }
 
 .landing-cta { min-height: 300px; padding-top: 70px; padding-bottom: 70px; display: flex; align-items: center; justify-content: space-between; gap: 40px; color: #fff; background: linear-gradient(135deg,#06311f,#075a3e); }
 .landing-cta p { color: rgba(255,255,255,.66); }
@@ -2720,6 +2885,16 @@ a { color: inherit; text-decoration: none; }
   .landing-product-body { padding: 12px; }
   .landing-product-topbar > div { width: 200px; }
   .landing-product-title button, .landing-upcoming em { display: none; }
+  .landing-problem { padding-top: 72px; padding-bottom: 20px; }
+  .landing-problem-list { margin-top: 30px; }
+  .landing-problem-row { gap: 14px; padding: 18px 0; }
+  .landing-problem-row p { font-size: 14.5px; }
+  .landing-steps-6 { grid-template-columns: 1fr; }
+  .landing-copilot, .landing-voice, .landing-accuracy { padding-top: 72px; padding-bottom: 76px; }
+  .landing-copilot-visual, .landing-voice-visual { min-height: 240px; }
+  .landing-accuracy-grid { grid-template-columns: 1fr; }
+  .landing-trust { padding-top: 72px; padding-bottom: 76px; }
+  .landing-trust-band { margin-top: 32px; }
   .landing-how { padding-top: 72px; padding-bottom: 76px; }
   .landing-steps { margin-top: 42px; grid-template-columns: 1fr; gap: 34px; }
   .landing-steps article { padding-top: 0; padding-left: 74px; min-height: 60px; }
@@ -4542,7 +4717,7 @@ canvas {
 }
 
 /* ============================================================
-   Guided setup — checklist, product tour, and Setup Copilot
+   Guided setup: checklist, product tour, and Setup Copilot
    ============================================================ */
 
 /* ---- Shared badges ---- */
@@ -4698,20 +4873,20 @@ canvas {
  * This wrapper spans the full viewport. Even with the scrim and spotlight
  * below set to pointer-events: none, an ancestor with the CSS default of
  * pointer-events: auto still intercepts every click and keystroke across its
- * whole box — that swallowed clicks on the real page everywhere, not just
+ * whole box. That swallowed clicks on the real page everywhere, not just
  * outside the spotlight. The wrapper opts out here, and only the popover
  * (the one thing that should actually be clickable) opts back in below.
  */
 .tour-root { position: fixed; inset: 0; z-index: 1200; pointer-events: none; }
 
 /*
- * The scrim only catches clicks when a step has no anchor (a centred step) —
+ * The scrim only catches clicks when a step has no anchor (a centred step).
  * that's the only time "click outside to skip" makes sense. Once a step has a
  * real spotlighted element, the scrim must let every click and keystroke
  * through untouched, so the customer can actually use the control being
  * pointed at rather than have the tour swallow the interaction and close.
  * The spotlight's ring shadow below does the dimming in that case, which also
- * leaves the highlighted element completely sharp and unfiltered — stacking a
+ * leaves the highlighted element completely sharp and unfiltered. Stacking a
  * full-page backdrop-filter here as well would blur the very thing the step
  * is pointing at.
  */

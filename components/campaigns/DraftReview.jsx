@@ -57,7 +57,7 @@ function blockedMessage(reason) {
 }
 
 function thinTitle(message) {
-  return `We had ${message.contextScore ?? 0} of ${message.contextScoreMax ?? 10} optional details for this lead, so this email is deliberately short and role-based rather than padded with guesses. Autopilot will not send it — you decide.`;
+  return `We had ${message.contextScore ?? 0} of ${message.contextScoreMax ?? 10} optional details for this lead, so this email is deliberately short and role-based rather than padded with guesses. Autopilot will not send it. You decide whether it goes out.`;
 }
 
 // A thin draft says "needs your OK" rather than "needs review", because the two
@@ -149,12 +149,12 @@ function DraftRow({ message, displayTimezone, onApprove, onSendThin, onSave, onR
                   time above from reading as a fact about the prospect. */}
               {selectedTime && !message.schedule?.leadTimezone ? (
                 <span className="faint" style={{ fontSize: 11 }}>
-                  Sent in your business hours — we do not know this lead&apos;s timezone.
+                  Sent during your business hours. We do not know this lead&apos;s timezone.
                 </span>
               ) : null}
               {!selectedTime && !sent && blockedMessage(message.schedule?.blockedReason) ? (
                 <span style={{ fontSize: 11.5, color: "#9a3412", marginTop: 3, lineHeight: 1.5 }}>
-                  <Icon name="clock" size={12} /> Not scheduled — {blockedMessage(message.schedule.blockedReason)}
+                  <Icon name="clock" size={12} /> Not scheduled: {blockedMessage(message.schedule.blockedReason)}
                 </span>
               ) : null}
             </div>
@@ -418,7 +418,7 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
         {state?.autopilotEnabled && (
           <p className="faint" style={{ fontSize: 12, marginTop: 10, marginBottom: 0 }}>
             Autopilot is on for this campaign. New emails are approved as they are written. Safety checks still
-            run on every one — an email that fails them is never saved as a draft. Emails written from thin
+            run on every one. An email that fails them is never saved as a draft. Emails written from thin
             context are the exception: autopilot never sends those, so they wait here for you.
           </p>
         )}
@@ -434,7 +434,7 @@ export default function DraftReview({ campaignId, displayTimezone, onChanged }) 
                 </strong>
                 <span style={{ fontSize: 12, color: "#854d0e", lineHeight: 1.5 }}>
                   We returned very little about these leads, so the emails are short and generic. Your agent
-                  will not send them on its own. Read them and send the ones that work — or narrow your targeting
+                  will not send them on its own. Read them and send the ones that work, or narrow your targeting
                   and import better-matched leads.
                 </span>
               </div>
