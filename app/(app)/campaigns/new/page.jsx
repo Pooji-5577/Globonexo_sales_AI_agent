@@ -23,7 +23,7 @@ const DEFAULT_FORM = {
   dailySendCap: 75,
   callCadencePerHour: 5,
   voiceMode: "ai",
-  simulationEnabled: true,
+  simulationEnabled: false,
   businessHoursStart: "09:00",
   businessHoursEnd: "17:00",
   timezone: "America/New_York",
@@ -806,7 +806,7 @@ export default function NewCampaignPage() {
                   <div className="field campaign-new-field" style={{ gridColumn: "1 / -1" }}>
                     <span>Pre-launch testing</span>
                     <label
-                      className="row"
+                      className="row campaign-new-prelaunch-box"
                       style={{
                         gap: 10,
                         alignItems: "flex-start",
@@ -815,6 +815,7 @@ export default function NewCampaignPage() {
                         borderRadius: 9,
                         cursor: "pointer",
                         background: form.simulationEnabled ? "var(--g-50)" : "#fff",
+                        whiteSpace: "normal",
                       }}
                     >
                       <input
@@ -823,7 +824,7 @@ export default function NewCampaignPage() {
                         onChange={event => set("simulationEnabled", event.target.checked)}
                         style={{ marginTop: 3, flex: "none" }}
                       />
-                      <span style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+                      <span className="campaign-new-prelaunch-text" style={{ fontSize: 12.5, lineHeight: 1.5 }}>
                         <strong>Test the agent with simulated calls before launch — 100 credits.</strong>{" "}
                         {form.simulationEnabled
                           ? "Runs the agent through scripted scenarios to check it holds up under different prospect behavior before any real call happens."

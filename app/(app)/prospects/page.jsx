@@ -42,6 +42,21 @@ const SORT_OPTIONS = [
   { value: "name_asc", label: "Name A-Z" },
   { value: "company_asc", label: "Company A-Z" },
 ];
+const TIMEZONES = [
+  "Asia/Kolkata",
+  "America/New_York",
+  "America/Chicago",
+  "America/Denver",
+  "America/Los_Angeles",
+  "America/Toronto",
+  "Europe/London",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Asia/Dubai",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+];
 const STAGE_LABELS = {
   all: "All",
   new: "New",
@@ -70,7 +85,9 @@ const DEFAULT_MANUAL_LEAD = {
   email: "",
   phone: "",
   location: "",
+  timezone: "Asia/Kolkata",
   linkedinUrl: "",
+  promptNotes: "",
 };
 
 function splitList(value) {
@@ -560,7 +577,9 @@ export default function ProspectsPage() {
     const email = cleanText(manualLead.email, { max: 254 }).toLowerCase();
     const phone = cleanText(manualLead.phone, { max: 80 });
     const location = cleanText(manualLead.location, { max: 160 });
+    const timezone = cleanText(manualLead.timezone, { max: 80 });
     const linkedinUrl = safeExternalUrl(manualLead.linkedinUrl);
+    const promptNotes = cleanText(manualLead.promptNotes, { max: 2000, multiline: true });
 
     setError("");
     setNotice("");
@@ -595,7 +614,9 @@ export default function ProspectsPage() {
         email,
         phone,
         location,
+        timezone,
         linkedinUrl,
+        promptNotes,
         voiceCompliance: selectedVoiceCampaign ? {
           confirmed: true, legalBasis: voiceLegalBasis, dncCheckedAt: new Date().toISOString(),
           country: location || "Unknown",
@@ -809,6 +830,26 @@ export default function ProspectsPage() {
               <label className="field"><span>Title</span><input className="input" value={manualLead.title} onChange={event => setManualLeadField("title", event.target.value)} placeholder="VP Sales" maxLength={160} /></label>
               <label className="field"><span>Location</span><input className="input" value={manualLead.location} onChange={event => setManualLeadField("location", event.target.value)} placeholder="New York, NY" maxLength={160} /></label>
               <label className="field"><span>LinkedIn URL</span><input className="input" value={manualLead.linkedinUrl} onChange={event => setManualLeadField("linkedinUrl", event.target.value)} placeholder="https://linkedin.com/in/..." maxLength={500} /></label>
+              <label className="field">
+                <span>Timezone</span>
+                <select className="input" value={manualLead.timezone} onChange={event => setManualLeadField("timezone", event.target.value)}>
+                  {(TIMEZONES.includes(manualLead.timezone) ? TIMEZONES : [manualLead.timezone, ...TIMEZONES]).map(zone => (
+                    <option key={zone} value={zone}>{zone}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field" style={{ gridColumn: "1 / -1" }}>
+                <span>Prompt notes</span>
+                <textarea
+                  className="input"
+                  value={manualLead.promptNotes}
+                  onChange={event => setManualLeadField("promptNotes", event.target.value)}
+                  placeholder="Add context the AI should consider for this prospect..."
+                  maxLength={2000}
+                  rows={4}
+                  style={{ height: "auto", minHeight: 104, resize: "vertical", paddingTop: 12, lineHeight: 1.45 }}
+                />
+              </label>
               <label className="field">
                 <span>Attach to campaign</span>
                 <select className="input" value={campaignId} onChange={event => setCampaignId(event.target.value)}>

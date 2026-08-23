@@ -12,7 +12,7 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' },
         ],
       },
     ];
@@ -23,7 +23,7 @@ const nextConfig = {
   // login cookie set by a direct cross-domain call is invisible to
   // middleware.js. This keeps /api/* same-origin from the browser's point of view.
   async rewrites() {
-    const backendOrigin = process.env.BACKEND_ORIGIN || 'http://localhost:5000';
+    const backendOrigin = process.env.BACKEND_ORIGIN || 'http://localhost:5001';
     return [
       { source: '/api/:path*', destination: `${backendOrigin}/api/:path*` },
     ];

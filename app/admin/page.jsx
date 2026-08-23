@@ -13,6 +13,11 @@ import api from "../../lib/api";
 import { cleanText } from "../../lib/validation";
 
 const SUPPORT_STATUSES = new Set(["open", "resolved", "closed"]);
+const PLAN_OPTIONS = [
+  { id: "starter", label: "Individual" },
+  { id: "growth", label: "Agency" },
+  { id: "scale", label: "Startup" },
+];
 
 const NAV_ITEMS = [
   { id: "orgs", label: "Organizations", ico: "building" },
@@ -318,6 +323,7 @@ export default function AdminPage() {
   const [userCreditUsage, setUserCreditUsage] = useState(null);
   const [userCreditLoading, setUserCreditLoading] = useState(false);
   const [userCreditError, setUserCreditError] = useState("");
+  const [planBusyId, setPlanBusyId] = useState("");
   const showSkeleton = useFirstLoad(loading);
 
   useEffect(() => {
@@ -337,7 +343,7 @@ export default function AdminPage() {
   const load = () => {
     setLoading(true);
     setError("");
-    api.get("/admin/overview", { timeout: 10000 })
+    return api.get("/admin/overview", { timeout: 10000 })
       .then(res => setData(res.data))
       .catch(err => {
         if (err.code === "ECONNABORTED") {
@@ -474,6 +480,24 @@ export default function AdminPage() {
     }
   };
 
+  const changeOrgPlan = async (org, planId) => {
+    if (!planId || planId === org.planId || planBusyId) return;
+    const planLabel = PLAN_OPTIONS.find(plan => plan.id === planId)?.label || planId;
+    if (!window.confirm(`Move ${org.name} to the ${planLabel} plan? This changes app limits and current-period included credits.`)) return;
+    setPlanBusyId(org.id);
+    setError("");
+    setNotice("");
+    try {
+      await api.patch(`/admin/organizations/${org.id}/plan`, { planId });
+      setNotice(`${org.name} moved to ${planLabel}.`);
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.error || "Organization plan could not be changed.");
+    } finally {
+      setPlanBusyId("");
+    }
+  };
+
   const sendAdminReply = async event => {
     event.preventDefault();
     const safeBody = cleanText(replyBody, { max: 4000, multiline: true });
@@ -585,7 +609,17 @@ export default function AdminPage() {
                         </div>
                       </div>
                     </td>
-                    <td><span className="chip">{org.planId}</span></td>
+                    <td>
+                      <select
+                        className="input"
+                        value={org.planId || "starter"}
+                        onChange={event => changeOrgPlan(org, event.target.value)}
+                        disabled={planBusyId === org.id}
+                        style={{ height: 34, minWidth: 130, fontSize: 12.5, fontWeight: 800 }}
+                      >
+                        {PLAN_OPTIONS.map(plan => <option key={plan.id} value={plan.id}>{plan.label}</option>)}
+                      </select>
+                    </td>
                     <td><StatusBadge value={org.subscriptionStatus} /></td>
                     <td>
                       <StatChips items={[

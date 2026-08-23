@@ -3925,6 +3925,28 @@ canvas {
   }
 }
 
+.campaign-new-prelaunch-box {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.campaign-new-prelaunch-text {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.campaign-new-prelaunch-text strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
   .app-shell-screen {
     flex-direction: column !important;
@@ -4091,12 +4113,35 @@ canvas {
   .page-actions {
     justify-content: flex-start;
   }
-  .campaign-detail-toolbar > * {
-    width: 100%;
-  }
-  .support-layout {
-    overflow-y: auto;
-  }
+.campaign-detail-toolbar > * {
+  width: 100%;
+}
+
+.campaign-new-prelaunch-box {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.campaign-new-prelaunch-text {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.campaign-new-prelaunch-text strong {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.support-layout {
+  overflow-y: auto;
+}
   .support-sidebar {
     border-right: 0;
     border-bottom: 1px solid var(--line);
