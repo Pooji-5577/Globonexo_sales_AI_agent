@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../../lib/api";
 import Icon from "../../../components/ui/Icon";
 import Spinner from "../../../components/ui/Spinner";
+import Avatar from "../../../components/ui/Avatar";
 
 const STATUS_STYLES = {
   queued:      { label: "Queued",      bg: "var(--bg-2)",  color: "var(--muted)", dot: "var(--faint)" },
@@ -54,13 +55,14 @@ const EMPTY_STATE_COPY = {
 };
 
 function StatCard({ label, value, icon, tone }) {
+  const warn = tone === "warn";
   return (
-    <div className="metric-card">
-      <span className="metric-icon" data-tone={tone || "green"}><Icon name={icon} size={16} /></span>
-      <div>
-        <strong>{value}</strong>
-        <span>{label}</span>
+    <div className="card kpi-card-accent" data-tone={warn ? "warn" : undefined} style={{ padding: "15px 16px", borderRadius: 14 }}>
+      <div className="row spread">
+        <span className="faint nw" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em" }}>{label}</span>
+        <span className="kpi-icon-badge" data-tone={warn ? "warn" : undefined}><Icon name={icon} size={15} /></span>
       </div>
+      <strong className="display" style={{ display: "block", fontSize: 28, marginTop: 10, color: "var(--ink)" }}>{value}</strong>
     </div>
   );
 }
@@ -68,8 +70,8 @@ function StatCard({ label, value, icon, tone }) {
 function StatusBadge({ status }) {
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.queued;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 9px", borderRadius: 99, background: s.bg, color: s.color, fontSize: 11, fontWeight: 600 }}>
-      <span style={{ width: 5, height: 5, borderRadius: "50%", background: s.dot }} />
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 99, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700 }}>
+      <span className="calls-status-dot" style={{ "--dot-color": s.dot, width: 5, height: 5, borderRadius: "50%", background: s.dot }} />
       {s.label}
     </span>
   );
@@ -121,7 +123,7 @@ function DetailRow({ label, value }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "120px minmax(0, 1fr)", gap: 12, padding: "7px 0", borderBottom: "1px solid var(--line-2)" }}>
       <span style={{ color: "var(--muted)", fontSize: 12 }}>{label}</span>
-      <span style={{ color: "var(--fg)", fontSize: 12, overflowWrap: "anywhere" }}>{String(value)}</span>
+      <span style={{ color: "var(--ink)", fontSize: 12, overflowWrap: "anywhere" }}>{String(value)}</span>
     </div>
   );
 }
@@ -144,26 +146,29 @@ function CallDetailsModal({ call, onClose }) {
   const hasRecording = call.direction !== "inbound" && (call.recording_url || call.recording_multi_channel_url);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
-      <div style={{ background: "var(--bg)", borderRadius: 14, padding: 24, maxWidth: 720, width: "100%", maxHeight: "82vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }} onClick={e => e.stopPropagation()}>
-        <div className="row spread" style={{ marginBottom: 16 }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15 }}>{leadName(call.leads)}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{call.leads?.company || ""}</div>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(10,23,18,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
+      <div style={{ background: "#fff", borderRadius: 20, padding: 26, maxWidth: 720, width: "100%", maxHeight: "82vh", overflow: "auto", boxShadow: "var(--sh-lg)" }} onClick={e => e.stopPropagation()}>
+        <div className="row spread" style={{ marginBottom: 18 }}>
+          <div className="row" style={{ gap: 12 }}>
+            <Avatar name={leadName(call.leads)} size={38} />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15.5 }}>{leadName(call.leads)}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)" }}>{call.leads?.company || ""}</div>
+            </div>
           </div>
-          <button className="btn btn-ghost btn-sm" style={{ width: 32, padding: 0, fontSize: 18, lineHeight: 1 }} onClick={onClose} aria-label="Close">
+          <button className="btn btn-ghost btn-sm" style={{ width: 34, height: 34, padding: 0, fontSize: 18, lineHeight: 1, borderRadius: "50%" }} onClick={onClose} aria-label="Close">
             ×
           </button>
         </div>
-        <div className="row" style={{ gap: 8, marginBottom: 18, flexWrap: "wrap" }}>
+        <div className="row" style={{ gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
           <StatusBadge status={call.status} />
           <DispositionBadge disposition={call.disposition} status={call.status} />
-          <span style={{ fontSize: 12, color: "var(--muted)" }}>{formatDuration(call.started_at, call.ended_at, call.duration_seconds)}</span>
+          <span className="chip" style={{ fontSize: 11.5, height: 24 }}>{formatDuration(call.started_at, call.ended_at, call.duration_seconds)}</span>
         </div>
 
         {call.call_summary && (
-          <section style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Call summary</div>
+          <section style={{ marginBottom: 18, padding: 14, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 12 }}>
+            <div className="eyebrow" style={{ fontSize: 10.5, marginBottom: 6 }}>Call summary</div>
             <div style={{ fontSize: 13, lineHeight: 1.55 }}>{call.call_summary}</div>
           </section>
         )}
@@ -180,7 +185,7 @@ function CallDetailsModal({ call, onClose }) {
 
         {analysisEntries.length > 0 && (
           <section style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Sales analysis</div>
+            <div className="eyebrow" style={{ fontSize: 10.5, marginBottom: 6 }}>Sales analysis</div>
             <div style={{ borderTop: "1px solid var(--line-2)" }}>
               {analysisEntries.map(([key, value]) => <DetailRow key={key} label={formatAnalysisLabel(key)} value={typeof value === "boolean" ? (value ? "Yes" : "No") : value} />)}
             </div>
@@ -189,17 +194,17 @@ function CallDetailsModal({ call, onClose }) {
 
         {hasRecording && (
           <section style={{ marginBottom: 18 }}>
-            <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Recording</div>
+            <div className="eyebrow" style={{ fontSize: 10.5, marginBottom: 6 }}>Recording</div>
             <audio controls preload="none" src={call.recording_multi_channel_url || call.recording_url} style={{ width: "100%" }} />
           </section>
         )}
 
         <section>
-          <div style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Transcript</div>
+          <div className="eyebrow" style={{ fontSize: 10.5, marginBottom: 6 }}>Transcript</div>
           {call.direction === "inbound" ? (
             <div style={{ color: "var(--muted)", fontSize: 13, padding: "18px 0" }}>Inbound transcripts and recordings are not retained.</div>
           ) : call.transcript ? (
-            <pre style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "var(--fg)", fontFamily: "inherit", margin: 0 }}>{call.transcript}</pre>
+            <pre style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "var(--ink)", fontFamily: "inherit", margin: 0, padding: 14, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 12 }}>{call.transcript}</pre>
           ) : (
             <div style={{ color: "var(--muted)", fontSize: 13, padding: "18px 0" }}>Transcript is still being processed, or this call did not connect.</div>
           )}
@@ -269,7 +274,8 @@ export default function CallsPage() {
   return (
     <div className="col" style={{ gap: 20 }}>
       {toast && (
-        <div style={{ position: "fixed", bottom: 24, right: 24, background: "var(--fg)", color: "var(--bg)", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 9999, maxWidth: 360, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+        <div className="row" style={{ position: "fixed", bottom: 24, right: 24, gap: 8, background: "var(--ink)", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, maxWidth: 360, boxShadow: "var(--sh-lg)" }}>
+          <Icon name="checkCircle" size={15} color="var(--g-300)" />
           {toast}
         </div>
       )}
@@ -278,16 +284,21 @@ export default function CallsPage() {
 
       {/* Header */}
       <div className="row spread" style={{ flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Call History</h1>
-          <p className="faint" style={{ fontSize: 13, marginTop: 4 }}>Inbound and outbound outcomes. Privacy-protected inbound calls do not retain transcripts or recordings.</p>
+        <div className="row" style={{ gap: 12 }}>
+          <span style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(140deg,#29d68f,#15c4c0)", display: "grid", placeItems: "center", boxShadow: "var(--sh-green)", flex: "none" }}>
+            <Icon name="phone" size={20} color="#06231a" />
+          </span>
+          <div>
+            <h1 className="display" style={{ fontSize: 20, margin: 0 }}>Call History</h1>
+            <p className="faint" style={{ fontSize: 13, marginTop: 4 }}>Inbound and outbound outcomes. Privacy-protected inbound calls do not retain transcripts or recordings.</p>
+          </div>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
-          {loading ? "Refreshing…" : "Refresh"}
+          <Icon name="refresh" size={14} /> {loading ? "Refreshing…" : "Refresh"}
         </button>
       </div>
 
-      <div className="metric-grid">
+      <div className="calls-kpi-grid">
         <StatCard label="total calls" value={metrics.total} icon="phone" />
         <StatCard label="connected" value={metrics.connected} icon="checkCircle" />
         <StatCard label="in progress" value={metrics.inProgress} icon="clock" tone="warn" />
@@ -300,17 +311,19 @@ export default function CallsPage() {
           <button
             key={f}
             type="button"
-            className="btn btn-ghost btn-sm"
+            className="btn calls-filter-chip"
             onClick={() => setFilter(f)}
             style={{
-              height: 30,
-              padding: "0 14px",
+              height: 32,
+              padding: "0 15px",
               fontSize: 12,
-              fontWeight: 600,
+              fontWeight: 700,
               whiteSpace: "nowrap",
               flex: "none",
-              background: filter === f ? "var(--g-50)" : "#fff",
-              borderColor: filter === f ? "var(--g-300)" : "var(--line)",
+              border: filter === f ? "none" : "1px solid var(--line)",
+              background: filter === f ? "linear-gradient(180deg,var(--g-400),var(--g-500))" : "#fff",
+              color: filter === f ? "#06231a" : "var(--ink-2)",
+              boxShadow: filter === f ? "var(--sh-green)" : "var(--sh-xs)",
             }}
           >
             {FILTER_LABELS[f]}
@@ -319,7 +332,7 @@ export default function CallsPage() {
       </div>
 
       {/* Table */}
-      <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative" }}>
+      <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative", borderRadius: 16 }}>
         {loading && calls.length > 0 && (
           <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,.6)", display: "grid", placeItems: "center", zIndex: 1 }}>
             <Spinner size={22} />
@@ -330,33 +343,45 @@ export default function CallsPage() {
             <Spinner size={20} />
           </div>
         ) : error ? (
-          <div style={{ padding: 24, textAlign: "center", color: "var(--error)", fontSize: 13 }}>
+          <div style={{ padding: 24, textAlign: "center", color: "var(--stop)", fontSize: 13 }}>
             {error} <button className="btn btn-ghost btn-sm" onClick={load} style={{ marginLeft: 8 }}>Retry</button>
           </div>
         ) : calls.length === 0 ? (
-          <div style={{ padding: 48, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📞</div>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>{emptyCopy.title}</div>
+          <div style={{ padding: 56, textAlign: "center" }}>
+            <span style={{ width: 52, height: 52, borderRadius: 16, display: "inline-grid", placeItems: "center", background: "var(--g-50)", color: "var(--g-600)", marginBottom: 14 }}>
+              <Icon name="phone" size={24} />
+            </span>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{emptyCopy.title}</div>
             <div style={{ fontSize: 13, color: "var(--muted)" }}>{emptyCopy.body}</div>
           </div>
         ) : (
-          <div style={{ overflowX: "auto", opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto", transition: "opacity .15s" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <div className="scroll" style={{ overflowX: "auto", opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto", transition: "opacity .15s" }}>
+            <table className="calls-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr style={{ background: "var(--bg-2)" }}>
+                <tr>
                   {["Lead", "Direction", "Campaign", "Status", "Outcome", "Duration", "Date", ""].map((h, i) => (
-                    <th key={i} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
+                    <th key={i} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {calls.map((call, i) => (
                   <tr key={call.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--line-2)" }}>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ fontWeight: 500 }}>{leadName(call.leads)}</div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{call.leads?.company || (call.direction === "inbound" ? call.from_number : call.to_number)}</div>
+                    <td style={{ padding: "10px 16px" }}>
+                      <div className="row" style={{ gap: 9 }}>
+                        <Avatar name={leadName(call.leads)} size={28} />
+                        <div className="col" style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700 }}>{leadName(call.leads)}</div>
+                          <div style={{ fontSize: 11, color: "var(--muted)" }}>{call.leads?.company || (call.direction === "inbound" ? call.from_number : call.to_number)}</div>
+                        </div>
+                      </div>
                     </td>
-                    <td style={{ padding: "12px 16px", textTransform: "capitalize", color: "var(--muted)" }}>{call.direction || "outbound"}</td>
+                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>
+                      <span className="row" style={{ gap: 5, textTransform: "capitalize" }}>
+                        <Icon name="arrow" size={12} color="var(--faint)" style={call.direction === "inbound" ? { transform: "rotate(135deg)" } : { transform: "rotate(-45deg)" }} />
+                        {call.direction || "outbound"}
+                      </span>
+                    </td>
                     <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{call.campaigns?.name || "Campaign not provided"}</td>
                     <td style={{ padding: "12px 16px" }}><StatusBadge status={call.status} /></td>
                     <td style={{ padding: "12px 16px" }}><DispositionBadge disposition={call.disposition} status={call.status} /></td>

@@ -115,11 +115,10 @@ const areas = [
 
 export default function PlatformPage() {
   return (
-    <div className="public-page">
-      <PublicNav />
-
-      <main>
-        <section className="content-hero public-section">
+    <div className="public-page story-page">
+      <div className="story-hero-band">
+        <PublicNav variant="dark" />
+        <section className="story-hero public-section">
           <span className="eyebrow">The agent</span>
           <h1 className="display">One agent, the whole outbound motion.</h1>
           <p>
@@ -130,36 +129,42 @@ export default function PlatformPage() {
             <Link className="btn btn-primary btn-lg" href="/signup">
               Choose a plan <Icon name="arrow" size={18} color="#06231a" />
             </Link>
-            <Link className="btn btn-ghost btn-lg" href="/pricing">View pricing</Link>
+            <Link className="landing-outline-btn" href="/pricing">View pricing</Link>
           </div>
         </section>
+      </div>
 
-        {areas.map((area, index) => (
-          <section
-            key={area.title}
-            className={`content-section public-section platform-area${index > 0 ? " platform-area--divider" : ""}`}
-          >
-            <div className="platform-area-head">
-              <span className="content-card-icon"><Icon name={area.icon} size={20} color="var(--g-700)" /></span>
-              <span className="eyebrow">{area.eyebrow}</span>
-              <h2>{area.title}</h2>
-              <p>{area.body}</p>
-              {area.link && (
-                <Link className="landing-text-link" href={area.link.href}>
-                  {area.link.label} <Icon name="arrow" size={15} color="var(--g-700)" />
-                </Link>
-              )}
-            </div>
-            <ul className="platform-points">
-              {area.points.map((point) => (
-                <li key={point}>
-                  <Icon name="check" size={15} color="var(--g-700)" stroke={2.4} />
-                  <span>{point}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
+      <main>
+        <section className="story-body public-section">
+          <ol className="story-capabilities">
+            {areas.map((area, index) => (
+              <li key={area.title} className="story-capability">
+                <div className="story-capability-index">
+                  <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="content-card-icon"><Icon name={area.icon} size={20} color="var(--g-700)" /></span>
+                  <span className="eyebrow">{area.eyebrow}</span>
+                </div>
+                <div className="story-capability-copy">
+                  <h2>{area.title}</h2>
+                  <p>{area.body}</p>
+                  {area.link && (
+                    <Link className="landing-text-link" href={area.link.href}>
+                      {area.link.label} <Icon name="arrow" size={15} color="var(--g-700)" />
+                    </Link>
+                  )}
+                </div>
+                <ul className="platform-points">
+                  {area.points.map((point) => (
+                    <li key={point}>
+                      <Icon name="check" size={15} color="var(--g-700)" stroke={2.4} />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ol>
+        </section>
 
         <section className="solutions-cta">
           <div>

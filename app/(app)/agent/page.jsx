@@ -1,10 +1,13 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import Icon from "../../../components/ui/Icon";
+import Avatar from "../../../components/ui/Avatar";
 import Typing from "../../../components/ui/Typing";
 import api from "../../../lib/api";
 
 const QUICK = ['Draft follow-ups for no-replies', 'Give me 50 ICP leads', 'Summarize hottest leads', 'Pause weekend sending'];
+
+const STAT_ICONS = { 'emails sent': 'send', 'replies': 'chat', 'meetings booked': 'calendar' };
 
 function apiMessageToMsg(m) {
   return {
@@ -29,7 +32,7 @@ const bubbleStyle = (isUser) => ({
 
 function AgentAvatar() {
   return (
-    <span style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', flex: 'none' }}>
+    <span style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', flex: 'none', boxShadow: '0 4px 12px rgba(0,168,106,.22)' }}>
       <Icon name="spark" size={17} color="#06231a" />
     </span>
   );
@@ -92,13 +95,15 @@ function DraftCard({ draft }) {
   };
 
   return (
-    <div className="card" style={{ padding: 14, maxWidth: 480 }}>
-      <div className="row spread" style={{ marginBottom: 8 }}>
-        <span style={{ fontWeight: 700, fontSize: 13.5 }}>
-          {draft.leadName}{draft.company ? ` · ${draft.company}` : ''}
-        </span>
+    <div className="card" style={{ padding: 16, maxWidth: 480, borderRadius: 16 }}>
+      <div className="row" style={{ gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
+        <Avatar name={draft.leadName || 'Lead'} size={32} />
+        <div className="col grow" style={{ minWidth: 0 }}>
+          <span style={{ fontWeight: 700, fontSize: 13.5 }}>{draft.leadName}</span>
+          {draft.company && <span className="faint" style={{ fontSize: 11.5 }}>{draft.company}</span>}
+        </div>
         {status !== 'pending' && (
-          <span className="chip" style={{ fontSize: 11 }}>
+          <span className="chip" style={{ fontSize: 11, flex: 'none' }}>
             {status === 'approved' ? 'Approved · queued to send' : 'Rejected'}
           </span>
         )}
@@ -137,8 +142,8 @@ function DraftCard({ draft }) {
           ) : (
             <>
               <button className="btn btn-primary btn-sm" disabled={busy} onClick={approve}>Approve</button>
-              <button className="btn btn-sm" disabled={busy} onClick={() => setEditing(true)}>Edit</button>
-              <button className="btn btn-sm" disabled={busy} onClick={reject}>Reject</button>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setEditing(true)}>Edit</button>
+              <button className="btn btn-ghost btn-sm btn-reject" disabled={busy} onClick={reject}>Reject</button>
             </>
           )}
         </div>
@@ -157,9 +162,12 @@ function Bubble({ m }) {
         {(m.stats || []).length > 0 && (
           <div className="row" style={{ gap: 9, marginLeft: 41 }}>
             {m.stats.map(([v, k]) => (
-              <div key={k} className="card" style={{ padding: '11px 14px', textAlign: 'center' }}>
-                <div className="display" style={{ fontSize: 22, color: 'var(--g-700)' }}>{v}</div>
-                <div className="faint" style={{ fontSize: 11, fontWeight: 700 }}>{k}</div>
+              <div key={k} className="card kpi-card-accent" style={{ padding: '12px 14px 11px', minWidth: 106, borderRadius: 14 }}>
+                <span className="kpi-icon-badge" style={{ width: 26, height: 26, borderRadius: 8 }}>
+                  <Icon name={STAT_ICONS[k] || 'trend'} size={14} />
+                </span>
+                <div className="display" style={{ fontSize: 20, color: 'var(--g-700)', marginTop: 8 }}>{v}</div>
+                <div className="faint" style={{ fontSize: 10.5, fontWeight: 700, marginTop: 2 }}>{k}</div>
               </div>
             ))}
           </div>
@@ -271,13 +279,13 @@ export default function AgentPage() {
       <div className="grow col agent-chat-pane" style={{ minWidth: 0 }}>
         <div className="row spread agent-chat-head" style={{ padding: '16px 24px 12px', flex: 'none', borderBottom: '1px solid var(--line)' }}>
           <div className="row" style={{ gap: 12 }}>
-            <span style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', boxShadow: 'var(--sh-green)', flex: 'none' }}>
+            <span className="agent-avatar-ring" style={{ width: 42, height: 42, borderRadius: 13, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', flex: 'none' }}>
               <Icon name="spark" size={22} color="#06231a" />
             </span>
             <div className="col">
               <div className="row" style={{ gap: 8 }}>
                 <span className="display" style={{ fontSize: 18, fontWeight: 600 }}>{name}</span>
-                <span className="chip"><span className="dot" style={{ animation: 'pulse-dot 1.4s infinite' }} /> Active</span>
+                <span className="chip agent-status-chip"><span className="dot" style={{ animation: 'pulse-dot 1.4s infinite' }} /> Active</span>
               </div>
               <span className="faint" style={{ fontSize: 12.5 }}>Your autonomous sales agent</span>
             </div>
@@ -293,8 +301,8 @@ export default function AgentPage() {
               msgs.map((m, i) => <Bubble key={m.id ?? i} m={m} />)
             )}
             {typing && (
-              <div className="row" style={{ gap: 10 }}>
-                <span style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(140deg,#29d68f,#15c4c0)', display: 'grid', placeItems: 'center', flex: 'none' }}><Icon name="spark" size={17} color="#06231a" /></span>
+              <div className="row" style={{ gap: 9 }}>
+                <AgentAvatar />
                 <div className="card" style={{ padding: '10px 14px', borderTopLeftRadius: 4 }}><Typing /></div>
               </div>
             )}
@@ -310,10 +318,11 @@ export default function AgentPage() {
           </div>
           <div className="row agent-input-row" style={{ gap: 10, maxWidth: 700, margin: '0 auto' }}>
             <div className="input-wrap grow">
-              <input className="input" style={{ height: 50 }} placeholder={`Ask ${name} to prospect, draft, or follow up…`} value={input}
+              <span className="lead-ico"><Icon name="spark" size={16} /></span>
+              <input className="input has-ico" style={{ height: 50 }} placeholder={`Ask ${name} to prospect, draft, or follow up…`} value={input}
                 onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} disabled={typing} />
             </div>
-            <button className="btn btn-primary" style={{ width: 50, height: 50, padding: 0, borderRadius: 14, flex: 'none' }} onClick={() => send()} disabled={typing}>
+            <button className="btn btn-primary agent-send-btn" style={{ width: 50, height: 50, padding: 0, borderRadius: 14, flex: 'none' }} onClick={() => send()} disabled={typing}>
               <Icon name="send" size={19} color="#06231a" />
             </button>
           </div>
@@ -327,12 +336,14 @@ export default function AgentPage() {
             { k: 'Emails sent', v: kpis.emailsSent ?? 0, ico: 'send' },
             { k: 'Replies', v: kpis.replies ?? 0, ico: 'chat' },
             { k: 'Meetings', v: kpis.meetings ?? 0, ico: 'calendar' },
-            { k: 'Hot leads', v: kpis.hotLeads ?? 0, ico: 'flame' },
+            { k: 'Hot leads', v: kpis.hotLeads ?? 0, ico: 'flame', warn: true },
           ].map(s => (
-            <div key={s.k} className="card" style={{ padding: 12 }}>
-              <Icon name={s.ico} size={16} color="var(--g-600)" />
-              <div className="display" style={{ fontSize: 24, marginTop: 6 }}>{s.v}</div>
-              <div className="faint" style={{ fontSize: 11.5, fontWeight: 700 }}>{s.k}</div>
+            <div key={s.k} className="card kpi-card-accent" data-tone={s.warn ? 'warn' : undefined} style={{ padding: 14, borderRadius: 14 }}>
+              <span className="kpi-icon-badge" data-tone={s.warn ? 'warn' : undefined}>
+                <Icon name={s.ico} size={15} />
+              </span>
+              <div className="display" style={{ fontSize: 22, marginTop: 8 }}>{s.v}</div>
+              <div className="faint" style={{ fontSize: 11, fontWeight: 700, marginTop: 2 }}>{s.k}</div>
             </div>
           ))}
         </div>
@@ -342,7 +353,7 @@ export default function AgentPage() {
             <p className="faint" style={{ fontSize: 12.5, padding: '8px 0' }}>No recent activity.</p>
           ) : (
             activity.slice(0, 5).map((a, i) => (
-              <div key={i} className="row" style={{ gap: 10, padding: '9px 6px', borderRadius: 10 }}>
+              <div key={i} className="row agent-activity-row" style={{ gap: 10, padding: '9px 6px' }}>
                 <span style={{ width: 30, height: 30, borderRadius: 8, flex: 'none', display: 'grid', placeItems: 'center', background: a.hot ? 'var(--g-50)' : 'var(--bg-2)', color: a.hot ? 'var(--g-600)' : 'var(--muted)' }}>
                   <Icon name={a.type === 'reply' ? 'chat' : a.type === 'meeting' ? 'calendar' : 'send'} size={15} />
                 </span>
