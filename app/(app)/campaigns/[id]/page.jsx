@@ -8,7 +8,7 @@ import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
 import DraftReview from "../../../../components/campaigns/DraftReview";
 import CampaignPreparationPanel from "./CampaignPreparationPanel";
-import { browserTimezone, campaignReadyCount, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
+import { browserTimezone, campaignReadyCount, canCallLeadImmediately, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
 import { immediateEmailBlockReason } from "../../../../lib/manual-outreach";
 
 const STATUS_STYLES = {
@@ -108,7 +108,7 @@ function campaignEligibility(lead) {
   };
 }
 
-function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
+function CampaignLeadRow({ lead, attempt, displayTimezone, campaignStatus, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
   const hasPhone = Boolean(lead.phone?.trim());
@@ -117,7 +117,15 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone,
   const campaignBlocked = Boolean(eligibility?.blocked || (lead.campaignMembership && lead.campaignMembership.qualificationStatus !== "qualified"));
   const emailBlockReason = immediateEmailBlockReason({ hasEmail, campaignId: lead.campaignId, status, campaignBlocked });
   const canEmailNow = showEmail && !emailBlockReason;
-  const canCallNow = showPhone && isAiVoice && hasPhone && lead.campaignId && !stopped && !campaignBlocked;
+  const canCallNow = canCallLeadImmediately({
+    campaignStatus,
+    showPhone,
+    isAiVoice,
+    hasPhone,
+    hasCampaign: Boolean(lead.campaignId),
+    stopped,
+    campaignBlocked,
+  });
   const sending = actionKey === `email:${lead.id}`;
   const calling = actionKey === `call:${lead.id}`;
 
@@ -526,7 +534,7 @@ export default function CampaignDetailPage() {
                   {leads.length === 0 ? (
                     <tr><td colSpan={leadColumns.length} className="table-empty">No leads are attached to this campaign.</td></tr>
                   ) : leads.map(lead => (
-                    <CampaignLeadRow key={lead.id} lead={lead} attempt={nextAttemptByLead.get(lead.id)} displayTimezone={displayTimezone} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
+                    <CampaignLeadRow key={lead.id} lead={lead} attempt={nextAttemptByLead.get(lead.id)} displayTimezone={displayTimezone} campaignStatus={campaign.status} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
                   ))}
                 </tbody>
               </table>

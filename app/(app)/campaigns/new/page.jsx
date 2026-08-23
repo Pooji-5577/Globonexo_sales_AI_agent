@@ -815,6 +815,7 @@ export default function NewCampaignPage() {
                         borderRadius: 9,
                         cursor: "pointer",
                         background: form.simulationEnabled ? "var(--g-50)" : "#fff",
+                        whiteSpace: "normal",
                       }}
                     >
                       <input

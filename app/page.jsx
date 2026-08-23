@@ -16,46 +16,38 @@ export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  const accuracyTalk = [
-    { from: 'you', text: 'Write like you already know their pipeline is a mess.' },
-    { from: 'gnx', text: 'I don’t know that. If it isn’t a verified fact, it never becomes a sentence in the email. I’ll ask — or I won’t send.' },
-    { from: 'you', text: 'Then what do you actually know about this person?' },
-    { from: 'gnx', text: 'What’s been verified: who they are, the company, a work email. A reported headcount is a fact. “They’re struggling with pipeline” is a guess. Guesses become questions. Never claims.' },
-    { from: 'you', text: 'How do I know when it’s safe to send?' },
-    { from: 'gnx', text: 'You’ll see 7 of 10 ready, with the missing pieces named. You can go find a title. You cannot act on “68% quality.”' },
-    { from: 'you', text: 'And if you don’t even have the basics?' },
-    { from: 'gnx', text: 'I draft nothing. Silence under your name beats a fluent line I invented.' },
-  ];
-
-  const voiceTalk = [
-    { from: 'you', text: 'Don’t call my list until I trust this.' },
-    { from: 'gnx', text: 'I won’t. Before a campaign goes live, I sit through adversarial calls — the busy prospect, the skeptic, the wrong person, the one who asks where I got the number — and every transcript is scored.' },
-    { from: 'you', text: 'What if they ask which customers you’ve helped?' },
-    { from: 'gnx', text: 'If you never gave me names, pricing, or ROI, I say I don’t have it. I will not invent a company and a 40% lift.' },
-    { from: 'you', text: 'They said don’t call again.' },
-    { from: 'gnx', text: 'The call ends on that sentence. No one more question. Their number is not dialed again.' },
-    { from: 'you', text: 'Just pick a time that sounds free.' },
-    { from: 'gnx', text: 'I only offer slots that are actually open on your calendar. If I can’t check, I say so. I don’t invent Tuesday at 10.' },
-  ];
-
-  const agentTalk = [
-    { from: 'you', text: 'I don’t want to hunt through screens to steer this.' },
-    { from: 'gnx', text: 'Then don’t. Tell me in English. I run the outreach; you steer it in a sentence.' },
-    { from: 'you', text: 'Does this only work while a campaign is live?' },
-    { from: 'gnx', text: 'No. I keep working between campaigns — who replied, who needs you, what to pause — not only inside a sequence.' },
-    { from: 'you', text: 'If I turn on autopilot, will you skip the checks?' },
-    { from: 'gnx', text: 'Autopilot changes who approves a message. It never changes what gets checked.' },
+  const copilotPoints = [
+    'Ask it in plain English — no hunting through screens',
+    'Pause every live campaign with one sentence',
+    'It keeps working between your campaigns, not just inside them',
+    'Autopilot changes who approves a message, never what gets checked',
   ];
 
   const chat = [
     { from: 'you', text: 'Which leads need me today?' },
     { from: 'agent', text: 'Three replied overnight and are waiting on you.', rows: [
-      { name: 'Head of RevOps · Bluepeak', note: 'Asked about pricing — wants a real answer, not a guess' },
-      { name: 'VP Sales · Fernpoint', note: 'Asked for a call Thursday' },
+      { name: 'Head of RevOps · Bluepeak', note: 'Asked about pricing' },
+      { name: 'VP Sales · Fernpoint', note: 'Wants a call Thursday' },
       { name: 'Founder · Oakline', note: 'Replied to step 2' },
     ] },
-    { from: 'you', text: 'Book Fernpoint Thursday from a real slot. Pause everything else until Monday.' },
-    { from: 'agent', text: 'Booked VP Sales · Fernpoint from an open Thursday slot. Paused 4 live campaigns. Nothing will send or dial until you resume.' },
+    { from: 'you', text: 'Pause everything until Monday.' },
+    { from: 'agent', text: 'Paused 4 live campaigns. Nothing will send or dial until you resume.' },
+  ];
+
+  // Sourced from context-readiness.service.ts and email-validation.service.ts.
+  const accuracy = [
+    { icon: 'doc', title: 'It states what it does not know', text: 'The model is handed an explicit list of missing facts, not a vague instruction to avoid making things up. Telling it exactly what is absent is far stronger.' },
+    { icon: 'target', title: 'Facts and guesses stay separate', text: 'A verified headcount is a fact. "They are struggling with pipeline" is a hypothesis, and hypotheses become questions, never claims.' },
+    { icon: 'sliders', title: 'Readiness you can act on', text: 'A lead reads as "7 of 10 ready" with the missing pieces named. You can act on a missing fact. You cannot act on "68% quality".' },
+    { icon: 'lock', title: 'Nothing is written on thin air', text: 'Without the required facts about a person and their company, no message is drafted at all. Silence beats a confident guess.' },
+  ];
+
+  const voicePoints = [
+    'Adversarial scenarios, judged before a campaign dials, if you choose to test it',
+    'Refuses to invent customers, pricing, or ROI it was never given',
+    'Ends the call immediately on a do-not-call request',
+    'Books only real calendar slots, never an invented time',
+    'A calling number is provisioned for you automatically, nothing to set up',
   ];
 
   // Rotates through the real plan catalogue so the numbers can never drift from
@@ -193,22 +185,44 @@ export default function LandingPage() {
         <section id="accuracy" className="landing-accuracy landing-section">
           <div className="landing-section-intro">
             <span className="landing-fit-label">No guessing</span>
-            <h2 className="display">I won&apos;t write what I <em className="hl">don&apos;t know</em></h2>
-            <p>You set the bar. I answer as the agent that would send it under your name.</p>
+            <h2 className="display">It won&apos;t write what it <em className="hl">doesn&apos;t know</em></h2>
+            <p>Most AI outreach fails on a sentence that sounds confident and was never true. Yours is handed a list of the gaps instead.</p>
           </div>
-          <Talk turns={accuracyTalk} layout="grid" />
+          <div className="landing-accuracy-grid">
+            {accuracy.map((item) => (
+              <article key={item.title}>
+                <div className="landing-usecase-icon landing-usecase-icon--accent">
+                  <Icon name={item.icon} size={20} color="#fff" />
+                </div>
+                <h4>{item.title}</h4>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
           <p className="landing-accuracy-note">
             <Icon name="alertCircle" size={16} color="var(--g-800)" />
-            <span>The line every prospect has learned to distrust — &ldquo;I know your team is struggling with X&rdquo; — written by a system that never knew that. I am built so I cannot write it.</span>
+            <span>The line every prospect has learned to distrust — &ldquo;I know your team is struggling with X&rdquo; — written by a system that never knew that. GNX is built so it cannot write it.</span>
           </p>
         </section>
 
         <section id="voice" className="landing-voice landing-section">
           <div className="landing-voice-copy">
-            <span className="landing-fit-label">AI calls</span>
-            <h2 className="display">I don&apos;t call until I&apos;ve been <em className="hl">tested</em></h2>
-            <p>You wouldn&apos;t hand a stranger your prospect list and a phone. Neither will I — not until the call has already failed somewhere safe.</p>
-            <Talk turns={voiceTalk} layout="stack" />
+            <span className="landing-fit-label">AI voice calling</span>
+            <h2 className="display"><em className="hl">Tested</em> before it phones anyone</h2>
+            <p>
+              Before a voice campaign can go live, the agent is put through adversarial calls and scored on every
+              transcript — the busy prospect, the skeptic, the wrong person, the one who asks where you got their number.
+            </p>
+            <ul className="landing-copilot-points">
+              {voicePoints.map((point) => (
+                <li key={point}>
+                  <div className="landing-usecase-icon landing-usecase-icon--accent landing-usecase-icon--sm">
+                    <Icon name="check" size={14} color="#fff" />
+                  </div>
+                  {point}
+                </li>
+              ))}
+            </ul>
             <Link className="landing-text-link" href="/voice">
               How voice calling works <Icon name="arrow" size={15} color="var(--g-700)" />
             </Link>
@@ -218,17 +232,29 @@ export default function LandingPage() {
 
         <section id="copilot" className="landing-copilot landing-section">
           <div className="landing-copilot-copy">
-            <span className="landing-fit-label">The agent</span>
-            <h2 className="display">Just <em className="hl">tell me</em> what to do</h2>
-            <p>I keep prospecting. You talk to me the way you&apos;d talk to a colleague who already has the inbox open.</p>
-            <Talk turns={agentTalk} layout="stack" />
+            <span className="landing-fit-label">AI Co-Pilot</span>
+            <h2 className="display">Just <em className="hl">tell it</em> what to do</h2>
+            <p>
+              Your co-pilot runs the outreach on its own — but you never have to hunt through screens to steer it.
+              Ask in plain English and it does the work.
+            </p>
+            <ul className="landing-copilot-points">
+              {copilotPoints.map((point) => (
+                <li key={point}>
+                  <div className="landing-usecase-icon landing-usecase-icon--accent landing-usecase-icon--sm">
+                    <Icon name="check" size={14} color="#fff" />
+                  </div>
+                  {point}
+                </li>
+              ))}
+            </ul>
             <Link className="landing-text-link" href="/platform">
-              Everything I handle <Icon name="arrow" size={15} color="var(--g-700)" />
+              Everything the agent handles <Icon name="arrow" size={15} color="var(--g-700)" />
             </Link>
           </div>
 
           <div className="cp" aria-hidden="true">
-            <div className="qd-bar"><span /><span /><span /><em>You · GNX</em></div>
+            <div className="qd-bar"><span /><span /><span /><em>Agent</em></div>
             <div className="cp-thread">
               {chat.map((m) => (
                 <div key={m.text} className={`cp-msg is-${m.from}`}>
@@ -246,7 +272,7 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-            <div className="cp-input"><Icon name="chat" size={13} color="var(--faint)" /><span>Tell GNX what to do…</span></div>
+            <div className="cp-input"><Icon name="chat" size={13} color="var(--faint)" /><span>Ask your agent anything…</span></div>
           </div>
         </section>
 
@@ -301,28 +327,5 @@ export default function LandingPage() {
         <PublicFooter />
       </div>
     </div>
-  );
-}
-
-function Talk({ turns, layout = "stack" }) {
-  const pairs = [];
-  for (let i = 0; i < turns.length; i += 2) {
-    if (turns[i] && turns[i + 1]) pairs.push({ you: turns[i], gnx: turns[i + 1] });
-  }
-  return (
-    <ol className={`landing-talk landing-talk--${layout}`}>
-      {pairs.map((pair) => (
-        <li key={pair.you.text} className="landing-talk-pair">
-          <div className="landing-talk-q">
-            <span>You</span>
-            <p>{pair.you.text}</p>
-          </div>
-          <div className="landing-talk-a">
-            <span>GNX</span>
-            <p>{pair.gnx.text}</p>
-          </div>
-        </li>
-      ))}
-    </ol>
   );
 }
