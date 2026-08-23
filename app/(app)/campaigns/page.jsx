@@ -48,6 +48,108 @@ function CampaignSkeleton() {
   );
 }
 
+function leadLabel(lead) {
+  const name = lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "Unnamed lead";
+  const detail = [lead.title, lead.company].filter(Boolean).join(" · ");
+  return detail ? `${name} · ${detail}` : name;
+}
+
+function CampaignSettingsDrawer({
+  campaign,
+  assignedLeads,
+  availableLeads,
+  selectedLeadIds,
+  onSelectedLeadIdsChange,
+  loading,
+  busy,
+  error,
+  onClose,
+  onAdd,
+  onRemove,
+}) {
+  if (!campaign) return null;
+
+  return (
+    <div
+      role="presentation"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}
+      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(6, 35, 26, .22)", display: "flex", justifyContent: "flex-end" }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="campaign-settings-title"
+        style={{ width: "min(720px, 100vw)", height: "100%", overflowY: "auto", background: "#fff", boxShadow: "-18px 0 50px rgba(6, 35, 26, .16)", padding: 24 }}
+      >
+        <div className="row spread" style={{ gap: 16, alignItems: "flex-start" }}>
+          <div style={{ minWidth: 0 }}>
+            <span className="eyebrow">Campaign settings</span>
+            <h2 id="campaign-settings-title" style={{ margin: "4px 0 0", fontSize: 22 }}>{campaign.name}</h2>
+            <p className="faint" style={{ marginTop: 5 }}>{CHANNEL_LABELS[campaign.channel]} · {assignedLeads.length} assigned lead{assignedLeads.length === 1 ? "" : "s"}</p>
+          </div>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={onClose}>
+            <Icon name="close" size={16} /> Close
+          </button>
+        </div>
+
+        {error ? <div className="notice-warn" style={{ marginTop: 16 }}>{error}</div> : null}
+
+        <div className="card" style={{ marginTop: 18, padding: 16, borderRadius: 8 }}>
+          <div className="row spread" style={{ gap: 12, alignItems: "flex-end" }}>
+            <label className="field" style={{ flex: 1 }}>
+              <span>Add lead to campaign</span>
+              <select
+                className="input"
+                value={selectedLeadIds[0] || ""}
+                onChange={event => onSelectedLeadIdsChange(event.target.value ? [event.target.value] : [])}
+                disabled={loading || busy}
+              >
+                <option value="">Choose an existing prospect</option>
+                {availableLeads.map(lead => <option key={lead.id} value={lead.id}>{leadLabel(lead)}</option>)}
+              </select>
+            </label>
+            <button className="btn btn-primary btn-sm" type="button" onClick={onAdd} disabled={busy || selectedLeadIds.length === 0}>
+              <Icon name="plus" size={15} color="#06231a" /> Add lead
+            </button>
+          </div>
+          <p className="faint" style={{ marginTop: 10, fontSize: 12.5 }}>Existing prospects can be added without recreating them.</p>
+        </div>
+
+        <div style={{ marginTop: 22 }}>
+          <div className="row spread" style={{ marginBottom: 10 }}>
+            <strong>Assigned leads</strong>
+            {loading ? <span className="faint">Loading...</span> : null}
+          </div>
+          <div className="card table-shell">
+            <div className="table-scroll">
+              <table className="data-table" style={{ minWidth: 560 }}>
+                <thead><tr>{["Lead", "Status", ""].map(header => <th key={header}>{header}</th>)}</tr></thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={3} className="table-empty">Loading campaign leads...</td></tr>
+                  ) : assignedLeads.length === 0 ? (
+                    <tr><td colSpan={3} className="table-empty">No leads are attached to this campaign.</td></tr>
+                  ) : assignedLeads.map(lead => (
+                    <tr className="data-row" key={lead.id}>
+                      <td><strong style={{ fontSize: 14 }}>{leadLabel(lead)}</strong><div className="faint">{lead.email || lead.phone || "No contact yet"}</div></td>
+                      <td><span className="chip">{lead.campaignMembership?.qualificationStatus || lead.status || "selected"}</span></td>
+                      <td style={{ textAlign: "right" }}>
+                        <button className="btn btn-ghost btn-sm danger-text" type="button" disabled={busy} onClick={() => onRemove(lead)}>
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export default function CampaignsPage() {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState([]);
@@ -57,6 +159,13 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [settingsCampaign, setSettingsCampaign] = useState(null);
+  const [assignedLeads, setAssignedLeads] = useState([]);
+  const [availableLeads, setAvailableLeads] = useState([]);
+  const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsBusy, setSettingsBusy] = useState(false);
+  const [settingsError, setSettingsError] = useState("");
 
   const loadCampaigns = useCallback(async () => {
     setLoading(true);
@@ -90,6 +199,66 @@ export default function CampaignsPage() {
 
   const setCampaignInList = updated => {
     setCampaigns(current => current.map(campaign => (campaign.id === updated.id ? updated : campaign)));
+  };
+
+  const loadCampaignSettings = useCallback(async campaign => {
+    if (!campaign) return;
+    setSettingsLoading(true);
+    setSettingsError("");
+    try {
+      const [assignedResult, allResult] = await Promise.all([
+        api.get("/leads", { params: { campaignId: campaign.id, perPage: 200 } }),
+        api.get("/leads", { params: { perPage: 500 } }),
+      ]);
+      const assigned = Array.isArray(assignedResult.data?.items) ? assignedResult.data.items : [];
+      const all = Array.isArray(allResult.data?.items) ? allResult.data.items : [];
+      const assignedIds = new Set(assigned.map(lead => lead.id));
+      setAssignedLeads(assigned);
+      setAvailableLeads(all.filter(lead => !assignedIds.has(lead.id)));
+      setSelectedLeadIds([]);
+    } catch (err) {
+      setSettingsError(err?.response?.data?.error || "Campaign settings could not be loaded.");
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
+  const openCampaignSettings = campaign => {
+    setSettingsCampaign(campaign);
+    setAssignedLeads([]);
+    setAvailableLeads([]);
+    setSelectedLeadIds([]);
+    loadCampaignSettings(campaign);
+  };
+
+  const addSelectedLeads = async () => {
+    if (!settingsCampaign || selectedLeadIds.length === 0) return;
+    setSettingsBusy(true);
+    setSettingsError("");
+    try {
+      await api.post(`/campaigns/${settingsCampaign.id}/assign-leads`, { leadIds: selectedLeadIds });
+      await Promise.all([loadCampaignSettings(settingsCampaign), loadCampaigns()]);
+    } catch (err) {
+      setSettingsError(err?.response?.data?.error || "Lead could not be added to this campaign.");
+    } finally {
+      setSettingsBusy(false);
+    }
+  };
+
+  const removeLeadFromCampaign = async lead => {
+    if (!settingsCampaign) return;
+    const ok = window.confirm(`Remove ${leadLabel(lead)} from "${settingsCampaign.name}"? The prospect record will stay in Prospects.`);
+    if (!ok) return;
+    setSettingsBusy(true);
+    setSettingsError("");
+    try {
+      await api.post(`/campaigns/${settingsCampaign.id}/remove-leads`, { leadIds: [lead.id] });
+      await Promise.all([loadCampaignSettings(settingsCampaign), loadCampaigns()]);
+    } catch (err) {
+      setSettingsError(err?.response?.data?.error || "Lead could not be removed from this campaign.");
+    } finally {
+      setSettingsBusy(false);
+    }
   };
 
   const runAction = async (campaign, action) => {
@@ -274,6 +443,16 @@ export default function CampaignsPage() {
                       )}
                       <button
                         className="btn btn-ghost btn-sm"
+                        style={{ height: 32 }}
+                        onClick={event => {
+                          event.stopPropagation();
+                          openCampaignSettings(campaign);
+                        }}
+                      >
+                        <Icon name="cog" size={14} /> Settings
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
                         disabled={busyId === campaign.id + "delete"}
                         style={{ height: 32 }}
                         onClick={event => {
@@ -307,6 +486,19 @@ export default function CampaignsPage() {
           </div>
         )}
       </div>
+      <CampaignSettingsDrawer
+        campaign={settingsCampaign}
+        assignedLeads={assignedLeads}
+        availableLeads={availableLeads}
+        selectedLeadIds={selectedLeadIds}
+        onSelectedLeadIdsChange={setSelectedLeadIds}
+        loading={settingsLoading}
+        busy={settingsBusy}
+        error={settingsError}
+        onClose={() => setSettingsCampaign(null)}
+        onAdd={addSelectedLeads}
+        onRemove={removeLeadFromCampaign}
+      />
     </div>
   );
 }

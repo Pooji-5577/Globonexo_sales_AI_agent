@@ -73,8 +73,10 @@ export default function AppShell({ children }) {
     const next = encodeURIComponent(pathname || '/dashboard');
     const redirectToLogin = () => {
       if (!active) return;
-      active = false;
-      window.location.assign(`/login?next=${next}`);
+      setUser(null);
+      setOrg(null);
+      setAuthChecked(true);
+      router.replace(`/login?next=${next}`);
     };
     const timeoutId = window.setTimeout(redirectToLogin, 8000);
 
@@ -94,7 +96,7 @@ export default function AppShell({ children }) {
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [pathname]);
+  }, [pathname, router]);
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -194,6 +196,14 @@ export default function AppShell({ children }) {
     return (
       <div className="screen app-shell-screen" style={{ display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
         <p className="muted">Checking session...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="screen app-shell-screen" style={{ display: 'grid', placeItems: 'center', background: 'var(--bg)' }}>
+        <p className="muted">Redirecting to login...</p>
       </div>
     );
   }
@@ -301,14 +311,17 @@ export default function AppShell({ children }) {
               <button
                 type="button"
                 style={{ position: 'relative', color: notifications.unreadCount > 0 ? 'var(--ink-2)' : 'var(--muted)', display: 'block' }}
-                onClick={() => setNotificationsOpen(open => !open)}
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  setNotificationsOpen(open => !open);
+                }}
                 aria-haspopup="menu"
                 aria-expanded={notificationsOpen}
                 aria-label={notifications.unreadCount > 0
                   ? `Notifications: ${notifications.unreadCount} email${notifications.unreadCount === 1 ? '' : 's'} need your OK`
                   : 'Notifications'}
               >
-                <Icon name="bell" size={20} />
+                <Icon name="inbox" size={20} />
                 {notifications.unreadCount > 0 && (
                   <span
                     style={{
@@ -326,7 +339,19 @@ export default function AppShell({ children }) {
                 <div
                   className="card"
                   role="menu"
-                  style={{ position: 'absolute', top: '100%', right: 0, marginTop: 10, width: 340, maxWidth: '90vw', maxHeight: 420, overflowY: 'auto', padding: 6, zIndex: 40 }}
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: 10,
+                    width: 380,
+                    maxWidth: 'calc(100vw - 28px)',
+                    maxHeight: 420,
+                    overflowY: 'auto',
+                    padding: 6,
+                    zIndex: 90,
+                    isolation: 'isolate',
+                  }}
                 >
                   <div style={{ padding: '8px 10px 6px' }}>
                     <strong style={{ fontSize: 13 }}>Notifications</strong>
@@ -350,7 +375,7 @@ export default function AppShell({ children }) {
                       >
                         <span className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
                           <span style={{ flex: 'none', marginTop: 2, color: '#b45309' }}>
-                            <Icon name="bolt" size={14} />
+                            <Icon name="alertCircle" size={14} />
                           </span>
                           <span className="col" style={{ gap: 3, minWidth: 0 }}>
                             <strong style={{ fontSize: 13 }}>{item.title}</strong>
@@ -380,7 +405,10 @@ export default function AppShell({ children }) {
                   type="button"
                   className="row profile-menu-trigger"
                   style={{ gap: 9, background: 'transparent' }}
-                  onClick={() => setProfileMenuOpen(open => !open)}
+                  onClick={() => {
+                    setNotificationsOpen(false);
+                    setProfileMenuOpen(open => !open);
+                  }}
                   aria-haspopup="menu"
                   aria-expanded={profileMenuOpen}
                 >
@@ -392,7 +420,7 @@ export default function AppShell({ children }) {
                   <Icon name="arrow" size={11} color="var(--faint)" style={{ transform: 'rotate(90deg)' }} />
                 </button>
                 {profileMenuOpen && (
-                  <div className="card profile-menu-dropdown" role="menu" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, minWidth: 180, padding: 6, zIndex: 40 }}>
+                  <div className="card profile-menu-dropdown" role="menu" style={{ position: 'absolute', top: '100%', right: 0, marginTop: 8, minWidth: 180, padding: 6, zIndex: 80 }}>
                     <button
                       type="button"
                       role="menuitem"
