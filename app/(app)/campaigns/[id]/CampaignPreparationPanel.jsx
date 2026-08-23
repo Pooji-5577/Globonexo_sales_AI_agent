@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import api from "../../../../lib/api";
 import Icon from "../../../../components/ui/Icon";
-import { campaignCreditLimitPresentation, campaignPreparationEvents, shouldPollCampaignPreparation, simulationPresentation } from "../../../../lib/campaign-display";
+import { canRebuildVoiceAgent, campaignCreditLimitPresentation, campaignPreparationEvents, shouldPollCampaignPreparation, simulationPresentation } from "../../../../lib/campaign-display";
 
 const ACTIVE_IMPORT = new Set(["queued", "searching", "candidates_found", "enriching", "waiting_for_enrichment"]);
 
@@ -291,6 +291,12 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
 
   const exhausted = data?.campaign?.acquisition_status === "audience_exhausted";
   const canTestAgent = channel === "voice" && hasAgent;
+  const canRebuildAgent = canRebuildVoiceAgent({
+    channel,
+    campaignStatus,
+    preparationStatus,
+    progress,
+  });
 
   // Once the campaign has been launched and preparation finished, the setup
   // checklist has nothing left to say, but acquisition keeps running, so the
@@ -298,22 +304,29 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   // single line. `attention` keeps the full card so Retry stays on screen.
   const launched = Boolean(campaignStatus) && campaignStatus !== "draft";
   if (launched && progress >= 100 && preparationStatus !== "attention" && !zeroReadyVoice) {
-    if (!error && !creditLimit.reached && !exhausted && !countdown && !canTestAgent) return null;
+    if (!error && !creditLimit.reached && !exhausted && !countdown && !canTestAgent && !canRebuildAgent) return null;
     return (
       <>
         {error ? <div className="notice-warn" style={{ marginBottom: 0 }}>{error}</div> : null}
-        {creditLimit.reached || exhausted || countdown || canTestAgent ? (
+        {creditLimit.reached || exhausted || countdown || canTestAgent || canRebuildAgent ? (
           <section className="row spread campaign-acquisition-strip">
             <div className="row" style={{ gap: 14, flexWrap: "wrap", fontSize: 12.5 }}>
               {creditLimit.reached ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Lead sourcing completed with {creditLimit.fetched}/{creditLimit.target} requested leads</span> : null}
               {exhausted ? <span style={{ color: "var(--warning)", fontWeight: 700 }}>Audience exhausted</span> : null}
               {countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
             </div>
-            {canTestAgent ? (
-              <button className="btn btn-ghost btn-sm" type="button" disabled={testPermissionBusy} onClick={requestMicrophoneAndOpenTest}>
-                <Icon name="phone" size={14} /> {testPermissionBusy ? "Requesting mic..." : "Test Sales Agent"}
-              </button>
-            ) : null}
+            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+              {canRebuildAgent ? (
+                <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>
+                  <Icon name="refresh" size={14} /> {busy ? "Rebuilding…" : "Rebuild voice agent"}
+                </button>
+              ) : null}
+              {canTestAgent ? (
+                <button className="btn btn-ghost btn-sm" type="button" disabled={testPermissionBusy} onClick={requestMicrophoneAndOpenTest}>
+                  <Icon name="phone" size={14} /> {testPermissionBusy ? "Requesting mic..." : "Test Sales Agent"}
+                </button>
+              ) : null}
+            </div>
           </section>
         ) : null}
         {testing ? <SalesAgentTestModal campaignId={campaignId} onClose={() => setTesting(false)} /> : null}

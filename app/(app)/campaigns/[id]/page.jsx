@@ -165,7 +165,7 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone,
               className="btn btn-ghost btn-sm"
               type="button"
               disabled={!canCallNow || Boolean(actionKey)}
-              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : !hasPhone ? "Lead needs a phone number" : campaignBlocked ? eligibility?.label || "Lead is not ready" : stopped ? "Calls are stopped for this lead" : "Call this lead now only within their permitted local hours"}
+              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : !hasPhone ? "Lead needs a phone number" : campaignBlocked ? eligibility?.label || "Lead is not ready" : stopped ? "Calls are stopped for this lead" : "Call this lead now"}
               style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
               onClick={() => onCallNow(lead.id)}
             >

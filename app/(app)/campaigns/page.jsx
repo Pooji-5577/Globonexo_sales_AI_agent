@@ -279,6 +279,18 @@ export default function CampaignsPage() {
     }
   };
 
+  const rebuildVoiceAgent = async campaign => {
+    setBusyId(campaign.id + "rebuild");
+    setError("");
+    try {
+      await api.post(`/campaigns/${campaign.id}/prepare`);
+      router.push(`/campaigns/${campaign.id}`);
+    } catch (err) {
+      setError(err?.response?.data?.error || "Voice agent rebuild could not be started. Please try again.");
+      setBusyId("");
+    }
+  };
+
   const deleteCampaign = async campaign => {
     const ok = window.confirm(`Delete "${campaign.name}"? This cannot be undone.`);
     if (!ok) return;
@@ -387,6 +399,7 @@ export default function CampaignsPage() {
               const launchBlocked = primaryAction === "launch" && campaign.channel === "email" && !hasReadyLeads;
               const primaryLabel = campaign.status === "active" ? "Pause" : launchBlocked ? "Needs email" : "Launch";
               const actionBusy = busyId === campaign.id + primaryAction;
+              const rebuildBusy = busyId === campaign.id + "rebuild";
               return (
                 <div
                   key={campaign.id}
@@ -426,6 +439,20 @@ export default function CampaignsPage() {
                         <span style={{ width: 6, height: 6, borderRadius: 99, background: statusStyle.dot, flex: "none" }} />
                         {statusStyle.label}
                       </span>
+                      {campaign.status === "paused" && campaign.channel === "voice" ? (
+                        <button
+                          className="btn btn-primary btn-sm"
+                          disabled={rebuildBusy}
+                          style={{ height: 32 }}
+                          onClick={event => {
+                            event.stopPropagation();
+                            rebuildVoiceAgent(campaign);
+                          }}
+                        >
+                          <Icon name="refresh" size={14} />
+                          {rebuildBusy ? "Rebuilding..." : "Rebuild agent"}
+                        </button>
+                      ) : null}
                       {campaign.status !== "completed" && (
                         <button
                           className="btn btn-ghost btn-sm"
