@@ -65,6 +65,7 @@ const kf = (t, pts) => {
 
 const CARD_BASE = {
   position: "absolute", left: 0, right: 0, top: 0,
+  maxWidth: "100%", boxSizing: "border-box",
   background: "#fff", border: "1px solid #e6efea", borderRadius: 20,
   boxShadow: "0 18px 44px rgba(10,23,18,.08), 0 2px 6px rgba(10,23,18,.04)",
   overflow: "hidden", display: "flex", flexDirection: "column",
@@ -108,8 +109,6 @@ function buildRows(rows, sweepY, cardVisible) {
         opacity: (0.95 * (1 - rev)).toFixed(3),
       },
       textStyle: {
-        position: "absolute", inset: 0, display: "flex", alignItems: "center",
-        fontSize: 13.5, fontWeight: 700, color: "#0a1712", letterSpacing: "-.005em",
         filter: `blur(${(4.5 * (1 - rev)).toFixed(2)}px)`,
         opacity: rev.toFixed(3), transform: `translateX(${(6 * (1 - rev)).toFixed(2)}px)`,
       },
@@ -277,14 +276,14 @@ export default function QualifyDemo({ intro = null }) {
 
       <div className="qdemo" aria-hidden="true">
         <div style={cardAStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "20px 22px", borderBottom: "1px solid #e6efea" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(140deg,#06311f,#0a5d3f)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, letterSpacing: ".02em", flex: "none" }}>NO</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <div style={{ fontFamily: "'Space Grotesk',Manrope,sans-serif", fontWeight: 600, fontSize: 17, letterSpacing: "-.01em", color: "#0a1712" }}>Northwind Logistics</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: "#6b7f76" }}>Freight · 120 staff · Operations Manager</div>
+          <div className="qdemo-head">
+            <div className="qdemo-avatar">NO</div>
+            <div className="qdemo-id">
+              <div className="qdemo-name">Northwind Logistics</div>
+              <div className="qdemo-meta">Freight · 120 staff · Operations Manager</div>
             </div>
           </div>
-          <div style={{ position: "relative", padding: "8px 22px 18px" }}>
+          <div className="qdemo-rows">
             <div style={{ position: "relative" }}>
               {rowsA.map((r) => (
                 <div key={r.key} style={r.rowStyle}>
@@ -294,7 +293,7 @@ export default function QualifyDemo({ intro = null }) {
                   </div>
                   <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
                     <div style={r.skelStyle} />
-                    <div style={r.textStyle}>{r.text}</div>
+                    <div className="qdemo-row-text" style={r.textStyle}>{r.text}</div>
                   </div>
                   <div style={r.noteStyle}>{r.note}</div>
                 </div>
@@ -310,14 +309,14 @@ export default function QualifyDemo({ intro = null }) {
         </div>
 
         <div style={cardBStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "20px 22px", borderBottom: "1px solid #e6efea" }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(140deg,#06311f,#0a5d3f)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 14, letterSpacing: ".02em", flex: "none" }}>BL</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <div style={{ fontFamily: "'Space Grotesk',Manrope,sans-serif", fontWeight: 600, fontSize: 17, letterSpacing: "-.01em", color: "#0a1712" }}>Bluepeak Systems</div>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: "#6b7f76" }}>Software · 340 staff · Head of Revenue Operations</div>
+          <div className="qdemo-head">
+            <div className="qdemo-avatar">BL</div>
+            <div className="qdemo-id">
+              <div className="qdemo-name">Bluepeak Systems</div>
+              <div className="qdemo-meta">Software · 340 staff · Head of Revenue Operations</div>
             </div>
           </div>
-          <div style={{ position: "relative", padding: "8px 22px 18px" }}>
+          <div className="qdemo-rows">
             <div style={{ position: "relative" }}>
               {rowsB.map((r) => (
                 <div key={r.key} style={r.rowStyle}>
@@ -326,7 +325,7 @@ export default function QualifyDemo({ intro = null }) {
                   </div>
                   <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
                     <div style={r.skelStyle} />
-                    <div style={r.textStyle}>{r.text}</div>
+                    <div className="qdemo-row-text" style={r.textStyle}>{r.text}</div>
                   </div>
                 </div>
               ))}

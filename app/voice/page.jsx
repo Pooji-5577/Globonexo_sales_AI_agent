@@ -35,11 +35,10 @@ const guarantees = [
 
 export default function VoicePage() {
   return (
-    <div className="public-page">
-      <PublicNav />
-
-      <main>
-        <section className="content-hero public-section">
+    <div className="public-page story-page">
+      <div className="story-hero-band">
+        <PublicNav variant="dark" />
+        <section className="story-hero public-section">
           <span className="eyebrow">AI voice calling</span>
           <h1 className="display">It gets tested before it calls anyone.</h1>
           <p>
@@ -50,11 +49,13 @@ export default function VoicePage() {
             <Link className="btn btn-primary btn-lg" href="/signup">
               Choose a plan <Icon name="arrow" size={18} color="#06231a" />
             </Link>
-            <Link className="btn btn-ghost btn-lg" href="/accuracy">How it avoids guessing</Link>
+            <Link className="landing-outline-btn" href="/accuracy">How it avoids guessing</Link>
           </div>
         </section>
+      </div>
 
-        <section className="content-section public-section">
+      <main>
+        <section className="story-body public-section">
           <div className="content-section-head">
             <h2>The scenarios it has to pass</h2>
             <p>
@@ -62,15 +63,20 @@ export default function VoicePage() {
               A campaign that fails can be fixed and re-run before a single real prospect hears from it.
             </p>
           </div>
-          <div className="card-grid">
+          <ol className="story-scenarios">
             {scenarios.map((item) => (
-              <article key={item.title} className="content-card">
-                <span className="content-card-icon"><Icon name={item.icon} size={20} color="var(--g-700)" /></span>
-                <h3>{item.title}</h3>
-                <p>{item.body}</p>
-              </article>
+              <li key={item.title} className="story-scenario">
+                <span className="story-scenario-mark" aria-hidden="true">
+                  <Icon name="check" size={14} color="#06231a" stroke={2.6} />
+                </span>
+                <span className="content-card-icon"><Icon name={item.icon} size={18} color="var(--g-700)" /></span>
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
           <p className="voice-baseline">
             <Icon name="checkCircle" size={18} color="var(--g-700)" />
             <span>
@@ -80,14 +86,14 @@ export default function VoicePage() {
           </p>
         </section>
 
-        <section className="content-section public-section voice-guarantees">
+        <section className="story-band">
           <div className="content-section-head">
             <h2>What holds on a live call</h2>
             <p>Testing catches a bad agent before launch. These constraints hold while it is actually talking to someone.</p>
           </div>
-          <div className="card-grid">
+          <div className="story-guarantees">
             {guarantees.map((item) => (
-              <article key={item.title} className="content-card">
+              <article key={item.title} className="story-guarantee">
                 <span className="content-card-icon"><Icon name={item.icon} size={20} color="var(--g-700)" /></span>
                 <h3>{item.title}</h3>
                 <p>{item.body}</p>
@@ -96,7 +102,7 @@ export default function VoicePage() {
           </div>
         </section>
 
-        <section className="content-section public-section">
+        <section className="story-body public-section">
           <div className="content-section-head">
             <h2>Voice is included, not upsold</h2>
             <p>
@@ -106,7 +112,7 @@ export default function VoicePage() {
           </div>
           <div className="voice-plan-grid">
             {PLAN_CONFIG.map((plan) => (
-              <div key={plan.id}>
+              <div key={plan.id} data-plan={plan.voiceCampaigns}>
                 <strong>{plan.name}</strong>
                 <b>{plan.voiceCampaigns}</b>
                 <span>concurrent voice campaign{plan.voiceCampaigns === 1 ? "" : "s"}</span>
