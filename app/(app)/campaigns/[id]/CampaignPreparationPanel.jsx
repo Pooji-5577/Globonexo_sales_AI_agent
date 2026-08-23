@@ -144,6 +144,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now());
   const [testing, setTesting] = useState(false);
+  const [testPermissionBusy, setTestPermissionBusy] = useState(false);
   const lastStatusLogRef = useRef("");
 
   const load = useCallback(async () => {
@@ -225,6 +226,33 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
     }
   };
 
+  const requestMicrophoneAndOpenTest = async () => {
+    if (testPermissionBusy) return;
+    setTestPermissionBusy(true);
+    setError("");
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error("This browser does not support microphone permission requests.");
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      preparationLog("customer_test_microphone_permission_granted", { campaignId });
+      setTesting(true);
+    } catch (err) {
+      preparationLog("customer_test_microphone_permission_failed", {
+        campaignId,
+        error: err?.name || err?.message || "microphone_permission_failed",
+      });
+      setError(
+        err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError"
+          ? "Allow microphone access in your browser to test the sales agent."
+          : err?.message || "Could not request microphone access.",
+      );
+    } finally {
+      setTestPermissionBusy(false);
+    }
+  };
+
   const latestRun = simulation.run;
   const importRun = data?.latestImport;
   const importIsActive = ACTIVE_IMPORT.has(importStatus);
@@ -282,8 +310,8 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
               {countdown ? <span style={{ color: "var(--blue)", fontWeight: 700 }}>Next leads in {countdown}</span> : null}
             </div>
             {canTestAgent ? (
-              <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}>
-                <Icon name="phone" size={14} /> Test Sales Agent
+              <button className="btn btn-ghost btn-sm" type="button" disabled={testPermissionBusy} onClick={requestMicrophoneAndOpenTest}>
+                <Icon name="phone" size={14} /> {testPermissionBusy ? "Requesting mic..." : "Test Sales Agent"}
               </button>
             ) : null}
           </section>
@@ -321,7 +349,11 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
             {preparationStatus === "not_started" && !importIsActive && !importFinishedEmpty ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Starting…" : "Prepare campaign"}</button> : null}
             {!creditLimit.reached && (preparationStatus === "attention" || zeroReadyVoice) ? <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>{busy ? "Retrying…" : "Retry preparation"}</button> : null}
-            {canTestAgent ? <button className="btn btn-ghost btn-sm" type="button" onClick={() => setTesting(true)}><Icon name="phone" size={14} /> Test Sales Agent</button> : null}
+            {canTestAgent ? (
+              <button className="btn btn-ghost btn-sm" type="button" disabled={testPermissionBusy} onClick={requestMicrophoneAndOpenTest}>
+                <Icon name="phone" size={14} /> {testPermissionBusy ? "Requesting mic..." : "Test Sales Agent"}
+              </button>
+            ) : null}
             {channel === "voice" && simulationStatus === "attention" ? <button className="btn btn-ghost btn-sm" type="button" disabled={busy} onClick={retrySimulations}>Retry simulations</button> : null}
           </div>
         </div>
