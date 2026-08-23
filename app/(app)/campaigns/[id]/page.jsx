@@ -8,7 +8,7 @@ import Avatar from "../../../../components/ui/Avatar";
 import { isValidEmail } from "../../../../lib/validation";
 import DraftReview from "../../../../components/campaigns/DraftReview";
 import CampaignPreparationPanel from "./CampaignPreparationPanel";
-import { browserTimezone, campaignReadyCount, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
+import { browserTimezone, campaignReadyCount, canCallLeadImmediately, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -107,7 +107,7 @@ function campaignEligibility(lead) {
   };
 }
 
-function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
+function CampaignLeadRow({ lead, attempt, displayTimezone, campaignStatus, showEmail, showPhone, isAiVoice, actionKey, onEmailNow, onCallNow }) {
   const status = lead.status || "new";
   const hasEmail = isValidEmail(lead.email || "");
   const hasPhone = Boolean(lead.phone?.trim());
@@ -115,7 +115,15 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone,
   const eligibility = campaignEligibility(lead);
   const campaignBlocked = Boolean(eligibility?.blocked || (lead.campaignMembership && lead.campaignMembership.qualificationStatus !== "qualified"));
   const canEmailNow = showEmail && hasEmail && lead.campaignId && status !== "contacted" && !stopped && !campaignBlocked;
-  const canCallNow = showPhone && isAiVoice && hasPhone && lead.campaignId && !stopped && !campaignBlocked;
+  const canCallNow = canCallLeadImmediately({
+    campaignStatus,
+    showPhone,
+    isAiVoice,
+    hasPhone,
+    hasCampaign: Boolean(lead.campaignId),
+    stopped,
+    campaignBlocked,
+  });
   const sending = actionKey === `email:${lead.id}`;
   const calling = actionKey === `call:${lead.id}`;
 
@@ -165,7 +173,7 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, showEmail, showPhone,
               className="btn btn-ghost btn-sm"
               type="button"
               disabled={!canCallNow || Boolean(actionKey)}
-              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : !hasPhone ? "Lead needs a phone number" : campaignBlocked ? eligibility?.label || "Lead is not ready" : stopped ? "Calls are stopped for this lead" : "Call this lead now"}
+              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : campaignStatus !== "active" ? "Launch this campaign before calling a prospect" : !hasPhone ? "Lead needs a phone number" : campaignBlocked ? eligibility?.label || "Lead is not ready" : stopped ? "Calls are stopped for this lead" : "Call this lead now"}
               style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
               onClick={() => onCallNow(lead.id)}
             >
@@ -524,7 +532,7 @@ export default function CampaignDetailPage() {
                   {leads.length === 0 ? (
                     <tr><td colSpan={leadColumns.length} className="table-empty">No leads are attached to this campaign.</td></tr>
                   ) : leads.map(lead => (
-                    <CampaignLeadRow key={lead.id} lead={lead} attempt={nextAttemptByLead.get(lead.id)} displayTimezone={displayTimezone} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
+                    <CampaignLeadRow key={lead.id} lead={lead} attempt={nextAttemptByLead.get(lead.id)} displayTimezone={displayTimezone} campaignStatus={campaign.status} showEmail={emailEnabled} showPhone={voiceEnabled} isAiVoice={isAiVoice} actionKey={actionKey} onEmailNow={sendLeadNow} onCallNow={callLeadNow} />
                   ))}
                 </tbody>
               </table>
