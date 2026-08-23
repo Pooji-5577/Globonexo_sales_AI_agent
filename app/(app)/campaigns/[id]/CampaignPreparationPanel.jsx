@@ -213,6 +213,20 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
     }
   };
 
+  const rebuildVoiceAgent = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await api.post(`/campaigns/${campaignId}/voice-agent/rebuild`);
+      preparationLog("voice_agent_rebuild_requested", { campaignId });
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.error || "Could not rebuild the voice agent.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const retrySimulations = async () => {
     setBusy(true);
     try {
@@ -296,6 +310,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
     campaignStatus,
     preparationStatus,
     progress,
+    simulationStatus,
   });
 
   // Once the campaign has been launched and preparation finished, the setup
@@ -317,7 +332,7 @@ export default function CampaignPreparationPanel({ campaignId, channel, campaign
             </div>
             <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               {canRebuildAgent ? (
-                <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={startPreparation}>
+                <button className="btn btn-primary btn-sm" type="button" disabled={busy} onClick={rebuildVoiceAgent}>
                   <Icon name="refresh" size={14} /> {busy ? "Rebuilding…" : "Rebuild voice agent"}
                 </button>
               ) : null}

@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../../lib/api";
 import Icon from "../../../components/ui/Icon";
+import { deleteCampaignsInBatches, toggleVisibleCampaignSelection } from "../../../lib/campaign-selection";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -159,6 +160,7 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState([]);
   const [settingsCampaign, setSettingsCampaign] = useState(null);
   const [assignedLeads, setAssignedLeads] = useState([]);
   const [availableLeads, setAvailableLeads] = useState([]);
@@ -196,6 +198,9 @@ export default function CampaignsPage() {
       return statusMatch && textMatch;
     });
   }, [campaigns, search, statusFilter]);
+  const visibleCampaignIds = useMemo(() => filteredCampaigns.map(campaign => campaign.id), [filteredCampaigns]);
+  const selectedCampaignIdSet = useMemo(() => new Set(selectedCampaignIds), [selectedCampaignIds]);
+  const allVisibleSelected = visibleCampaignIds.length > 0 && visibleCampaignIds.every(id => selectedCampaignIdSet.has(id));
 
   const setCampaignInList = updated => {
     setCampaigns(current => current.map(campaign => (campaign.id === updated.id ? updated : campaign)));
@@ -283,7 +288,7 @@ export default function CampaignsPage() {
     setBusyId(campaign.id + "rebuild");
     setError("");
     try {
-      await api.post(`/campaigns/${campaign.id}/prepare`);
+      await api.post(`/campaigns/${campaign.id}/voice-agent/rebuild`);
       router.push(`/campaigns/${campaign.id}`);
     } catch (err) {
       setError(err?.response?.data?.error || "Voice agent rebuild could not be started. Please try again.");
@@ -299,9 +304,40 @@ export default function CampaignsPage() {
     setError("");
     try {
       await api.delete(`/campaigns/${campaign.id}`);
+      setSelectedCampaignIds(current => current.filter(id => id !== campaign.id));
       await loadCampaigns();
     } catch (err) {
       setError(err?.response?.data?.error || "Campaign could not be deleted.");
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const deleteSelectedCampaigns = async () => {
+    const selectedCampaigns = campaigns.filter(campaign => selectedCampaignIdSet.has(campaign.id));
+    if (selectedCampaigns.length === 0) return;
+    const ok = window.confirm(
+      `Delete ${selectedCampaigns.length} selected campaign${selectedCampaigns.length === 1 ? "" : "s"}? This cannot be undone.`,
+    );
+    if (!ok) return;
+
+    setBusyId("bulk-delete");
+    setError("");
+    try {
+      const result = await deleteCampaignsInBatches(
+        selectedCampaigns,
+        campaign => api.delete(`/campaigns/${campaign.id}`),
+      );
+      const deleted = new Set(result.deletedIds);
+      setSelectedCampaignIds(current => current.filter(id => !deleted.has(id)));
+      await loadCampaigns();
+      if (result.failed.length > 0) {
+        const names = result.failed.slice(0, 3).map(item => item.name).join(", ");
+        const remaining = result.failed.length - Math.min(result.failed.length, 3);
+        setError(
+          `${result.deletedIds.length} deleted. ${result.failed.length} failed: ${names}${remaining > 0 ? ` and ${remaining} more` : ""}.`,
+        );
+      }
     } finally {
       setBusyId("");
     }
@@ -368,6 +404,37 @@ export default function CampaignsPage() {
         </div>
       </div>
 
+      {!loading && campaigns.length > 0 ? (
+        <div className="row spread" style={{ gap: 12, padding: "10px 24px", borderBottom: "1px solid var(--line)", background: "#fff", flexWrap: "wrap" }}>
+          <label className="row" style={{ gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+            <input
+              type="checkbox"
+              aria-label="Select all visible campaigns"
+              checked={allVisibleSelected}
+              onChange={event => setSelectedCampaignIds(current => toggleVisibleCampaignSelection(current, visibleCampaignIds, event.target.checked))}
+              style={{ width: 17, height: 17, accentColor: "var(--g-600)" }}
+            />
+            Select all visible ({visibleCampaignIds.length})
+          </label>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <span className="faint" style={{ fontSize: 12.5, alignSelf: "center" }}>{selectedCampaignIds.length} selected</span>
+            {selectedCampaignIds.length > 0 ? (
+              <button className="btn btn-ghost btn-sm" type="button" disabled={busyId === "bulk-delete"} onClick={() => setSelectedCampaignIds([])}>
+                Clear selection
+              </button>
+            ) : null}
+            <button
+              className="btn btn-ghost btn-sm danger-text"
+              type="button"
+              disabled={selectedCampaignIds.length === 0 || busyId === "bulk-delete"}
+              onClick={deleteSelectedCampaigns}
+            >
+              {busyId === "bulk-delete" ? "Deleting…" : `Delete selected${selectedCampaignIds.length ? ` (${selectedCampaignIds.length})` : ""}`}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {error && (
         <div style={{ padding: "12px 24px", background: "#fff7ed", borderBottom: "1px solid #fed7aa", color: "#9a3412", fontSize: 13, fontWeight: 700 }}>
           {error}
@@ -417,6 +484,18 @@ export default function CampaignsPage() {
                 >
                   <div className="row spread campaigns-card-head" style={{ gap: 16, alignItems: "flex-start" }}>
                     <div className="row" style={{ gap: 12, minWidth: 0 }}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${campaign.name}`}
+                        checked={selectedCampaignIdSet.has(campaign.id)}
+                        disabled={busyId === "bulk-delete"}
+                        onClick={event => event.stopPropagation()}
+                        onChange={event => {
+                          const checked = event.target.checked;
+                          setSelectedCampaignIds(current => toggleVisibleCampaignSelection(current, [campaign.id], checked));
+                        }}
+                        style={{ width: 18, height: 18, accentColor: "var(--g-600)", flex: "none" }}
+                      />
                       <span style={{ width: 42, height: 42, borderRadius: 12, background: "var(--g-50)", border: "1px solid var(--g-100)", display: "flex", alignItems: "center", justifyContent: "center", gap: 2, flex: "none" }}>
                         {campaign.channel === "both" ? (
                           <>
@@ -442,7 +521,7 @@ export default function CampaignsPage() {
                       {campaign.status === "paused" && campaign.channel === "voice" ? (
                         <button
                           className="btn btn-primary btn-sm"
-                          disabled={rebuildBusy}
+                          disabled={rebuildBusy || busyId === "bulk-delete"}
                           style={{ height: 32 }}
                           onClick={event => {
                             event.stopPropagation();
@@ -456,7 +535,7 @@ export default function CampaignsPage() {
                       {campaign.status !== "completed" && (
                         <button
                           className="btn btn-ghost btn-sm"
-                          disabled={actionBusy || launchBlocked}
+                          disabled={actionBusy || launchBlocked || busyId === "bulk-delete"}
                           title={launchBlocked ? "Reveal or upload lead emails before launching." : undefined}
                           style={{ height: 32 }}
                           onClick={event => {
@@ -470,6 +549,7 @@ export default function CampaignsPage() {
                       )}
                       <button
                         className="btn btn-ghost btn-sm"
+                        disabled={busyId === "bulk-delete"}
                         style={{ height: 32 }}
                         onClick={event => {
                           event.stopPropagation();
@@ -480,7 +560,7 @@ export default function CampaignsPage() {
                       </button>
                       <button
                         className="btn btn-ghost btn-sm"
-                        disabled={busyId === campaign.id + "delete"}
+                        disabled={busyId === "bulk-delete" || busyId === campaign.id + "delete"}
                         style={{ height: 32 }}
                         onClick={event => {
                           event.stopPropagation();
