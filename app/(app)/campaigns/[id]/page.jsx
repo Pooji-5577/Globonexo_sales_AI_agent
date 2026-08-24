@@ -9,6 +9,7 @@ import { isValidEmail } from "../../../../lib/validation";
 import DraftReview from "../../../../components/campaigns/DraftReview";
 import CampaignPreparationPanel from "./CampaignPreparationPanel";
 import { browserTimezone, campaignReadyCount, canCallLeadImmediately, formatScheduledInTimezone, voiceLaunchGate } from "../../../../lib/campaign-display";
+import { immediateEmailBlockReason } from "../../../../lib/manual-outreach";
 
 const STATUS_STYLES = {
   active: { label: "Active", bg: "var(--g-50)", color: "var(--g-700)", dot: "var(--g-500)" },
@@ -114,7 +115,8 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, campaignStatus, showE
   const stopped = STOPPED_STATUSES.has(status);
   const eligibility = campaignEligibility(lead);
   const campaignBlocked = Boolean(eligibility?.blocked || (lead.campaignMembership && lead.campaignMembership.qualificationStatus !== "qualified"));
-  const canEmailNow = showEmail && hasEmail && lead.campaignId && status !== "contacted" && !stopped && !campaignBlocked;
+  const emailBlockReason = immediateEmailBlockReason({ hasEmail, campaignId: lead.campaignId, status, campaignBlocked });
+  const canEmailNow = showEmail && !emailBlockReason;
   const canCallNow = canCallLeadImmediately({
     campaignStatus,
     showPhone,
@@ -161,7 +163,7 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, campaignStatus, showE
               className="btn btn-ghost btn-sm"
               type="button"
               disabled={!canEmailNow || Boolean(actionKey)}
-              title={!hasEmail ? "Lead needs an email" : status === "contacted" ? "Step 1 has already been sent" : stopped ? "Sequence is stopped for this lead" : "Email this lead immediately"}
+              title={!hasEmail ? "Lead needs an email" : stopped ? "Sequence is stopped for this lead" : campaignBlocked ? eligibility?.label || "Lead is not ready" : "Email this lead immediately"}
               style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
               onClick={() => onEmailNow(lead.id)}
             >
@@ -173,7 +175,7 @@ function CampaignLeadRow({ lead, attempt, displayTimezone, campaignStatus, showE
               className="btn btn-ghost btn-sm"
               type="button"
               disabled={!canCallNow || Boolean(actionKey)}
-              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : campaignStatus !== "active" ? "Launch this campaign before calling a prospect" : !hasPhone ? "Lead needs a phone number" : campaignBlocked ? eligibility?.label || "Lead is not ready" : stopped ? "Calls are stopped for this lead" : "Call this lead now"}
+              title={!isAiVoice ? "Immediate calls are available for AI voice campaigns" : !hasPhone ? "Lead needs a phone number" : campaignBlocked ? eligibility?.label || "Lead is not ready" : stopped ? "Calls are stopped for this lead" : "Call this lead now"}
               style={{ height: 32, padding: "0 10px", fontSize: 12, whiteSpace: "nowrap" }}
               onClick={() => onCallNow(lead.id)}
             >
