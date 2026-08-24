@@ -8,7 +8,7 @@ import Icon from "../components/ui/Icon";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import { useAuth } from "../hooks/useAuth";
-import { PLAN_CONFIG } from "../lib/plans";
+import { PLAN_CONFIG, marketingCeilingsFor } from "../lib/plans";
 import QualifyDemo from "../components/landing/QualifyDemo";
 import VoiceTestDemo from "../components/landing/VoiceTestDemo";
 
@@ -63,11 +63,12 @@ export default function LandingPage() {
     return () => clearInterval(id);
   }, [autoRotate]);
 
+  const { emailsPerMonth, callsPerMonth } = marketingCeilingsFor(plan);
   const capacity = [
-    { value: plan.monthlyCredits.toLocaleString(), label: 'credits / month, one shared pool' },
+    { value: emailsPerMonth.toLocaleString(), label: 'emails / month', prefix: 'Up to' },
     { value: plan.emailCampaigns, label: 'email campaigns' },
     { value: plan.voiceCampaigns, label: plan.voiceCampaigns === 1 ? 'voice campaign' : 'voice campaigns' },
-    { value: plan.dailyEmailCap, label: 'emails / day sending cap' },
+    { value: callsPerMonth.toLocaleString(), label: 'calls / month', prefix: 'Up to' },
   ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -298,7 +299,11 @@ export default function LandingPage() {
           </div>
           <div key={plan.id} className="landing-outcomes">
             {capacity.map((item) => (
-              <div key={item.label}><strong>{item.value}</strong><span>{item.label}</span></div>
+              <div key={item.label}>
+                {item.prefix && <em className="landing-outcome-prefix">{item.prefix}</em>}
+                <strong>{item.value}</strong>
+                <span>{item.label}</span>
+              </div>
             ))}
           </div>
         </section>

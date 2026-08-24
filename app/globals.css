@@ -2656,6 +2656,7 @@ a { color: inherit; text-decoration: none; }
 .landing-outcomes div { min-height: 150px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; background: #fff; }
 .landing-outcomes strong { color: var(--g-700); font-family: var(--font-display); font-size: 36px; }
 .landing-outcomes span { margin-top: 7px; color: var(--muted); font-size: 12.5px; font-weight: 700; }
+.landing-outcome-prefix { margin-bottom: 4px; color: var(--muted); font-size: 9px; font-weight: 800; font-style: normal; letter-spacing: .01em; }
 
 /* Plan rotator: the price and the stat grid cross-fade as the plan changes.
    Both are keyed on plan.id in JSX so the animation replays on each switch. */
@@ -3235,11 +3236,18 @@ a { color: inherit; text-decoration: none; }
 
 .plan-limits { margin-top: 22px; padding-top: 20px; display: flex; flex-direction: column; gap: 12px; border-top: 1px solid var(--line); list-style: none; }
 .plan-card.is-featured .plan-limits { border-top-color: rgba(255,255,255,.16); }
-.plan-limits li { display: flex; align-items: baseline; gap: 9px; }
+.plan-limits li { display: flex; flex-direction: column; }
+/* The number+label pair is its own row, so the label centers on the number
+   itself — not on the number plus the "Up to" line stacked above it. */
+.plan-limit-row { display: flex; align-items: center; gap: 9px; }
 .plan-limits b { min-width: 62px; color: var(--g-800); font-family: var(--font-display); font-size: 19px; }
 .plan-limits span { color: var(--muted); font-size: 13px; font-weight: 700; }
+.plan-limit-prefix { margin-bottom: 1px; color: var(--g-700); font-size: 9px; font-weight: 800; font-style: normal; letter-spacing: .01em; }
 .plan-card.is-featured .plan-limits b { color: var(--g-300); }
 .plan-card.is-featured .plan-limits span { color: rgba(255,255,255,.72); }
+.plan-card.is-featured .plan-limit-prefix { color: var(--g-300); }
+
+.plan-credit-def { margin: -8px 0 26px; color: var(--muted); font-size: 13.5px; font-weight: 600; text-align: center; }
 
 /* margin-top:auto pins the button to the card floor so all three line up
    regardless of how much copy sits above it. */
