@@ -57,12 +57,13 @@ const EMPTY_STATE_COPY = {
 function StatCard({ label, value, icon, tone }) {
   const warn = tone === "warn";
   return (
-    <div className="card kpi-card-accent" data-tone={warn ? "warn" : undefined} style={{ padding: "15px 16px", borderRadius: 14 }}>
-      <div className="row spread">
-        <span className="faint nw" style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em" }}>{label}</span>
-        <span className="kpi-icon-badge" data-tone={warn ? "warn" : undefined}><Icon name={icon} size={15} /></span>
+    <div className="card calls-stat-card">
+      <div className="calls-stat-card-head">
+        <span className="calls-stat-label">{label}</span>
+        <span className="calls-stat-icon"><Icon name={icon} size={16} /></span>
       </div>
-      <strong className="display" style={{ display: "block", fontSize: 28, marginTop: 10, color: "var(--ink)" }}>{value}</strong>
+      <strong className="display calls-stat-value">{value}</strong>
+      <span className="calls-stat-detail">{tone === "warn" ? "Needs attention" : label === "connected" ? "Successful connections" : "Across this view"}</span>
     </div>
   );
 }
@@ -70,7 +71,7 @@ function StatCard({ label, value, icon, tone }) {
 function StatusBadge({ status }) {
   const s = STATUS_STYLES[status] ?? STATUS_STYLES.queued;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 99, background: s.bg, color: s.color, fontSize: 11, fontWeight: 700 }}>
+    <span className="calls-status-badge" style={{ background: s.bg, color: s.color }}>
       <span className="calls-status-dot" style={{ "--dot-color": s.dot, width: 5, height: 5, borderRadius: "50%", background: s.dot }} />
       {s.label}
     </span>
@@ -83,14 +84,14 @@ function DispositionBadge({ disposition, status }) {
     // terminal non-connected states now receive a provider disposition from
     // call_ended and should not look as if analysis is pending.
     if (status === "completed") {
-      return <span style={{ fontSize: 11, color: "var(--faint)" }}>Analyzing…</span>;
+      return <span className="calls-pending-copy">Analyzing…</span>;
     }
-    return <span style={{ fontSize: 11, color: "var(--faint)" }}>Not available</span>;
+    return <span className="calls-pending-copy">Not available</span>;
   }
   const d = DISPOSITION_STYLES[disposition];
-  if (!d) return <span style={{ fontSize: 11, color: "var(--muted)" }}>{disposition}</span>;
+  if (!d) return <span className="calls-pending-copy calls-pending-copy-strong">{disposition}</span>;
   return (
-    <span style={{ padding: "3px 9px", borderRadius: 99, background: d.bg, color: d.color, fontSize: 11, fontWeight: 600 }}>
+    <span className="calls-disposition-badge" style={{ background: d.bg, color: d.color }}>
       {d.label}
     </span>
   );
@@ -146,8 +147,8 @@ function CallDetailsModal({ call, onClose }) {
   const hasRecording = call.direction !== "inbound" && (call.recording_url || call.recording_multi_channel_url);
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(10,23,18,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }} onClick={onClose}>
-      <div style={{ background: "#fff", borderRadius: 20, padding: 26, maxWidth: 720, width: "100%", maxHeight: "82vh", overflow: "auto", boxShadow: "var(--sh-lg)" }} onClick={e => e.stopPropagation()}>
+    <div className="calls-modal-backdrop" onClick={onClose}>
+      <div className="calls-modal" onClick={e => e.stopPropagation()}>
         <div className="row spread" style={{ marginBottom: 18 }}>
           <div className="row" style={{ gap: 12 }}>
             <Avatar name={leadName(call.leads)} size={38} />
@@ -270,9 +271,10 @@ export default function CallsPage() {
   }), [calls]);
 
   const emptyCopy = EMPTY_STATE_COPY[filter] ?? EMPTY_STATE_COPY.all;
+  const activityCount = calls.length === 1 ? "1 conversation" : `${calls.length} conversations`;
 
   return (
-    <div className="col" style={{ gap: 20 }}>
+    <div className="col calls-page" style={{ gap: 24 }}>
       {toast && (
         <div className="row" style={{ position: "fixed", bottom: 24, right: 24, gap: 8, background: "var(--ink)", color: "#fff", padding: "12px 18px", borderRadius: 12, fontSize: 13, fontWeight: 600, zIndex: 9999, maxWidth: 360, boxShadow: "var(--sh-lg)" }}>
           <Icon name="checkCircle" size={15} color="var(--g-300)" />
@@ -282,143 +284,142 @@ export default function CallsPage() {
 
       {selectedCall && <CallDetailsModal call={selectedCall} onClose={() => setSelectedCall(null)} />}
 
-      {/* Header */}
-      <div className="row spread" style={{ flexWrap: "wrap", gap: 12 }}>
-        <div className="row" style={{ gap: 12 }}>
-          <span style={{ width: 42, height: 42, borderRadius: 13, background: "linear-gradient(140deg,#29d68f,#15c4c0)", display: "grid", placeItems: "center", boxShadow: "var(--sh-green)", flex: "none" }}>
-            <Icon name="phone" size={20} color="#06231a" />
-          </span>
+      <header className="calls-hero">
+        <div className="calls-hero-copy">
+          <div className="calls-kicker">
+            <span className="calls-kicker-mark"><Icon name="phone" size={13} color="#06231a" /></span>
+            <span>Voice workspace</span>
+            <span className="calls-kicker-separator">/</span>
+            <span>Activity</span>
+          </div>
+          <h1 className="display calls-title">Call history</h1>
+          <p className="calls-subtitle">A clear view of every AI conversation, from first ring to final outcome.</p>
+        </div>
+        <div className="calls-hero-actions">
+          <div className="calls-privacy-note">
+            <span className="calls-privacy-icon"><Icon name="lock" size={14} /></span>
+            <span className="calls-privacy-copy"><strong>Inbound privacy</strong><span>Recordings and transcripts are never retained.</span></span>
+          </div>
+          <button className="btn btn-ghost btn-sm calls-refresh" onClick={load} disabled={loading}>
+            <Icon name="refresh" size={14} /> {loading ? "Refreshing…" : "Refresh activity"}
+          </button>
+        </div>
+      </header>
+
+      <section className="calls-overview">
+        <div className="calls-section-head">
           <div>
-            <h1 className="display" style={{ fontSize: 20, margin: 0 }}>Call History</h1>
-            <p className="faint" style={{ fontSize: 13, marginTop: 4 }}>Inbound and outbound outcomes. Privacy-protected inbound calls do not retain transcripts or recordings.</p>
+            <div className="eyebrow">Live overview</div>
+            <p className="calls-section-description">Keep an eye on connection health and conversations that need follow-up.</p>
+          </div>
+          <span className="calls-overview-note"><span className="calls-live-dot" /> Updates when you refresh</span>
+        </div>
+        <div className="calls-kpi-grid">
+          <StatCard label="total calls" value={metrics.total} icon="phone" />
+          <StatCard label="connected" value={metrics.connected} icon="checkCircle" />
+          <StatCard label="in progress" value={metrics.inProgress} icon="clock" tone="warn" />
+          <StatCard label="not connected" value={metrics.notConnected} icon="alertCircle" tone="warn" />
+        </div>
+      </section>
+
+      <section className="card calls-activity-card">
+        <div className="calls-activity-head">
+          <div>
+            <div className="eyebrow">Activity log</div>
+            <div className="calls-activity-title">Recent conversations</div>
+            <p className="calls-activity-description">Review outcomes, open a transcript, or retry a failed connection.</p>
+          </div>
+          <div className="calls-activity-count"><strong>{activityCount}</strong><span>{filter === "all" ? "All statuses" : `Filtered by ${FILTER_LABELS[filter]}`}</span></div>
+        </div>
+
+        <div className="calls-filter-bar">
+          <div className="calls-filter-title"><Icon name="funnel" size={14} /> Filter by status</div>
+          <div className="calls-filter-list" role="tablist" aria-label="Filter calls by status">
+            {FILTERS.map(f => (
+              <button
+                key={f}
+                type="button"
+                role="tab"
+                aria-selected={filter === f}
+                className={`calls-filter-chip${filter === f ? " is-active" : ""}`}
+                onClick={() => setFilter(f)}
+              >
+                {FILTER_LABELS[f]}
+              </button>
+            ))}
           </div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
-          <Icon name="refresh" size={14} /> {loading ? "Refreshing…" : "Refresh"}
-        </button>
-      </div>
 
-      <div className="calls-kpi-grid">
-        <StatCard label="total calls" value={metrics.total} icon="phone" />
-        <StatCard label="connected" value={metrics.connected} icon="checkCircle" />
-        <StatCard label="in progress" value={metrics.inProgress} icon="clock" tone="warn" />
-        <StatCard label="not connected" value={metrics.notConnected} icon="alertCircle" tone="warn" />
-      </div>
-
-      {/* Filter chips */}
-      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-        {FILTERS.map(f => (
-          <button
-            key={f}
-            type="button"
-            className="btn calls-filter-chip"
-            onClick={() => setFilter(f)}
-            style={{
-              height: 32,
-              padding: "0 15px",
-              fontSize: 12,
-              fontWeight: 700,
-              whiteSpace: "nowrap",
-              flex: "none",
-              border: filter === f ? "none" : "1px solid var(--line)",
-              background: filter === f ? "linear-gradient(180deg,var(--g-400),var(--g-500))" : "#fff",
-              color: filter === f ? "#06231a" : "var(--ink-2)",
-              boxShadow: filter === f ? "var(--sh-green)" : "var(--sh-xs)",
-            }}
-          >
-            {FILTER_LABELS[f]}
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="card" style={{ padding: 0, overflow: "hidden", position: "relative", borderRadius: 16 }}>
-        {loading && calls.length > 0 && (
-          <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,.6)", display: "grid", placeItems: "center", zIndex: 1 }}>
-            <Spinner size={22} />
-          </div>
-        )}
-        {loading && calls.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center" }}>
-            <Spinner size={20} />
-          </div>
-        ) : error ? (
-          <div style={{ padding: 24, textAlign: "center", color: "var(--stop)", fontSize: 13 }}>
-            {error} <button className="btn btn-ghost btn-sm" onClick={load} style={{ marginLeft: 8 }}>Retry</button>
-          </div>
-        ) : calls.length === 0 ? (
-          <div style={{ padding: 56, textAlign: "center" }}>
-            <span style={{ width: 52, height: 52, borderRadius: 16, display: "inline-grid", placeItems: "center", background: "var(--g-50)", color: "var(--g-600)", marginBottom: 14 }}>
-              <Icon name="phone" size={24} />
-            </span>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{emptyCopy.title}</div>
-            <div style={{ fontSize: 13, color: "var(--muted)" }}>{emptyCopy.body}</div>
-          </div>
-        ) : (
-          <div className="scroll" style={{ overflowX: "auto", opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto", transition: "opacity .15s" }}>
-            <table className="calls-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-              <thead>
-                <tr>
-                  {["Lead", "Direction", "Campaign", "Status", "Outcome", "Duration", "Date", ""].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {calls.map((call, i) => (
-                  <tr key={call.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--line-2)" }}>
-                    <td style={{ padding: "10px 16px" }}>
-                      <div className="row" style={{ gap: 9 }}>
-                        <Avatar name={leadName(call.leads)} size={28} />
-                        <div className="col" style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 700 }}>{leadName(call.leads)}</div>
-                          <div style={{ fontSize: 11, color: "var(--muted)" }}>{call.leads?.company || (call.direction === "inbound" ? call.from_number : call.to_number)}</div>
+        <div className="calls-list-wrap">
+          {loading && calls.length > 0 && (
+            <div className="calls-loading-overlay"><Spinner size={24} /><span>Refreshing activity…</span></div>
+          )}
+          {loading && calls.length === 0 ? (
+            <div className="calls-list-loading"><Spinner size={22} /><span>Loading call activity…</span></div>
+          ) : error ? (
+            <div className="calls-empty calls-error-state">
+              <span className="calls-empty-icon"><Icon name="alertCircle" size={22} /></span>
+              <div className="calls-empty-copy"><strong>We couldn’t load this activity</strong><span>{error}</span></div>
+              <button className="btn btn-ghost btn-sm" onClick={load}>Try again</button>
+            </div>
+          ) : calls.length === 0 ? (
+            <div className="calls-empty">
+              <span className="calls-empty-icon"><Icon name="phone" size={23} /></span>
+              <div className="calls-empty-copy"><strong>{emptyCopy.title}</strong><span>{emptyCopy.body}</span></div>
+            </div>
+          ) : (
+            <div className="calls-list" style={{ opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto", transition: "opacity .15s" }}>
+              {calls.map(call => (
+                <article key={call.id} className="calls-activity-row" data-status={call.status}>
+                  <div className="calls-activity-gutter">
+                    <span className="calls-activity-icon" data-direction={call.direction || "outbound"}>
+                      <Icon name="phone" size={17} />
+                    </span>
+                  </div>
+                  <div className="calls-activity-main">
+                    <div className="calls-activity-primary">
+                      <div className="calls-person">
+                        <Avatar name={leadName(call.leads)} size={38} />
+                        <div className="calls-person-copy">
+                          <strong className="calls-person-name">{leadName(call.leads)}</strong>
+                          <span className="calls-person-secondary">{call.leads?.company || (call.direction === "inbound" ? call.from_number : call.to_number) || "Contact details unavailable"}</span>
                         </div>
                       </div>
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>
-                      <span className="row" style={{ gap: 5, textTransform: "capitalize" }}>
-                        <Icon name="arrow" size={12} color="var(--faint)" style={call.direction === "inbound" ? { transform: "rotate(135deg)" } : { transform: "rotate(-45deg)" }} />
+                      <div className="calls-activity-badges">
+                        <StatusBadge status={call.status} />
+                        <DispositionBadge disposition={call.disposition} status={call.status} />
+                      </div>
+                    </div>
+                    <div className="calls-activity-meta">
+                      <span className="calls-meta-item">
+                        <Icon name="arrow" size={13} color="var(--faint)" style={call.direction === "inbound" ? { transform: "rotate(135deg)" } : { transform: "rotate(-45deg)" }} />
                         {call.direction || "outbound"}
                       </span>
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{call.campaigns?.name || "Campaign not provided"}</td>
-                    <td style={{ padding: "12px 16px" }}><StatusBadge status={call.status} /></td>
-                    <td style={{ padding: "12px 16px" }}><DispositionBadge disposition={call.disposition} status={call.status} /></td>
-                    <td style={{ padding: "12px 16px", color: "var(--muted)" }}>{formatDuration(call.started_at, call.ended_at, call.duration_seconds)}</td>
-                    <td style={{ padding: "12px 16px", color: "var(--muted)", whiteSpace: "nowrap" }}>{formatDate(call.created_at)}</td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div className="row" style={{ gap: 6 }}>
-                        {call.direction === "inbound" ? (
-                          <span title="Inbound recordings and transcripts are not retained" style={{ fontSize: 11, color: "var(--faint)", whiteSpace: "nowrap" }}>Privacy protected</span>
-                        ) : (
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => setSelectedCall(call)}
-                            style={{ fontSize: 11 }}
-                          >
-                            Details
-                          </button>
-                        )}
-                        {call.status === "failed" && call.direction !== "inbound" && (
-                          <button
-                            className="btn btn-outline btn-sm"
-                            onClick={() => handleRetry(call.id)}
-                            disabled={retrying === call.id}
-                            style={{ fontSize: 11 }}
-                          >
-                            {retrying === call.id ? "…" : "Retry"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                      <span className="calls-meta-item"><Icon name="building" size={13} color="var(--faint)" />{call.campaigns?.name || "Campaign not provided"}</span>
+                      <span className="calls-meta-item"><Icon name="clock" size={13} color="var(--faint)" />{formatDuration(call.started_at, call.ended_at, call.duration_seconds)}</span>
+                      <span className="calls-meta-item"><Icon name="calendar" size={13} color="var(--faint)" />{formatDate(call.created_at)}</span>
+                    </div>
+                  </div>
+                  <div className="calls-activity-actions">
+                    {call.direction === "inbound" ? (
+                      <span className="calls-privacy-inline" title="Inbound recordings and transcripts are not retained"><Icon name="lock" size={12} /> Privacy protected</span>
+                    ) : (
+                      <button className="calls-details-button" onClick={() => setSelectedCall(call)}>
+                        Details <Icon name="arrow" size={13} />
+                      </button>
+                    )}
+                    {call.status === "failed" && call.direction !== "inbound" && (
+                      <button className="btn btn-ghost btn-sm calls-retry-button" onClick={() => handleRetry(call.id)} disabled={retrying === call.id}>
+                        <Icon name="refresh" size={13} /> {retrying === call.id ? "Retrying…" : "Retry call"}
+                      </button>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
