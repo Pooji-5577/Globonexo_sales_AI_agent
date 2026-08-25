@@ -3201,7 +3201,11 @@ a { color: inherit; text-decoration: none; }
   transition: background .2s ease, color .2s ease;
 }
 .plan-period-switch button.is-on { color: #fff; background: var(--ink); box-shadow: var(--sh-xs); }
-.plan-period-save { padding: 6px 12px; color: var(--g-800); background: var(--g-50); border-radius: var(--r-pill); font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+/* Quiet hint on Monthly (nothing is being saved yet); solid confirmation
+   once Yearly is actually selected, so the badge reacts to the tab instead
+   of asserting a saving that isn't happening. */
+.plan-period-save { padding: 6px 12px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: var(--r-pill); font-size: 12.5px; font-weight: 700; white-space: nowrap; transition: all .18s ease; }
+.plan-period-save.is-active { color: var(--g-800); background: var(--g-50); border-color: var(--g-100); font-weight: 800; }
 
 .plan-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 22px; align-items: stretch; }
 .plan-card {

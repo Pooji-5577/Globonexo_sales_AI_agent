@@ -52,7 +52,11 @@ export default function PlanCards() {
             </button>
           ))}
         </div>
-        <span className="plan-period-save">Save up to {MAX_ANNUAL_SAVINGS_PERCENT}%</span>
+        {annual ? (
+          <span className="plan-period-save is-active">Saving up to {MAX_ANNUAL_SAVINGS_PERCENT}%</span>
+        ) : (
+          <span className="plan-period-save">Save up to {MAX_ANNUAL_SAVINGS_PERCENT}% yearly</span>
+        )}
       </div>
 
       <p className="plan-credit-def">
