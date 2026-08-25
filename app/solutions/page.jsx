@@ -64,11 +64,10 @@ export default function SolutionsPage() {
   const planFor = (id) => PLAN_CONFIG.find((p) => p.id === id);
 
   return (
-    <div className="public-page public-page--tinted">
-      <PublicNav />
-
-      <main>
-        <section className="content-hero solutions-hero public-section">
+    <div className="public-page story-page">
+      <div className="story-hero-band">
+        <PublicNav variant="dark" />
+        <section className="story-hero public-section">
           <span className="eyebrow">Solutions</span>
           <h1 className="display">Built for how you actually sell.</h1>
           <p>
@@ -79,7 +78,7 @@ export default function SolutionsPage() {
             <Link className="btn btn-primary btn-lg" href="/signup">
               Choose a plan <Icon name="arrow" size={18} color="#06231a" />
             </Link>
-            <Link className="btn btn-ghost btn-lg" href="/contact">Talk to us</Link>
+            <Link className="landing-outline-btn" href="/contact">Talk to us</Link>
           </div>
           <nav className="solutions-jump" aria-label="Jump to segment">
             {segments.map((segment) => (
@@ -87,6 +86,9 @@ export default function SolutionsPage() {
             ))}
           </nav>
         </section>
+      </div>
+
+      <main>
 
         {segments.map((segment, index) => {
           const plan = planFor(segment.planId);

@@ -23,16 +23,17 @@ const comparison = [
 
 export default function PricingPage() {
   return (
-    <div className="public-page public-page--tinted">
-      <PublicNav />
-
-      <main>
-        <section className="pricing-hero public-section">
+    <div className="public-page story-page">
+      <div className="story-hero-band">
+        <PublicNav variant="dark" />
+        <section className="story-hero public-section">
           <span className="eyebrow">Pricing</span>
           <h1 className="display">Hire your AI sales rep without adding headcount.</h1>
           <p>Choose a monthly or annual paid plan. Every tier includes the same core sales loop; credits set the ceiling and flex across enrichment, drafting, and calling.</p>
         </section>
+      </div>
 
+      <main>
         <section className="pricing-grid public-section" aria-label="Pricing plans">
           <PlanCards />
         </section>
