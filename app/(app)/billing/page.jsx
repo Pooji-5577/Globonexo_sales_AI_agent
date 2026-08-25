@@ -18,6 +18,10 @@ function formatDate(iso) {
   return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+function formatMoney(amount, currency = 'USD') {
+  return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format((Number(amount) || 0) / 100);
+}
+
 export default function BillingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,6 +31,8 @@ export default function BillingPage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
+  const [planChangeQuote, setPlanChangeQuote] = useState(null);
+  const [planChangeSubmitting, setPlanChangeSubmitting] = useState(false);
   const showSkeleton = useFirstLoad(loading);
   const initializedView = useRef(false);
 
@@ -60,6 +66,8 @@ export default function BillingPage() {
   const canManageBilling = usage?.canManageBilling !== false;
   const currentPlanId = usage?.plan ?? 'starter';
   const currentPlanConfig = PLAN_CONFIG.find((p) => p.id === currentPlanId) ?? PLAN_CONFIG[0];
+  const currentPlanRank = PLAN_CONFIG.findIndex((p) => p.id === currentPlanId);
+  const currentPeriodActive = Boolean(subscription?.currentPeriodEnd && new Date(subscription.currentPeriodEnd).getTime() > Date.now());
   const currentPlanPrice = subscription?.billingPeriod === 'annual' ? currentPlanConfig.annualMonthly : currentPlanConfig.monthly;
   const selectedBillingPeriod = annual ? 'annual' : 'monthly';
   const requiredNotice = searchParams.get('required') === '1';
@@ -95,11 +103,12 @@ export default function BillingPage() {
     }
     setBusy(planId);
     try {
-      const { data } = await api.patch('/billing/subscription', { planId, billingPeriod: selectedBillingPeriod });
-      showToast(data.change === 'cycle_end'
-        ? 'Downgrade scheduled for the end of the current billing period.'
-        : 'Plan updated. Razorpay will apply the change immediately.');
-      await loadBillingData();
+      const { data } = await api.post('/billing/subscription/change-quote', {
+        planId,
+        billingPeriod: selectedBillingPeriod,
+        idempotencyKey: `billing-${planId}-${selectedBillingPeriod}-${Date.now()}`,
+      });
+      setPlanChangeQuote(data);
     } catch (err) {
       showToast(err?.response?.data?.error ?? 'Could not change the plan.');
     } finally {
@@ -107,9 +116,50 @@ export default function BillingPage() {
     }
   };
 
+  const closePlanChangeQuote = () => {
+    if (!planChangeSubmitting) setPlanChangeQuote(null);
+  };
+
+  const confirmPlanChange = async () => {
+    if (!planChangeQuote?.quoteId || planChangeSubmitting) return;
+    setPlanChangeSubmitting(true);
+    try {
+      let { data } = await api.patch('/billing/subscription', { attemptId: planChangeQuote.quoteId });
+      if (data.status === 'payment_pending' || data.status === 'submitted') {
+        showToast('Payment is being processed. We will activate the plan after Razorpay confirms it.');
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 1500));
+          const statusResponse = await api.get(`/billing/subscription/change/${planChangeQuote.quoteId}`);
+          data = statusResponse.data;
+          if (['paid', 'scheduled', 'failed', 'expired'].includes(data.status)) break;
+        }
+      }
+      if (data.status === 'paid') {
+        showToast('Payment confirmed. Your plan and credits have been updated.');
+      } else if (data.status === 'scheduled') {
+        showToast('Change scheduled for the end of the current billing period.');
+      } else if (data.status === 'payment_pending' || data.status === 'submitted') {
+        showToast('Payment is still being confirmed. Refresh shortly to see the result.');
+      } else {
+        showToast('The plan change could not be confirmed. Your current plan is unchanged.');
+      }
+      await loadBillingData();
+      setPlanChangeQuote(null);
+    } catch (err) {
+      showToast(err?.response?.data?.error ?? 'Could not confirm the plan change.');
+    } finally {
+      setPlanChangeSubmitting(false);
+    }
+  };
+
   const handlePlanAction = (planId) => {
     const samePlan = hasEntitlement && planId === currentPlanId && selectedBillingPeriod === subscription?.billingPeriod;
     if (samePlan) return;
+    const isDowngrade = hasEntitlement && PLAN_CONFIG.findIndex((plan) => plan.id === planId) < currentPlanRank;
+    if (isDowngrade && currentPeriodActive) {
+      showToast(`Downgrades are available after ${formatDate(subscription.currentPeriodEnd)}.`);
+      return;
+    }
     if (hasEntitlement && subscription?.providerStatus !== 'halted') {
       handlePlanChange(planId);
     } else {
@@ -140,6 +190,60 @@ export default function BillingPage() {
       {toast && (
         <div role="status" style={{ position: "fixed", bottom: 24, right: 24, background: "var(--fg)", color: "var(--bg)", padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500, zIndex: 9999, maxWidth: 380, boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
           {toast}
+        </div>
+      )}
+
+      {planChangeQuote && (
+        <div role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closePlanChangeQuote(); }} style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(9, 17, 18, 0.62)', display: 'grid', placeItems: 'center', padding: 20 }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="plan-change-title" className="card" style={{ width: 'min(560px, 100%)', padding: 26, boxShadow: '0 20px 70px rgba(0,0,0,0.25)' }}>
+            <div className="row spread" style={{ gap: 16, alignItems: 'flex-start' }}>
+              <div>
+                <h2 id="plan-change-title" className="display" style={{ fontSize: 22 }}>Confirm plan changes</h2>
+                <p className="muted" style={{ fontSize: 13.5, marginTop: 5 }}>
+                  {planChangeQuote.change === 'cycle_end' ? 'Your current plan stays active until the end of this billing period.' : 'Your new plan starts after Razorpay confirms the payment.'}
+                </p>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={closePlanChangeQuote} disabled={planChangeSubmitting} aria-label="Close">×</button>
+            </div>
+
+            <div style={{ borderTop: '1px solid var(--line-2)', marginTop: 20, paddingTop: 18 }}>
+              <div className="row spread" style={{ marginBottom: 14 }}>
+                <span style={{ fontWeight: 700 }}>{planChangeQuote.current.planName} subscription</span>
+                <strong>{formatMoney(planChangeQuote.current.amount, planChangeQuote.adjustment.currency)}</strong>
+              </div>
+              <div className="row spread muted" style={{ marginBottom: 18, fontSize: 13.5 }}>
+                <span>New plan billed {planChangeQuote.requested.billingPeriod}</span>
+                <span>{formatMoney(planChangeQuote.requested.amount, planChangeQuote.adjustment.currency)}</span>
+              </div>
+              {planChangeQuote.change === 'immediate' && (
+                <>
+                  <div className="row spread" style={{ marginBottom: 10 }}><span>Unused {planChangeQuote.current.planName} credit</span><span style={{ color: 'var(--g-700)' }}>−{formatMoney(planChangeQuote.adjustment.unusedCurrentCredit, planChangeQuote.adjustment.currency)}</span></div>
+                  <div className="row spread" style={{ marginBottom: 10 }}><span>Subtotal</span><span>{formatMoney(planChangeQuote.adjustment.subtotal, planChangeQuote.adjustment.currency)}</span></div>
+                  <div className="row spread muted" style={{ marginBottom: 16 }}><span>Tax ({planChangeQuote.adjustment.taxRatePercent}%)</span><span>{formatMoney(planChangeQuote.adjustment.tax, planChangeQuote.adjustment.currency)}</span></div>
+                  <div className="row spread" style={{ borderTop: '1px solid var(--line-2)', paddingTop: 14, fontSize: 16, fontWeight: 800 }}><span>Total due today</span><span>{formatMoney(planChangeQuote.adjustment.total, planChangeQuote.adjustment.currency)}</span></div>
+                </>
+              )}
+              {planChangeQuote.change === 'cycle_end' && (
+                <div className="card" style={{ padding: 13, marginTop: 12, background: 'var(--g-50)', border: '1px solid var(--g-100)' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>No payment due today</div>
+                  <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>The change takes effect after {formatDate(planChangeQuote.currentPeriodEnd)}. Your current credits remain unchanged until then.</div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginTop: 18, fontSize: 13.5 }}>
+              <span className="muted">Payment method </span>
+              <strong>{planChangeQuote.paymentMethod ?? 'Saved Razorpay payment method'}</strong>
+            </div>
+            <div className="muted" style={{ marginTop: 8, fontSize: 12.5 }}>Next renewal: {formatDate(planChangeQuote.currentPeriodEnd)} at {formatMoney(planChangeQuote.requested.amount, planChangeQuote.adjustment.currency)} per {planChangeQuote.requested.billingPeriod === 'annual' ? 'year' : 'month'}.</div>
+
+            <div className="row" style={{ justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
+              <button className="btn btn-ghost" onClick={closePlanChangeQuote} disabled={planChangeSubmitting}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmPlanChange} disabled={planChangeSubmitting}>
+                {planChangeSubmitting ? 'Processing…' : planChangeQuote.change === 'cycle_end' ? 'Schedule change' : 'Pay now'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -319,11 +423,16 @@ export default function BillingPage() {
               // The "Current plan" ribbon wins the top strip when both apply.
               const showPopular = plan.id === MOST_POPULAR_PLAN_ID && !isCurrent;
               const sameSelection = isCurrent && selectedBillingPeriod === subscription?.billingPeriod;
-              const actionDisabled = !canManageBilling || sameSelection || busy === plan.id || (status === 'past_due' && isCurrent);
+              const downgradeBlocked = hasEntitlement
+                && PLAN_CONFIG.findIndex((candidate) => candidate.id === plan.id) < currentPlanRank
+                && currentPeriodActive;
+              const actionDisabled = !canManageBilling || sameSelection || downgradeBlocked || busy === plan.id || (status === 'past_due' && isCurrent);
               const actionLabel = busy === plan.id
                 ? 'Please wait…'
                 : sameSelection
                   ? 'Current plan'
+                  : downgradeBlocked
+                    ? 'After period ends'
                   : !hasEntitlement
                     ? 'Choose plan'
                     : plan.id === currentPlanId
