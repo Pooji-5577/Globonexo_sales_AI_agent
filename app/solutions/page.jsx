@@ -7,7 +7,6 @@ import Link from "next/link";
 import Icon from "../../components/ui/Icon";
 import PublicNav from "../../components/layout/PublicNav";
 import PublicFooter from "../../components/layout/PublicFooter";
-import { PLAN_CONFIG } from "../../lib/plans";
 
 // Segments mirror the real plan catalogue rather than inventing audience
 // categories the product cannot actually serve (there is no seat/team system,
@@ -15,7 +14,6 @@ import { PLAN_CONFIG } from "../../lib/plans";
 const segments = [
   {
     id: "individual",
-    planId: "starter",
     icon: "user",
     eyebrow: "For an individual",
     title: "Run outbound alone without it becoming your whole day.",
@@ -30,7 +28,6 @@ const segments = [
   },
   {
     id: "agency",
-    planId: "growth",
     icon: "building",
     eyebrow: "For an agency",
     title: "Run outbound for every client from one system.",
@@ -45,7 +42,6 @@ const segments = [
   },
   {
     id: "startup",
-    planId: "scale",
     icon: "trend",
     eyebrow: "For a startup",
     title: "Build an in-house outbound motion at volume.",
@@ -61,8 +57,6 @@ const segments = [
 ];
 
 export default function SolutionsPage() {
-  const planFor = (id) => PLAN_CONFIG.find((p) => p.id === id);
-
   return (
     <div className="public-page story-page">
       <div className="story-hero-band">
@@ -80,18 +74,12 @@ export default function SolutionsPage() {
             </Link>
             <Link className="landing-outline-btn" href="/contact">Talk to us</Link>
           </div>
-          <nav className="solutions-jump" aria-label="Jump to segment">
-            {segments.map((segment) => (
-              <a key={segment.id} href={`#${segment.id}`}>{segment.eyebrow}</a>
-            ))}
-          </nav>
         </section>
       </div>
 
       <main>
 
         {segments.map((segment, index) => {
-          const plan = planFor(segment.planId);
           return (
             <section key={segment.id} id={segment.id} className={`content-section public-section solutions-segment${index > 0 ? " solutions-segment--divider" : ""}`}>
               <div className="content-section-head">
@@ -99,16 +87,6 @@ export default function SolutionsPage() {
                 <span className="eyebrow">{segment.eyebrow}</span>
                 <h2>{segment.title}</h2>
                 <p>{segment.intro}</p>
-                {plan && (
-                  <div className="solutions-plan-line">
-                    <strong>{plan.name} — ${plan.monthly}/mo</strong>
-                    <span>
-                      {plan.monthlyCredits.toLocaleString()} credits · {plan.emailCampaigns} email campaigns ·{" "}
-                      {plan.voiceCampaigns} voice campaign{plan.voiceCampaigns === 1 ? "" : "s"} ·{" "}
-                      {plan.dailyEmailCap} emails/day
-                    </span>
-                  </div>
-                )}
               </div>
               <div className="card-grid solutions-values-grid">
                 {segment.steps.map((step) => (

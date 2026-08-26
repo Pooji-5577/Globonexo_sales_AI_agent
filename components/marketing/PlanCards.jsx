@@ -26,10 +26,10 @@ export const SHARED_CAPABILITIES = [
 const limitsFor = (plan) => {
   const { emailsPerMonth, callsPerMonth } = marketingCeilingsFor(plan);
   return [
-    { value: emailsPerMonth.toLocaleString(), label: "emails / month", prefix: "Up to" },
-    { value: plan.emailCampaigns, label: `email campaign${plan.emailCampaigns === 1 ? "" : "s"}` },
     { value: plan.voiceCampaigns, label: `voice campaign${plan.voiceCampaigns === 1 ? "" : "s"}` },
+    { value: plan.emailCampaigns, label: `email campaign${plan.emailCampaigns === 1 ? "" : "s"}` },
     { value: callsPerMonth, label: "calls / month", prefix: "Up to" },
+    { value: emailsPerMonth.toLocaleString(), label: "emails / month", prefix: "Up to" },
   ];
 };
 
@@ -58,10 +58,6 @@ export default function PlanCards() {
           <span className="plan-period-save">Save up to {MAX_ANNUAL_SAVINGS_PERCENT}% yearly</span>
         )}
       </div>
-
-      <p className="plan-credit-def">
-        One credit is one cent of reported provider cost — it&apos;s what funds enrichment, drafting, and calling.
-      </p>
 
       <div className="plan-grid" aria-label="Pricing plans">
         {PLAN_CONFIG.map((plan) => {

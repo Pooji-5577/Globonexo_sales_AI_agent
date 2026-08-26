@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GNX Sales — Pricing comparison prototype</title>
+    <meta name="description" content="Throwaway UI prototype for the GNX Sales pricing comparison section." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --ink: #0a1712;
+        --ink-2: #2c3b33;
+        --muted: #69786f;
+        --faint: #9aa8a0;
+        --line: #e7ede9;
+        --line-strong: #d7e5dc;
+        --bg: #f6faf8;
+        --surface: #fff;
+        --mint: #ecfdf3;
+        --mint-strong: #d3f8e0;
+        --green: #00a86a;
+        --green-dark: #088256;
+        --green-deep: #0a3d2b;
+        --red: #b42318;
+        --red-soft: #fdf3f2;
+        --shadow: 0 18px 48px rgba(10, 61, 43, .09), 0 2px 8px rgba(10, 23, 18, .04);
+        --display: 'Space Grotesk', system-ui, sans-serif;
+        --body: 'Manrope', system-ui, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html { background: var(--bg); }
+      body {
+        min-width: 320px;
+        margin: 0;
+        color: var(--ink);
+        background: #fff;
+        font-family: var(--body);
+        -webkit-font-smoothing: antialiased;
+      }
+      button { font: inherit; }
+      .prototype-shell { width: min(1160px, 100%); margin: 0 auto; padding: 56px 24px 130px; }
+      .prototype-note {
+        position: fixed;
+        z-index: 12;
+        top: 14px;
+        right: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 11px;
+        border: 1px solid var(--mint-strong);
+        border-radius: 999px;
+        color: var(--green-dark);
+        background: rgba(255, 255, 255, .76);
+        font-size: 9px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .prototype-note i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+      .prototype-header { max-width: 680px; margin: 0 0 28px; }
+      .prototype-header h1,
+      .variant h2,
+      .workflow-step h3 { font-family: var(--display); letter-spacing: -.045em; }
+      .prototype-header h1 { max-width: none; margin: 0; font-size: 32px; letter-spacing: -.025em; line-height: 1.18; }
+      .prototype-header p { max-width: 680px; margin: 12px 0 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
+      .prototype-header strong { color: var(--green-dark); }
+      .variant { display: none; }
+      body[data-variant="a"] .variant-a,
+      body[data-variant="b"] .variant-b,
+      body[data-variant="c"] .variant-c,
+      body[data-variant="d"] .variant-d { display: block; }
+      .variant-lead { display: none; }
+      .variant-lead > div:first-child { max-width: 700px; }
+      .overline { color: var(--green-dark); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+      .variant h2 { display: none; }
+      .variant-lead p { max-width: 680px; margin: 7px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+      .lead-stat { display: none; }
+      .lead-stat strong { display: block; color: var(--green-dark); font-family: var(--display); font-size: 27px; }
+      .lead-stat span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
+
+      /* Variant A: guided proof path */
+      .proof-path { overflow: hidden; border: 1px solid var(--line-strong); border-radius: 20px; background: rgba(255, 255, 255, .7); box-shadow: none; }
+      .proof-path-head { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--line); }
+      .proof-path-head > div { padding: 17px 26px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .proof-path-head > div:last-child { color: var(--green-dark); background: linear-gradient(120deg, rgba(236, 253, 243, .76), rgba(255,255,255,.45)); }
+      .proof-row { display: grid; grid-template-columns: 42px minmax(0, 1fr) 34px minmax(0, 1.24fr); align-items: center; gap: 16px; min-height: 132px; padding: 22px 26px; border-bottom: 1px solid var(--line); }
+      .proof-row:last-child { border-bottom: 0; }
+      .proof-index { align-self: start; color: var(--mint-strong); font-family: var(--display); font-size: 26px; font-weight: 700; }
+      .proof-old { color: var(--muted); font-size: 14px; line-height: 1.55; }
+      .proof-old span, .proof-new span { display: block; margin-bottom: 8px; color: var(--faint); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .proof-old s { text-decoration-color: rgba(180, 35, 24, .45); text-decoration-thickness: 2px; }
+      .proof-arrow { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: var(--green-dark); background: var(--mint); font-size: 20px; }
+      .proof-new { min-width: 0; padding: 16px 18px; border: 1px solid var(--mint-strong); border-radius: 17px; background: linear-gradient(135deg, rgba(236,253,243,.9), rgba(255,255,255,.76)); }
+      .proof-new span { color: var(--green-dark); }
+      .proof-new strong { display: block; font-size: 15px; line-height: 1.45; }
+      .proof-new small { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+      .proof-tag { display: inline-flex; margin-top: 11px; padding: 4px 8px; border-radius: 999px; color: var(--green-dark); background: rgba(255,255,255,.72); font-size: 10px; font-weight: 800; }
+
+      /* Variant B: premium comparison cards */
+      .card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+      .comparison-card { position: relative; overflow: hidden; min-height: 255px; padding: 24px; border: 1px solid var(--line-strong); border-radius: 26px; background: rgba(255,255,255,.78); box-shadow: 0 10px 28px rgba(10,61,43,.06); }
+      .comparison-card::after { position: absolute; right: -35px; bottom: -65px; color: rgba(0,168,106,.08); content: attr(data-number); font-family: var(--display); font-size: 170px; font-weight: 700; line-height: 1; }
+      .comparison-card.featured { border-color: var(--green); background: linear-gradient(145deg, #fff 10%, rgba(236,253,243,.88)); box-shadow: var(--shadow); }
+      .comparison-card-top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; }
+      .comparison-card-top b { color: var(--green-dark); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+      .comparison-card-top span { color: var(--mint-strong); font-family: var(--display); font-size: 26px; font-weight: 700; }
+      .comparison-card h3 { position: relative; z-index: 1; max-width: 14ch; margin: 32px 0 0; font-family: var(--display); font-size: 23px; letter-spacing: -.03em; line-height: 1.08; }
+      .comparison-card p { position: relative; z-index: 1; margin: 10px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.6; }
+      .card-contrast { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
+      .card-contrast > div { padding: 11px 12px; border-radius: 12px; font-size: 11.5px; line-height: 1.45; }
+      .card-before { color: var(--muted); background: var(--bg); }
+      .card-after { color: var(--green-deep); background: rgba(255,255,255,.72); border: 1px solid var(--mint-strong); font-weight: 700; }
+      .card-contrast label { display: block; margin-bottom: 5px; color: var(--faint); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+      .card-after label { color: var(--green-dark); }
+
+      /* Variant C: governed workflow */
+      .workflow-shell { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 30px; padding: 30px; border: 1px solid var(--line-strong); border-radius: 30px; background: rgba(255,255,255,.72); box-shadow: var(--shadow); }
+      .workflow-rail { position: relative; padding: 8px 0; }
+      .workflow-rail::before { position: absolute; top: 25px; bottom: 25px; left: 14px; width: 1px; background: var(--mint-strong); content: ''; }
+      .workflow-nav { position: relative; display: flex; align-items: flex-start; gap: 13px; padding: 12px 0; color: var(--muted); }
+      .workflow-nav i { display: grid; place-items: center; width: 29px; height: 29px; flex: none; border: 5px solid #fff; border-radius: 50%; color: var(--green-dark); background: var(--mint-strong); font-size: 10px; font-style: normal; font-weight: 800; }
+      .workflow-nav strong { display: block; color: var(--ink); font-size: 13px; }
+      .workflow-nav span { display: block; margin-top: 3px; font-size: 11px; line-height: 1.45; }
+      .workflow-main { display: flex; flex-direction: column; gap: 12px; }
+      .workflow-step { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 18px; align-items: center; padding: 19px 20px; border: 1px solid var(--line); border-radius: 20px; background: rgba(255,255,255,.72); }
+      .workflow-step-label { color: var(--green-dark); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .workflow-step h3 { margin: 4px 0 0; font-size: 21px; line-height: 1.06; }
+      .workflow-step p { margin: 7px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+      .workflow-result { display: inline-flex; align-items: center; gap: 6px; margin-top: 9px; color: var(--green-dark); font-size: 11px; font-weight: 800; }
+      .workflow-result::before { width: 7px; height: 7px; border-radius: 50%; background: var(--green); content: ''; }
+
+      /* Variant D: structured semantic table */
+      .table-wrap { overflow: hidden; border: 1px solid var(--line-strong); border-radius: 20px; background: #fff; }
+      .proof-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+      .proof-table th { padding: 15px 20px; color: var(--muted); background: var(--bg); border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-align: left; text-transform: uppercase; }
+      .proof-table th:first-child { width: 17%; color: var(--green-dark); }
+      .proof-table th:last-child { color: var(--green-dark); background: var(--mint); }
+      .proof-table td { padding: 17px 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13.5px; line-height: 1.55; vertical-align: middle; }
+      .proof-table tr:first-child td { border-top: 0; }
+      .proof-table td + td { border-left: 1px solid var(--line); }
+      .proof-table td:first-child { color: var(--green-dark); background: rgba(246,250,248,.7); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      .proof-table td:nth-child(3) { color: var(--ink); background: rgba(236,253,243,.72); font-weight: 700; }
+      .table-cell { display: flex; align-items: flex-start; gap: 10px; }
+      .table-mark { flex: none; margin-top: 1px; font-size: 17px; line-height: 1; }
+      .table-mark.bad { color: var(--red); }
+      .table-mark.good { color: var(--green-dark); }
+
+      .prototype-bar { position: fixed; z-index: 10; right: 50%; bottom: 22px; display: flex; align-items: center; gap: 12px; transform: translateX(50%); padding: 8px 10px 8px 13px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px; color: #fff; background: rgba(10, 23, 18, .93); box-shadow: 0 14px 38px rgba(10,23,18,.22); }
+      .prototype-bar button { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; color: #fff; background: rgba(255,255,255,.1); cursor: pointer; }
+      .prototype-bar button:hover { background: var(--green); color: var(--green-deep); }
+      .prototype-bar button:focus-visible { outline: 2px solid var(--mint-strong); outline-offset: 2px; }
+      .prototype-current { min-width: 175px; text-align: center; }
+      .prototype-current b { display: block; font-size: 12px; }
+      .prototype-current span { display: block; margin-top: 2px; color: rgba(255,255,255,.62); font-size: 10px; }
+      .variant-pips { display: flex; gap: 5px; margin-left: 3px; }
+      .variant-pips i { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.3); }
+      .variant-pips i.active { background: var(--green); }
+      .prototype-footer { display: none; }
+
+      @media (max-width: 760px) {
+        .prototype-shell { width: 100%; padding: 48px 20px 110px; }
+        .prototype-header { margin: 0 0 24px; }
+        .prototype-header h1 { font-size: 28px; }
+        .prototype-header p { font-size: 15px; }
+        .variant-lead { display: block; }
+        .lead-stat { display: none; }
+        .proof-path-head { grid-template-columns: 1fr; }
+        .proof-path-head > div { padding: 13px 18px; }
+        .proof-path-head > div:last-child { display: none; }
+        .proof-row { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 19px 17px; }
+        .proof-arrow { display: none; }
+        .proof-new { grid-column: 2; }
+        .proof-old { grid-column: 2; }
+        .proof-old span { margin-bottom: 5px; }
+        .card-grid { grid-template-columns: 1fr; }
+        .comparison-card { min-height: 0; }
+        .workflow-shell { grid-template-columns: 1fr; gap: 15px; padding: 18px; }
+        .workflow-rail { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 0; }
+        .workflow-rail::before { top: 14px; right: 10%; bottom: auto; left: 10%; width: auto; height: 1px; }
+        .workflow-nav { display: block; padding: 0; text-align: center; }
+        .workflow-nav i { position: relative; margin: 0 auto; }
+        .workflow-nav strong { margin-top: 5px; font-size: 10px; }
+        .workflow-nav span { display: none; }
+        .workflow-step { grid-template-columns: 1fr; gap: 4px; padding: 16px; }
+        .proof-table, .proof-table tbody, .proof-table tr, .proof-table td { display: block; width: 100%; }
+        .proof-table thead { display: none; }
+        .proof-table tr { padding: 14px 16px; border-top: 1px solid var(--line); }
+        .proof-table tr:first-child { border-top: 0; }
+        .proof-table td { padding: 5px 0; border: 0 !important; background: transparent !important; }
+        .proof-table td:first-child { padding-bottom: 2px; }
+        .proof-table td:nth-child(2)::before, .proof-table td:nth-child(3)::before { display: block; margin-bottom: 3px; color: var(--faint); font-size: 9px; font-weight: 800; letter-spacing: .1em; content: attr(data-label); text-transform: uppercase; }
+        .proof-table td:nth-child(3) { color: var(--ink); }
+        .prototype-bar { bottom: 12px; }
+        .prototype-current { min-width: 142px; }
+      }
+    </style>
+  </head>
+  <body data-variant="a">
+    <main class="prototype-shell">
+      <div class="prototype-note"><i></i> Throwaway UI prototype · pricing comparison</div>
+      <header class="prototype-header">
+        <h1>Why this costs less than the alternative</h1>
+        <p>Not a cheaper version of the same thing. A different way of deciding who gets contacted.</p>
+      </header>
+
+      <section class="variant variant-a" aria-labelledby="variant-a-title">
+        <div class="variant-lead">
+          <div>
+            <div class="overline">Variant A · Guided proof path</div>
+            <h2 id="variant-a-title">Most tools optimize the send. GNX governs the decision.</h2>
+            <p>A direct, easy-to-scan argument: each familiar shortcut is followed by the control GNX puts in its place.</p>
+          </div>
+          <div class="lead-stat"><strong>05</strong><span>proof points that matter</span></div>
+        </div>
+        <div class="proof-path">
+          <div class="proof-path-head"><div>The usual shortcut</div><div>What GNX controls</div></div>
+          <article class="proof-row">
+            <div class="proof-index">01</div>
+            <div class="proof-old"><span>Targeting</span><s>Buy a list and send to all of it.</s></div>
+            <div class="proof-arrow">→</div>
+            <div class="proof-new"><span>Fit before spend</span><strong>Every account is checked against your profile first.</strong><small>Readable qualification rules decide who deserves enrichment.</small><b class="proof-tag">No blind list volume</b></div>
+          </article>
+          <article class="proof-row">
+            <div class="proof-index">02</div>
+            <div class="proof-old"><span>Enrichment</span><s>Pay to enrich, then discover the lead was a bad fit.</s></div>
+            <div class="proof-arrow">→</div>
+            <div class="proof-new"><span>Context readiness</span><strong>Fit is settled before a credit is spent.</strong><small>Missing facts are named instead of hidden inside a quality score.</small><b class="proof-tag">Credits follow judgment</b></div>
+          </article>
+          <article class="proof-row">
+            <div class="proof-index">03</div>
+            <div class="proof-old"><span>Generation</span><s>Let the model write whatever sounds convincing.</s></div>
+            <div class="proof-arrow">→</div>
+            <div class="proof-new"><span>Truth boundary</span><strong>The model is told what it does not know.</strong><small>Required facts gate the draft; validation catches the wrong person, company, step, or placeholder.</small><b class="proof-tag">No confident guesswork</b></div>
+          </article>
+          <article class="proof-row">
+            <div class="proof-index">04</div>
+            <div class="proof-old"><span>Follow-up</span><s>Remember to stop the sequence after a reply.</s></div>
+            <div class="proof-arrow">→</div>
+            <div class="proof-new"><span>Conversation state</span><strong>A reply stops the follow-ups on its own.</strong><small>Suppression and send-time eligibility are checked again at the last possible moment.</small><b class="proof-tag">Autopilot stays governed</b></div>
+          </article>
+          <article class="proof-row">
+            <div class="proof-index">05</div>
+            <div class="proof-old"><span>Voice</span><s>Put an untested voice agent on the phone.</s></div>
+            <div class="proof-arrow">→</div>
+            <div class="proof-new"><span>Pre-flight and live controls</span><strong>Stress-test the agent before it dials.</strong><small>Campaign-specific flows, DNC, business hours, real calendar slots, and booking constraints stay in the loop.</small><b class="proof-tag">The call has to earn its turn</b></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="variant variant-b" aria-labelledby="variant-b-title">
+        <div class="variant-lead">
+          <div>
+            <div class="overline">Variant B · Premium comparison cards</div>
+            <h2 id="variant-b-title">The difference is what happens before “send.”</h2>
+            <p>Less like a spreadsheet, more like five decisive product truths. Each card makes one advantage memorable.</p>
+          </div>
+          <div class="lead-stat"><strong>5×</strong><span>less visual noise</span></div>
+        </div>
+        <div class="card-grid">
+          <article class="comparison-card featured" data-number="01">
+            <div class="comparison-card-top"><b>Qualification</b><span>01</span></div>
+            <h3>Fit is settled before enrichment.</h3>
+            <p>GNX checks the account against the campaign’s readable profile before a credit is spent.</p>
+            <div class="card-contrast"><div class="card-before"><label>Typical motion</label>Enrich first. Discover the mismatch later.</div><div class="card-after"><label>GNX motion</label>Qualify first. Spend with intent.</div></div>
+          </article>
+          <article class="comparison-card featured" data-number="02">
+            <div class="comparison-card-top"><b>Truth boundary</b><span>02</span></div>
+            <h3>The model knows what it does not know.</h3>
+            <p>Missing facts are explicit, required facts are a hard gate, and unsupported claims are not a fallback.</p>
+            <div class="card-contrast"><div class="card-before"><label>Typical motion</label>Ask the model to “avoid hallucinating.”</div><div class="card-after"><label>GNX motion</label>Name the gap. Refuse the guess.</div></div>
+          </article>
+          <article class="comparison-card" data-number="03">
+            <div class="comparison-card-top"><b>Message integrity</b><span>03</span></div>
+            <h3>A draft is invalid until it proves otherwise.</h3>
+            <p>Recipient, company, placeholders, formatting, sequence step, and duplicate content are checked before approval.</p>
+            <div class="card-contrast"><div class="card-before"><label>Typical motion</label>Human approval is the final safety net.</div><div class="card-after"><label>GNX motion</label>Validation carries the first load.</div></div>
+          </article>
+          <article class="comparison-card" data-number="04">
+            <div class="comparison-card-top"><b>Conversation state</b><span>04</span></div>
+            <h3>Autopilot changes approval, not the checks.</h3>
+            <p>Replies, opt-outs, bookings, and send-time eligibility are re-evaluated before anything goes out.</p>
+            <div class="card-contrast"><div class="card-before"><label>Typical motion</label>Remember to stop every follow-up.</div><div class="card-after"><label>GNX motion</label>The system stops itself.</div></div>
+          </article>
+          <article class="comparison-card featured" data-number="05">
+            <div class="comparison-card-top"><b>AI voice</b><span>05</span></div>
+            <h3>The agent has to pass before it calls.</h3>
+            <p>Adversarial scenarios, DNC checks, business hours, and real calendar availability shape the live call.</p>
+            <div class="card-contrast"><div class="card-before"><label>Typical motion</label>Launch the voice agent and learn in public.</div><div class="card-after"><label>GNX motion</label>Test the failure modes first.</div></div>
+          </article>
+          <article class="comparison-card" data-number="∞">
+            <div class="comparison-card-top"><b>One system</b><span>∞</span></div>
+            <h3>Email and voice share the same operating logic.</h3>
+            <p>One campaign context, one credit pool, one inbox, and one place to see what ran and why.</p>
+            <div class="card-contrast"><div class="card-before"><label>Typical motion</label>Stitch tools together and police the seams.</div><div class="card-after"><label>GNX motion</label>One governed sales loop.</div></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="variant variant-c" aria-labelledby="variant-c-title">
+        <div class="variant-lead">
+          <div>
+            <div class="overline">Variant C · Governed workflow</div>
+            <h2 id="variant-c-title">A prospect moves through five decisions—not one blast.</h2>
+            <p>This version explains GNX as a control system. It is strongest when the buyer wants to understand why the product is safer at every stage.</p>
+          </div>
+          <div class="lead-stat"><strong>01 → 05</strong><span>from fit to conversation</span></div>
+        </div>
+        <div class="workflow-shell">
+          <nav class="workflow-rail" aria-label="Governed outbound stages">
+            <div class="workflow-nav"><i>01</i><div><strong>Fit</strong><span>Should this account enter?</span></div></div>
+            <div class="workflow-nav"><i>02</i><div><strong>Context</strong><span>What is actually known?</span></div></div>
+            <div class="workflow-nav"><i>03</i><div><strong>Message</strong><span>What can be said?</span></div></div>
+            <div class="workflow-nav"><i>04</i><div><strong>Eligibility</strong><span>Is it still safe now?</span></div></div>
+            <div class="workflow-nav"><i>05</i><div><strong>Outcome</strong><span>What happened next?</span></div></div>
+          </nav>
+          <div class="workflow-main">
+            <article class="workflow-step"><div><div class="workflow-step-label">01 · Fit</div><h3>Before a credit</h3></div><div><p>Campaign-specific qualification rules decide whether a candidate deserves enrichment at all.</p><span class="workflow-result">Readable rejection reasons</span></div></article>
+            <article class="workflow-step"><div><div class="workflow-step-label">02 · Context</div><h3>Before a draft</h3></div><div><p>Required and optional ingredients are scored only after enrichment reaches a terminal state.</p><span class="workflow-result">Missing facts stay visible</span></div></article>
+            <article class="workflow-step"><div><div class="workflow-step-label">03 · Message</div><h3>Before approval</h3></div><div><p>The model receives a stable context snapshot and the draft is checked for recipient, company, step, markup, and duplication errors.</p><span class="workflow-result">Every message is explainable</span></div></article>
+            <article class="workflow-step"><div><div class="workflow-step-label">04 · Eligibility</div><h3>Before sending</h3></div><div><p>Autopilot still re-checks replies, unsubscribes, bookings, suppression, business hours, and voice DNC state.</p><span class="workflow-result">Automation never skips the gate</span></div></article>
+            <article class="workflow-step"><div><div class="workflow-step-label">05 · Outcome</div><h3>After contact</h3></div><div><p>Replies stop sequences, meetings use real server-computed slots, and analytics preserve partial success and failure reasons.</p><span class="workflow-result">The loop learns what actually ran</span></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="variant variant-d" aria-label="Structured table comparison">
+        <div class="table-wrap">
+          <table class="proof-table">
+            <thead>
+              <tr><th>Decision</th><th>The usual way</th><th>GNX Sales</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Targeting</td>
+                <td data-label="The usual way"><div class="table-cell"><span class="table-mark bad">×</span><span>Buy a list and send to all of it.</span></div></td>
+                <td data-label="GNX Sales"><div class="table-cell"><span class="table-mark good">✓</span><span>Every account is checked against your profile first.</span></div></td>
+              </tr>
+              <tr>
+                <td>Enrichment</td>
+                <td data-label="The usual way"><div class="table-cell"><span class="table-mark bad">×</span><span>Pay to enrich, then find out the lead was a bad fit.</span></div></td>
+                <td data-label="GNX Sales"><div class="table-cell"><span class="table-mark good">✓</span><span>Fit is settled before a credit is spent.</span></div></td>
+              </tr>
+              <tr>
+                <td>Channels</td>
+                <td data-label="The usual way"><div class="table-cell"><span class="table-mark bad">×</span><span>Email is one tool; calling is another bill.</span></div></td>
+                <td data-label="GNX Sales"><div class="table-cell"><span class="table-mark good">✓</span><span>Email and AI voice draw from one shared pool.</span></div></td>
+              </tr>
+              <tr>
+                <td>Context</td>
+                <td data-label="The usual way"><div class="table-cell"><span class="table-mark bad">×</span><span>Ask the model to sound convincing and hope the facts hold.</span></div></td>
+                <td data-label="GNX Sales"><div class="table-cell"><span class="table-mark good">✓</span><span>Give the model an explicit list of what it does not know.</span></div></td>
+              </tr>
+              <tr>
+                <td>Follow-up</td>
+                <td data-label="The usual way"><div class="table-cell"><span class="table-mark bad">×</span><span>Remember to stop the sequence after a reply.</span></div></td>
+                <td data-label="GNX Sales"><div class="table-cell"><span class="table-mark good">✓</span><span>A reply stops the follow-ups on its own.</span></div></td>
+              </tr>
+              <tr>
+                <td>Voice</td>
+                <td data-label="The usual way"><div class="table-cell"><span class="table-mark bad">×</span><span>Put an untested voice agent on the phone.</span></div></td>
+                <td data-label="GNX Sales"><div class="table-cell"><span class="table-mark good">✓</span><span>Stress-test adversarial calls before the agent dials.</span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="prototype-footer">Prototype only — copy, row count, and visual direction are for approval before production implementation.</p>
+    </main>
+
+    <div class="prototype-bar" aria-label="Prototype variant switcher">
+      <button type="button" data-direction="previous" aria-label="Previous variation">←</button>
+      <div class="prototype-current"><b id="variant-label">A — Guided proof path</b><span>Use ← / → or choose a variation</span></div>
+      <button type="button" data-direction="next" aria-label="Next variation">→</button>
+      <div class="variant-pips" aria-hidden="true"><i data-pip="a" class="active"></i><i data-pip="b"></i><i data-pip="c"></i><i data-pip="d"></i></div>
+    </div>
+
+    <script>
+      const variants = [
+        { key: 'a', label: 'A — Guided proof path' },
+        { key: 'b', label: 'B — Premium comparison cards' },
+        { key: 'c', label: 'C — Governed workflow' },
+        { key: 'd', label: 'D — Structured table' },
+      ];
+      const getVariant = () => {
+        const value = new URLSearchParams(window.location.search).get('variant')?.toLowerCase();
+        return variants.some((item) => item.key === value) ? value : 'a';
+      };
+      const setVariant = (key) => {
+        document.body.dataset.variant = key;
+        document.getElementById('variant-label').textContent = variants.find((item) => item.key === key).label;
+        document.querySelectorAll('[data-pip]').forEach((pip) => pip.classList.toggle('active', pip.dataset.pip === key));
+        const url = new URL(window.location.href);
+        url.searchParams.set('variant', key);
+        window.history.replaceState({}, '', url);
+      };
+      const cycle = (direction) => {
+        const current = variants.findIndex((item) => item.key === document.body.dataset.variant);
+        const next = (current + direction + variants.length) % variants.length;
+        setVariant(variants[next].key);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+      document.querySelectorAll('[data-direction]').forEach((button) => button.addEventListener('click', () => cycle(button.dataset.direction === 'next' ? 1 : -1)));
+      document.addEventListener('keydown', (event) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable) return;
+        if (event.key === 'ArrowLeft') cycle(-1);
+        if (event.key === 'ArrowRight') cycle(1);
+      });
+      setVariant(getVariant());
+    </script>
+  </body>
+</html>

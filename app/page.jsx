@@ -65,10 +65,10 @@ export default function LandingPage() {
 
   const { emailsPerMonth, callsPerMonth } = marketingCeilingsFor(plan);
   const capacity = [
-    { value: emailsPerMonth.toLocaleString(), label: 'emails / month', prefix: 'Up to' },
-    { value: plan.emailCampaigns, label: 'email campaigns' },
     { value: plan.voiceCampaigns, label: plan.voiceCampaigns === 1 ? 'voice campaign' : 'voice campaigns' },
+    { value: plan.emailCampaigns, label: 'email campaigns' },
     { value: callsPerMonth.toLocaleString(), label: 'calls / month', prefix: 'Up to' },
+    { value: emailsPerMonth.toLocaleString(), label: 'emails / month', prefix: 'Up to' },
   ];
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });

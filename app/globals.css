@@ -2807,11 +2807,14 @@ a { color: inherit; text-decoration: none; }
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 8px 14px;
-  padding: 22px;
-  background: #fff;
-  border: 1px solid var(--line);
+  padding: 22px 22px 22px 19px;
+  background: rgba(255, 255, 255, .72);
+  border: 1px solid rgba(231, 237, 233, .86);
+  border-left: 4px solid var(--g-500);
   border-radius: 22px;
   box-shadow: var(--sh-xs);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 .story-scenario .content-card-icon { grid-column: 1; margin: 0; width: 36px; height: 36px; }
 .story-scenario > div { grid-column: 2; }
@@ -2835,11 +2838,13 @@ a { color: inherit; text-decoration: none; }
   gap: 18px;
 }
 .story-guarantee {
-  padding: 28px 28px 28px 26px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--g-500);
-  border-radius: 22px;
+  padding: 28px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(111, 231, 176, .28), transparent 46%),
+    #fff;
+  border: 1px solid var(--g-100);
+  border-radius: 32px;
+  box-shadow: var(--sh-sm);
 }
 .story-guarantee h3 { margin-top: 16px; font-family: var(--font-display); font-size: 20px; letter-spacing: -.02em; }
 .story-guarantee p { margin-top: 10px; color: var(--muted); font-size: 14.5px; line-height: 1.7; }
@@ -2924,9 +2929,12 @@ a { color: inherit; text-decoration: none; }
 .story-principle {
   position: relative;
   padding: 28px 28px 26px;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 24px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(111, 231, 176, .28), transparent 46%),
+    #fff;
+  border: 1px solid var(--g-100);
+  border-radius: 32px;
+  box-shadow: var(--sh-sm);
 }
 .story-principle-n {
   position: absolute;
@@ -3188,7 +3196,7 @@ a { color: inherit; text-decoration: none; }
    to look unlike every card grid above it. */
 .cmp { margin-top: 44px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-xl); }
 .cmp-head { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border-bottom: 1px solid var(--line); }
-.cmp-head span { padding: 15px 24px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.cmp-head span { padding: 15px 24px; color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-align: center; text-transform: uppercase; }
 .cmp-head-us { color: var(--g-800); background: var(--g-50); }
 .cmp-row { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line-2); }
 .cmp-row:first-of-type { border-top: 0; }
@@ -3255,9 +3263,9 @@ a { color: inherit; text-decoration: none; }
 /* The number+label pair is its own row, so the label centers on the number
    itself — not on the number plus the "Up to" line stacked above it. */
 .plan-limit-row { display: flex; align-items: center; gap: 9px; }
-.plan-limits b { min-width: 62px; color: var(--g-800); font-family: var(--font-display); font-size: 19px; }
+.plan-limits b { min-width: 62px; color: var(--g-800); font-family: var(--font-display); font-size: 19px; text-align: center; }
 .plan-limits span { color: var(--muted); font-size: 13px; font-weight: 700; }
-.plan-limit-prefix { margin-bottom: 1px; color: var(--g-700); font-size: 9px; font-weight: 800; font-style: normal; letter-spacing: .01em; }
+.plan-limit-prefix { width: 62px; margin-bottom: 1px; color: var(--g-700); font-size: 9px; font-weight: 800; font-style: normal; letter-spacing: .01em; text-align: center; }
 .plan-card.is-featured .plan-limits b { color: var(--g-300); }
 .plan-card.is-featured .plan-limits span { color: rgba(255,255,255,.72); }
 .plan-card.is-featured .plan-limit-prefix { color: var(--g-300); }
