@@ -12,6 +12,8 @@ import { PLAN_CONFIG, marketingCeilingsFor } from "../lib/plans";
 import QualifyDemo from "../components/landing/QualifyDemo";
 import VoiceTestDemo from "../components/landing/VoiceTestDemo";
 
+const CALENDLY_URL = process.env.NEXT_PUBLIC_CALENDLY_URL || "https://calendly.com";
+
 export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -104,7 +106,16 @@ export default function LandingPage() {
                     <button className="btn btn-primary btn-lg" onClick={() => router.push('/signup')}>
                       Start with a paid plan <Icon name="arrow" size={18} color="#06231a" />
                     </button>
-                    <button className="landing-outline-btn" onClick={() => scrollTo('accuracy')}>See how it works</button>
+                    <a
+                      className="landing-outline-btn"
+                      href={CALENDLY_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="Book a demo with GNX Sales"
+                    >
+                      <Icon name="calendar" size={17} />
+                      Book a demo
+                    </a>
                   </>
                 )}
               </div>
